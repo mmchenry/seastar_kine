@@ -6,8 +6,12 @@ function acqMaster
 % Copies over portions of movies as image sequences
 do.choose_dur = 1;
 
+% Interactively select initial conditions
+do.initialConditions = 1;
+
 % Whether to track the body centroid
 do.Centroids = 1;
+
 
 % Designate which categories to analyze
 do.ana_adult  = 1;
@@ -80,52 +84,61 @@ end
 
 %% Interactive mode: Select initial conditions
 
-% Loop thru sequences
-for i = 1:length(cList.vidType)
+if do.initialConditions
     
-    currDataPath = [dataPath filesep cList.path{i} filesep cList.fName{i}];
-    currVidPath  = [rawVidPath filesep cList.path{i} filesep cList.fName{i} cList.ext{i}];
-    
-    % Load video info (v)
-    v = defineVidObject(currVidPath);
-    
-    % If analysis requested and not done already . . .
-    if yes_ana(cList.age(i),cList.orient(i),do) && ...
-            isempty(dir([currDataPath filesep 'Initial conditions.mat']))
-
-        % First image
-        im = getFrame(currVidPath,v,v.UserData.FirstFrame,imInvert,'gray');
+    % Loop thru sequences
+    for i = 1:length(cList.vidType)
         
-        % Initial position
-        disp(' ')
-        disp('Select animal to be tracked')
-        [x,y] = imInteract(im,'points',1);
+        currDataPath = [dataPath filesep cList.path{i} filesep cList.fName{i}];
+        currVidPath  = [rawVidPath filesep cList.path{i} filesep cList.fName{i} cList.ext{i}];
         
-        % Threshold
-        disp(' ')
-        disp('Select threshold')
-        tVal = imInteract(im,'threshold');
+        % Load video info (v)
+        v = defineVidObject(currVidPath);
         
-        % Radius
-        disp(' ')
-        disp('Select roi radius')
-        r = imInteract(im,'radius',x,y);
-        
-        % Store data
-        iC.x       = x;
-        iC.y       = y;
-        iC.tVal    = tVal;
-        iC.r       = r;
-        iC.useMean = 0;
-        
-        % Save data
-        save([currDataPath filesep 'Initial conditions'],'iC')
-        
-        clear im useMean im0Mean im0NoMean x y tVal r
+        % If analysis requested and not done already, meets yes_ana
+        % criteria and the clipinfo has already been determined
+        if ~isempty(dir([currDataPath filesep 'clipInfo.mat'])) && ...
+                yes_ana(cList.age(i),cList.orient(i),do) && ...
+                isempty(dir([currDataPath filesep 'Initial conditions.mat']))
+            
+            disp(['Initial conditions: ' currVidPath])
+            disp('')
+            
+            % First image
+            im = getFrame(currVidPath,v,v.UserData.FirstFrame,imInvert,'gray');
+            
+            % Initial position
+            disp(' ')
+            disp('Select animal to be tracked')
+            [x,y] = imInteract(im,'points',1);
+            
+            % Threshold
+            disp(' ')
+            disp('Select threshold')
+            tVal = imInteract(im,'threshold');
+            
+            % Radius
+            disp(' ')
+            disp('Select roi radius')
+            r = imInteract(im,'radius',x,y);
+            
+            % Store data
+            iC.x       = x;
+            iC.y       = y;
+            iC.tVal    = tVal;
+            iC.r       = r;
+            iC.useMean = 0;
+            
+            % Save data
+            save([currDataPath filesep 'Initial conditions'],'iC')
+            
+            clear im useMean im0Mean im0NoMean x y tVal r
+        end
     end
+    
+    disp(' ')
+    
 end
-
-disp(' ')
 
 
 
@@ -140,8 +153,12 @@ if do.Centroids
         currVidPath  = [rawVidPath filesep cList.path{i} filesep cList.fName{i} cList.ext{i}];
         
         % If analysis requested and not done already . . .
-        if yes_ana(cList.age(i),cList.orient(i),do) && ...
+        if ~isempty(dir([currDataPath filesep 'Initial conditions.mat'])) && ...
+                yes_ana(cList.age(i),cList.orient(i),do) && ...
                 isempty(dir([currDataPath filesep 'Centroid.mat']))
+            
+            disp(['Tracking centroid: ' currVidPath])
+            disp('')
             
             % Load initial conditions (iC)
             load([currDataPath filesep 'Initial conditions'])
@@ -205,6 +222,9 @@ for i = 1:length(cList.vidType)
 
         if isempty(dir([currDataPath filesep 'clipInfo.mat']))
 
+            disp(['selectDurations: ' currDataPath]);
+            disp('')
+            
             getDefaults = 1;
 
             % Make figure
@@ -309,6 +329,8 @@ function cList = catVidfiles(rawVidPath)
 a1 = dir(rawVidPath);
 
 n = 1;
+
+cList.age = '';
 
 % Loop thru for adult and juvenile directories
 for i = 1:length(a1)
@@ -454,4 +476,8 @@ for i = 1:length(a1)
             end
         end     
     end   
+end
+
+if isempty(cList.age(1))
+    error('No video files found')
 end
