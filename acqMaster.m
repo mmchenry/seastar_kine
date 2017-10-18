@@ -12,6 +12,11 @@ do.initialConditions = 1;
 % Whether to track the body centroid
 do.Centroids = 1;
 
+% Review results of centroid tracking
+do.CentroidReview = 0; %Note: this section nto fully coded
+
+% Create movies of the Centroid movies for review
+do.MakeCentroidMovies = 1;
 
 % Designate which categories to analyze
 do.ana_adult  = 1;
@@ -92,6 +97,8 @@ if do.initialConditions
         currDataPath = [dataPath filesep cList.path{i} filesep cList.fName{i}];
         currVidPath  = [rawVidPath filesep cList.path{i} filesep cList.fName{i} cList.ext{i}];
         
+        
+        
         % Load video info (v)
         v = defineVidObject(currVidPath);
         
@@ -99,47 +106,49 @@ if do.initialConditions
         % criteria and the clipinfo has already been determined
         if ~isempty(dir([currDataPath filesep 'clipInfo.mat'])) && ...
                 yes_ana(cList.age(i),cList.orient(i),do) && ...
-                isempty(dir([currDataPath filesep 'Initial conditions.mat']))
+                isempty(dir([currDataPath filesep 'Initial conditions.mat'])) 
+                          
+            % Load frame intervals ('clipInfo')
+            load([currDataPath filesep 'clipInfo'])
             
-            disp(['Initial conditions: ' currVidPath])
-            disp('')
-            
-            % First image
-            im = getFrame(currVidPath,v,v.UserData.FirstFrame,imInvert,'gray');
-            
-            % Initial position
-            disp(' ')
-            disp('Select animal to be tracked')
-            [x,y] = imInteract(im,'points',1);
-            
-            % Threshold
-            disp(' ')
-            disp('Select threshold')
-            tVal = imInteract(im,'threshold');
-            
-            % Radius
-            disp(' ')
-            disp('Select roi radius')
-            r = imInteract(im,'radius',x,y);
-            
-            % Store data
-            iC.x       = x;
-            iC.y       = y;
-            iC.tVal    = tVal;
-            iC.r       = r;
-            iC.useMean = 0;
-            
-            % Save data
-            save([currDataPath filesep 'Initial conditions'],'iC')
-            
-            clear im useMean im0Mean im0NoMean x y tVal r
+            if ~isnan(clipInfo.startFrame)
+                disp(['Initial conditions: ' currVidPath])
+                disp('')
+                
+                % First image
+                im = getFrame(currVidPath,v,v.UserData.FirstFrame,imInvert,'gray');
+                
+                % Initial position
+                disp(' ')
+                disp('Select animal to be tracked')
+                [x,y] = imInteract(im,'points',1);
+                
+                % Threshold
+                disp(' ')
+                disp('Select threshold')
+                tVal = imInteract(im,'threshold');
+                
+                % Radius
+                disp(' ')
+                disp('Select roi radius')
+                r = imInteract(im,'radius',x,y);
+                
+                % Store data
+                iC.x       = x;
+                iC.y       = y;
+                iC.tVal    = tVal;
+                iC.r       = r;
+                iC.useMean = 0;
+                
+                % Save data
+                save([currDataPath filesep 'Initial conditions'],'iC')
+                
+                clear im useMean im0Mean im0NoMean x y tVal r
+            end
         end
-    end
-    
-    disp(' ')
-    
+    end    
+    disp(' ')  
 end
-
 
 
 %% Track centroid coordinates
@@ -176,18 +185,105 @@ if do.Centroids
             Centroid = tracker(currVidPath,v,imInvert,'threshold translation',...
                 roi0,iC.tVal,frames);
             
-            % Make movie
-            M = aniData(vid_path,v,imInvert,'Centroid tracking',Centroid,...
-                     roi0,frames,numroipts,0);
-            
-                 %TODO: Add interactive mode here to play and review
-                 %tracking
-                 
             % Save data
-            save([data_path filesep 'Centroid'],'Centroid')
+            save([currDataPath filesep 'Centroid'],'Centroid')
         end
         disp(' ')
     end    
+end
+
+
+%% Generate centroid movies for review
+
+if do.MakeCentroidMovies
+    
+    % Loop thru sequences
+    for i = 1:length(cList.vidType)
+        
+        % Current paths
+        currDataPath = [dataPath filesep cList.path{i} filesep cList.fName{i}];
+        currVidPath  = [rawVidPath filesep cList.path{i} filesep cList.fName{i} cList.ext{i}];
+        
+        % Check status
+        if ~isempty(dir([currDataPath filesep 'anaStatus.mat']))
+            load([currDataPath filesep 'anaStatus.mat'])
+        else
+            anaStatus.centroid = 'not approved';
+        end
+        
+        % If centroid data there and centroid data not yet approved
+        if ~isempty(dir([currDataPath filesep 'Centroid.mat'])) && ...
+                strcmp(anaStatus.centroid,'not approved')
+            
+            % Load initial conditions (iC)
+            load([currDataPath filesep 'Initial conditions'])
+            
+            % Load centroid data (Centroid)
+            load([currDataPath filesep 'Centroid.mat'])
+            
+            % Load frame intervals ('clipInfo')
+            load([currDataPath filesep 'clipInfo'])
+            
+            % Frames
+            frames = clipInfo.startFrame:clipInfo.endFrame;
+            
+            % Region of interest for first frame
+            roi0 = giveROI('define','circular',numroipts,iC.r,iC.x,iC.y);
+            
+            % Create coordinate transformation structure 
+            S = defineSystem2d('roi',roi0,Centroid);
+            
+            disp(' ')
+            disp(['Making Centroid Movie: ' currVidPath])
+            disp(' ')
+            
+            % Make movie
+            M = aniData(currVidPath,v,imInvert,'Centroid tracking',S,0);
+            
+            mov.dataPath      = currDataPath;
+            mov.currVidPath   = currVidPath;
+            mov.M             = M;
+            
+            % Save movie data
+            save([currDataPath filesep 'centroid movie'],'mov')
+        end
+    end
+end
+
+
+%% Review recent centroid tracking
+
+if do.CentroidReview
+    
+     % Loop thru sequences
+    for i = 1:length(cList.vidType)
+        
+        % Current paths
+        currDataPath = [dataPath filesep cList.path{i} filesep cList.fName{i}];
+        currVidPath  = [rawVidPath filesep cList.path{i} filesep cList.fName{i} cList.ext{i}];
+        
+        % Check status
+        if ~isempty(dir([currDataPath filesep 'anaStatus.mat']))
+            load([currDataPath filesep 'anaStatus.mat'])
+        else
+            anaStatus.centroid = 'not approved';
+        end
+        
+        % If centroid data there and centroid data not yet approved
+        if ~isempty(dir([currDataPath filesep 'centroid movie.mat'])) && ...
+                strcmp(anaStatus.centroid,'not approved')
+            
+            % Load centroid movie (mov)
+            load([currDataPath filesep 'centroid movie'])
+            
+            f = figure;
+            
+            movie(mov.M)
+            
+            %TODO: make interactive mode to review data
+        end
+    end
+    
 end
 
 
