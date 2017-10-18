@@ -16,6 +16,7 @@ do.ana_horiz  = 1;
 do.ana_vert   = 0;
 do.ana_upside = 0;
 
+
 %% General parameters
 
 % Invert image
@@ -41,6 +42,14 @@ if ~isempty(dir(['/Users/mmchenry/Documents/Matlab code']))
     
     % Path to root of data
     dataPath = '/Users/mmchenry/Documents/Projects/Seastars/CSULB data';
+    
+elseif ~isempty(dir(['C:\Program Files\MATLAB\R2016a']))
+    
+    rawVidPath = '\\flow.local\shared\Sea stars';
+    
+    dataPath = '\\flow.local\andres\Sea stars\CSULB data';
+    
+    kinePath = 'C:\Users\andres\Documents\GitPath\kineBox';
     
 else
     error('Do not recognize computer')
