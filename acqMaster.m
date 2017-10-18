@@ -45,7 +45,8 @@ if ~isempty(dir(['/Users/mmchenry/Documents/Matlab code']))
     
 elseif ~isempty(dir(['C:\Program Files\MATLAB\R2016a']))
     
-    rawVidPath = '\\flow.local\shared\Sea stars';
+    %rawVidPath = '\\flow.local\shared\Sea stars';
+    rawVidPath = 'C:\Users\andres\Documents\Sea stars';
     
     dataPath = '\\flow.local\andres\Sea stars\CSULB data';
     
