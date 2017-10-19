@@ -13,7 +13,7 @@ do.initialConditions = 1;
 do.Centroids = 1;
 
 % Review results of centroid tracking
-do.CentroidReview = 0; %Note: this section nto fully coded
+do.CentroidReview = 1; 
 
 % Create movies of the Centroid movies for review
 do.MakeCentroidMovies = 1;
@@ -212,8 +212,9 @@ if do.MakeCentroidMovies
         end
         
         % If centroid data there and centroid data not yet approved
-        if ~isempty(dir([currDataPath filesep 'Centroid.mat'])) && ...
-                strcmp(anaStatus.centroid,'not approved')
+        if isempty(dir([currDataPath filesep 'centroid movie.mat'])) && ...
+           ~isempty(dir([currDataPath filesep 'Centroid.mat'])) && ...
+            strcmp(anaStatus.centroid,'not approved')
             
             % Load initial conditions (iC)
             load([currDataPath filesep 'Initial conditions'])
@@ -255,7 +256,7 @@ end
 
 if do.CentroidReview
     
-     % Loop thru sequences
+    % Loop thru sequences
     for i = 1:length(cList.vidType)
         
         % Current paths
@@ -275,15 +276,54 @@ if do.CentroidReview
             
             % Load centroid movie (mov)
             load([currDataPath filesep 'centroid movie'])
+
+            % Make figure window
+            f = figure('units','normalized');
             
-            f = figure;
+            % Status
+            disp(' ')
+            disp(['Approving tracking : ' currVidPath])
+            disp(' ');
             
-            movie(mov.M)
-            
-            %TODO: make interactive mode to review data
-        end
-    end
-    
+            while truex 
+                
+                movie(f,mov.M,1,20,[0 0 1 1])
+                
+                b = questdlg('Does the tracking look good?','','Yes','No','Replay','Yes');
+                
+                if strcmp(b,'Yes')
+                    
+                    % Update status
+                    anaStatus.centroid = 'approved';
+                    
+                    % Delete movie data
+                    delete([currDataPath filesep 'centroid movie.mat']);
+                    
+                    % Save status file
+                    save([currDataPath filesep 'anaStatus.mat'],'anaStatus')
+                    
+                    break
+                    
+                elseif strcmp(b,'No')
+                    
+                    % Update status
+                    anaStatus.centroid = 'not approved';
+                    
+                    % Delete movie data
+                    delete([currDataPath filesep 'centroid movie.mat']);
+                    
+                    % Save status file
+                    save([currDataPath filesep 'anaStatus.mat'],'anaStatus')
+                    
+                    break
+                    
+                elseif isempty(b)
+                    return
+                end
+            end   
+            close(f)
+        end     
+    end   
 end
 
 
@@ -426,7 +466,7 @@ a1 = dir(rawVidPath);
 
 n = 1;
 
-cList.age = '';
+novid = 1;
 
 % Loop thru for adult and juvenile directories
 for i = 1:length(a1)
@@ -438,6 +478,8 @@ for i = 1:length(a1)
     else       
         currAge = [];        
     end
+    
+   
     
     if ~isempty(currAge)
         
@@ -556,6 +598,8 @@ for i = 1:length(a1)
                             cList.fName{n}   = name;
                             cList.ext{n}     = ext;
                             
+                            novid = 0;
+                            
                             if isempty(cal.Type)
                                 cList.calPath{n} = [];
                                 %disp(' ')
@@ -574,6 +618,6 @@ for i = 1:length(a1)
     end   
 end
 
-if isempty(cList.age(1))
+if novid==1
     error('No video files found')
 end
