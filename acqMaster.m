@@ -281,6 +281,11 @@ if do.CentroidReview
             
             % Status
             disp(' ')
+            
+            
+            
+            
+            
             disp(['Approving tracking : ' currVidPath])
             disp(' ');
             
