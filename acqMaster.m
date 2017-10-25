@@ -96,8 +96,7 @@ if do.initialConditions
         
         currDataPath = [dataPath filesep cList.path{i} filesep cList.fName{i}];
         currVidPath  = [rawVidPath filesep cList.path{i} filesep cList.fName{i} cList.ext{i}];
-        
-        
+
         
         % Load video info (v)
         v = defineVidObject(currVidPath);
