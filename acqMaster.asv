@@ -4,16 +4,16 @@ function acqMaster
 %% Code execution
 
 % Copies over portions of movies as image sequences
-do.choose_dur = 1;
+do.choose_dur = 0-;
 
 % Interactively select initial conditions
-do.initialConditions = 1;
+do.initialConditions = 0;
 
 % Whether to track the body centroid
 do.Centroids = 0;
 
 % Review results of centroid tracking
-do.CentroidReview = 1; 
+do.CentroidReview = 0; 
 
 % Create movies of the Centroid movies for review
 do.MakeCentroidMovies = 1;
