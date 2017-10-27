@@ -149,9 +149,10 @@ if do.initialConditions
                 % Save data
                 save([currDataPath filesep 'Initial conditions'],'iC')
                 
-                clear im useMean im0Mean im0NoMean x y tVal r
+                clear im useMean im0Mean im0NoMean x y tVal r iC
             end
         end
+        clear v currDataPath currVidPath 
     end    
     disp(' ')  
 end
@@ -180,7 +181,10 @@ if do.Centroids
             
             % Load frame intervals ('clipInfo')
             load([currDataPath filesep 'clipInfo'])
-              
+            
+            % Load video info (v)
+            v = defineVidObject(currVidPath);
+            
             % Frames
             frames = clipInfo.startFrame:clipInfo.endFrame;
             
@@ -195,6 +199,8 @@ if do.Centroids
             save([currDataPath filesep 'Centroid'],'Centroid')
         end
         disp(' ')
+        
+        clear v currDataPath currVidPath roi0 frames iC clipInfo Centroid
     end    
 end
 
@@ -231,6 +237,9 @@ if do.MakeCentroidMovies
             % Load frame intervals ('clipInfo')
             load([currDataPath filesep 'clipInfo'])
             
+            % Load video info (v)
+            v = defineVidObject(currVidPath);
+            
             % Frames
             frames = clipInfo.startFrame:clipInfo.endFrame;
             
@@ -254,7 +263,9 @@ if do.MakeCentroidMovies
             % Save movie data
             save([currDataPath filesep 'centroid movie'],'mov','-v7.3')
         end
-    end
+        
+        clear v currDataPath currVidPath iC Centroid clipInfo S M mov roi0 frames 
+    end   
 end
 
 
@@ -333,7 +344,8 @@ if do.CentroidReview
                 end
             end   
             close(f)
-        end     
+        end  
+        clear v currDataPath currVidPath b b2 anaStatus f mov  
     end   
 end
 
@@ -384,7 +396,8 @@ if do.bodyRotation
                 save([currDataPath filesep 'Rotation'],'Rotation')
             end      
                 
-        end        
+        end
+        clear v currDataPath currVidPath anaStatus Rotation
     end
 end
 
@@ -416,6 +429,7 @@ for i = 1:length(cList.vidType)
         % Save transformation data
         save([currDataPath filesep 'Transformation'],'S')
     end  
+    clear roi0 currDataPath currVidPath Rotation S
 end
 
 
@@ -454,7 +468,6 @@ if do.MakeRotationMovies
             % Load tranfromation strcuture (S)
             load([currDataPath filesep 'Transformation'])
             
-            
             disp(' ')
             disp(['Making Pred Rotation Movie: ' currVidPath])
             disp(' ')
@@ -469,6 +482,7 @@ if do.MakeRotationMovies
             % Save movie data
             save([currDataPath filesep 'Rotation movie'],'mov','-v7.3')
         end
+        clear M mov Rotation S iC currDataPath currVidPath
     end
 end
 
@@ -551,7 +565,8 @@ if do.RotationReview
                 end
             end   
             close(f)
-        end     
+        end 
+        clear f M mov Rotation b b2 anaStatus currDataPath currVidPath
     end   
 end
 
