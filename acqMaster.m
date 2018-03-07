@@ -3,33 +3,41 @@ function acqMaster
 
 %% Code execution
 
+do.makeMeanImage = 0;
+
 % Copies over portions of movies as image sequences
-do.choose_dur = 1;
+do.choose_dur = 0;
 
 % Interactively select initial conditions
-do.initialConditions = 1;
+do.initialConditions = 0;
 
-% Whether to track the body centroid
-do.Centroids = 1;
+% Course body tracking
+do.courseTrack  = 0;
 
-% Review results of centroid tracking
-do.CentroidReview = 1; 
+% Refined body tracking
+do.refinedTrack = 0;
 
-% Create movies of the Centroid movies for review
-do.MakeCentroidMovies = 1;
-
-% Track body rotation
-do.bodyRotation = 1;
-
-do.MakeRotationMovies = 1;
-
-do.RotationReview = 1;
+% % Whether to track the body centroid
+% do.Centroids = 1;
+% 
+% % Review results of centroid tracking
+% do.CentroidReview = 1; 
+% 
+% % Create movies of the Centroid movies for review
+% do.MakeCentroidMovies = 1;
+% 
+% % Track body rotation
+% do.bodyRotation = 1;
+% 
+% do.MakeRotationMovies = 1;
+% 
+% do.RotationReview = 1;
 
 % Designate which categories to analyze
-do.ana_adult  = 1;
-do.ana_juv    = 0;
-do.ana_horiz  = 1;
-do.ana_vert   = 0;
+do.ana_adult  = 0;
+do.ana_juv    = 1;
+do.ana_horiz  = 0;
+do.ana_vert   = 1;
 do.ana_upside = 0;
 
 
@@ -41,6 +49,9 @@ imInvert = 1;
 % Number of points to define the region of interest
 numroipts = 200;
 
+% Number of frames to analyze between saving
+numForSave = 10;
+
 
 %% Manage paths (need to modify for new PC)
 
@@ -50,14 +61,17 @@ if ~isempty(dir(['/Users/mmchenry/Documents/Matlab code']))
     kinePath = '/Users/mmchenry/Documents/Matlab code/kineBox';
     
     % Path to root dir of video (CSULB project, external drive)
-    vidPath = '/Volumes/Video/Sea stars/CSULB test/Raw video';
-    %vidPath = '/Volumes/Video/Sea stars/CSULB/Raw video';
+    %vidPath = '/Volumes/Video/Sea stars/CSULB test/Raw video';
+    %vidPath = '/Users/mmchenry/Documents/Video';
+    vidPath = '/Volumes/Video/Sea stars/CSULB/Raw video';
     
     % Location of video frames
-    vidFramePath = '/Volumes/Video/Sea stars/CSULB test/Video frames';
+    %vidFramePath = '/Volumes/Video/Sea stars/CSULB test/Video frames';
     
     % Path to root of data
     dataPath = '/Users/mmchenry/Documents/Projects/Seastars/CSULB data';
+    
+    
     
 elseif ~isempty(dir(['C:\Program Files\MATLAB\R2016a']))
     
@@ -73,6 +87,17 @@ else
     
 end
 
+% Check paths
+if isempty(dir(dataPath))
+    error('dataPath missing');
+    
+elseif isempty(dir(kinePath))
+    error('kinePath missing');
+    
+elseif isempty(dir(vidPath))
+    error('vidPath missing');
+end
+
 
 %% Initialize
 
@@ -85,118 +110,414 @@ addpath(kinePath)
 cList = catVidfiles(vidPath);
 
 
-%% Produce video stills
+%% Find mean image
 
-if do.choose_dur
+if do.makeMeanImage
     
-    selectDurations(cList,dataPath,vidPath,do)
+    % Loop thru catalog
+    for i = 1:length(cList.vidType)
+        
+        % Current paths
+        currDataPath = [dataPath filesep cList.path{i} filesep cList.fName{i}];
+        currVidPath  = [vidPath filesep cList.path{i} filesep cList.fName{i} cList.ext{i}];
+        
+        % Load video info (v)
+        v = defineVidObject(currVidPath);
+        
+        if isempty(dir([currDataPath filesep 'meanImageData.mat']))
+            
+            % Make mean images
+            imMean = motionImage(currVidPath,v,'mean bright','none',imInvert);
+            
+            % Save mean image data
+            save([currDataPath filesep 'meanImageData'],'imMean');           
+        end
+        
+        clear v currDataPath currVidPath imMean
+    end     
+end
+
+
+%% Interactive mode: Intialize
+
+if  do.initialConditions
     
+    % Loop thru sequences
+    for i = 1:length(cList.vidType)
+        
+        % Current directories
+        currDataPath = [dataPath filesep cList.path{i} filesep cList.fName{i}];
+        currVidPath  = [vidPath filesep cList.path{i} filesep cList.fName{i} cList.ext{i}];
+                
+        % Load video info (v)
+        v = defineVidObject(currVidPath);
+        
+        % Load imMean
+        load([currDataPath filesep 'meanImageData'])
+        
+        % Define initial conditions, make data files
+        initializeTracking(currVidPath,v,currDataPath,...
+                           'single body, with arms',imMean,imInvert)       
+    end
+    
+    clear currDataPath currVidPath v i imMean
+end
+
+
+%% Course body tracking
+
+if do.courseTrack
+    
+    % Whether to visualize steps in analysis
+    visSteps = 0;
+    
+    % Loop thru sequences
+    for i = 1:length(cList.vidType)
+        
+        % Current directories
+        currDataPath = [dataPath filesep cList.path{i} filesep cList.fName{i}];
+        currVidPath  = [vidPath filesep cList.path{i} filesep cList.fName{i} cList.ext{i}];
+
+        % Load initial conditions (iC)
+        load([currDataPath filesep 'Initial conditions'])
+        
+        % Load imMean
+        load([currDataPath filesep 'meanImageData'])
+        
+        % Load video info (v)
+        v = defineVidObject(currVidPath);
+        
+        % Define initial conditions, make data files   
+         trackBody(currVidPath,v,currDataPath,'Body course.mat',...
+                  'course',imMean,iC.frIntervalCourse,iC.x,iC.y,iC.r,visSteps)  
+    end
+    
+    clear currDataPath currVidPath v i imMean iC
+end
+
+
+%% Arm tracking
+
+if 0 % do.refinedTrack
+    
+    visSteps = 1;
+    
+    % Loop thru sequences
+    for i = 1:length(cList.vidType)
+        
+        % Current directories
+        currDataPath = [dataPath filesep cList.path{i} filesep cList.fName{i}];
+        currVidPath  = [vidPath filesep cList.path{i} filesep cList.fName{i} cList.ext{i}];
+                
+        % Load video info (v)
+        v = defineVidObject(currVidPath);
+        
+        if ~isempty(dir([currDataPath filesep 'Body course.mat']))
+            
+            % Load course body data (Body)
+            load([currDataPath filesep 'Body course.mat'])
+            
+            % Load imMean
+            load([currDataPath filesep 'meanImageData'])
+            
+            % Load initial conditions (iC)
+            load([currDataPath filesep 'Initial conditions'])
+            
+            iC.frIntervalFine = 5;
+            
+            % Define initial conditions, make data files
+            trackBody(currVidPath,v,currDataPath,'Body arm.mat',...
+                'arms',imMean,Body,iC.frIntervalFine,'none',visSteps)           
+        end
+    end
+    
+    clear currDataPath currVidPath v i Body iC imMean visSteps
+end
+
+
+
+%% Visualize arm tracking
+
+if 0 % do.refinedTrack
+    
+    visSteps = 1;
+    
+    % Loop thru sequences
+    for i = 1:length(cList.vidType)
+        
+        % Current directories
+        currDataPath = [dataPath filesep cList.path{i} filesep cList.fName{i}];
+        currVidPath  = [vidPath filesep cList.path{i} filesep cList.fName{i} cList.ext{i}];
+                
+        % Load video info (v)
+        v = defineVidObject(currVidPath);
+        
+        if ~isempty(dir([currDataPath filesep 'Body arm.mat']))
+            
+            % Load course body data (Body)
+            load([currDataPath filesep 'Body arm.mat'])
+            
+             % Load initial conditions (iC)
+            load([currDataPath filesep 'Initial conditions'])
+
+            % Make movie
+            aniData(currVidPath,v,currDataPath,'Body arm.mat',iC.invert,...
+                'Body arm',Body,visSteps,iC);
+        end
+    end
+    
+    clear currDataPath currVidPath v i visSteps
+end
+
+
+
+return
+
+%% Refined body tracking
+
+if 0 % do.refinedTrack
+    
+    % Loop thru sequences
+    for i = 1:length(cList.vidType)
+        
+        % Current directories
+        currDataPath = [dataPath filesep cList.path{i} filesep cList.fName{i}];
+        currVidPath  = [vidPath filesep cList.path{i} filesep cList.fName{i} cList.ext{i}];
+                
+        % Load video info (v)
+        v = defineVidObject(currVidPath);
+        
+        if ~isempty(dir([currDataPath filesep 'Body course.mat']))
+            
+            % Load course body data (Body)
+            load([currDataPath filesep 'Body course.mat'])
+            
+            % Save data file
+            save([currDataPath filesep 'Body fine.mat'],'Body')
+            
+            % Define initial conditions, make data files
+            trackBody(currVidPath,v,currDataPath,'Body fine.mat',...
+                'refined',[],[],[],1,Body)
+        end
+    end
+    
+    clear currDataPath currVidPath v i
+end
+
+
+%% Make body-tracking movie
+
+if 1 %do.MakeRotationMovies
+    
+    % Loop thru sequences
+    for i = 1:length(cList.vidType)
+        
+        % Current paths
+        currDataPath = [dataPath filesep cList.path{i} filesep cList.fName{i}];
+        currVidPath  = [vidPath filesep cList.path{i} filesep cList.fName{i} cList.ext{i}];
+        
+%         % Check approval status
+%         if ~isempty(dir([currDataPath filesep 'anaStatus.mat']))
+%             load([currDataPath filesep 'anaStatus.mat'])
+%         else
+%             warning(['You need to approve centroid tracking for' ...
+%                 currDataPath])
+%         end
+%         
+%         if ~isfield(anaStatus,'Rotation')
+%             anaStatus.Rotation = '';
+%         end
+        
+        % If centroid data there and centroid data not yet approved
+        if ~isempty(dir([currDataPath filesep 'Body fine.mat'])) 
+            
+%             % Load initial conditions (iC)
+%             load([currDataPath filesep 'Initial conditions'])
+%             
+%             % Load Body structure (Body)
+            load([currDataPath filesep 'Body fine.mat'])
+%             
+    % Load video info (v)
+        v = defineVidObject(currVidPath);
+%             
+            disp(' ')
+            disp(['Making Pred Rotation Movie: ' currVidPath])
+            disp(' ')
+            
+            % Make movie
+            aniData(currVidPath,v,currDataPath,'Body fine.mat',imInvert,'Body',Body);
+            
+%             mov.dataPath      = currDataPath;
+%             mov.currVidPath   = currVidPath;
+%             mov.M             = M;
+%             
+            % Save movie data
+            %save([currDataPath filesep 'Rotation movie'],'mov','-v7.3')
+            
+            clear v currDataPath currVidPath
+        end
+    end
 end
 
 
 %% Interactive mode: Select initial conditions
 
-if do.initialConditions
-    
-    % Loop thru sequences
-    for i = 1:length(cList.vidType)
-        
-        currDataPath = [dataPath filesep cList.path{i} filesep cList.fName{i}];
-        currVidPath  = [vidPath filesep cList.path{i} filesep cList.fName{i} cList.ext{i}];
+% if do.initialConditions
+%     
+%     % Loop thru sequences
+%     for i = 1:length(cList.vidType)
+%         
+%         currDataPath = [dataPath filesep cList.path{i} filesep cList.fName{i}];
+%         currVidPath  = [vidPath filesep cList.path{i} filesep cList.fName{i} cList.ext{i}];
+% 
+%         
+%         % Load video info (v)
+%         v = defineVidObject(currVidPath);
+%         
+%         % If analysis requested and not done already, meets yes_ana
+%         % criteria and the clipinfo has already been determined
+%         if ~isempty(dir([currDataPath filesep 'clipInfo.mat'])) && ...
+%                 yes_ana(cList.age(i),cList.orient(i),do) && ...
+%                 isempty(dir([currDataPath filesep 'Initial conditions.mat'])) 
+%                           
+%             % Load frame intervals ('clipInfo')
+%             load([currDataPath filesep 'clipInfo'])
+%             
+%             if ~isnan(clipInfo.startFrame)
+%                 disp(['Initial conditions: ' currVidPath])
+%                 disp('')
+%                 
+%                 % First image
+%                 im = getFrame(currVidPath,v,v.UserData.FirstFrame,imInvert,'gray');
+%                 
+%                 % Initial position
+%                 disp(' ')
+%                 disp('Select animal to be tracked')
+%                 [x,y] = imInteract(im,'points',1);
+%                 
+%                 % Threshold
+%                 disp(' ')
+%                 disp('Select threshold')
+%                 tVal = imInteract(im,'threshold');
+%                 
+%                 % Radius
+%                 disp(' ')
+%                 disp('Select roi radius')
+%                 r = imInteract(im,'radius',x,y);
+%                 
+%                 % Store data
+%                 iC.x       = x;
+%                 iC.y       = y;
+%                 iC.tVal    = tVal;
+%                 iC.r       = r;
+%                 iC.useMean = 0;
+%                 
+%                 % Save data
+%                 save([currDataPath filesep 'Initial conditions'],'iC')
+%                 
+%                 clear im useMean im0Mean im0NoMean x y tVal r
+%             end
+%         end
+%     end    
+%     disp(' ')  
+% end
 
-        
-        % Load video info (v)
-        v = defineVidObject(currVidPath);
-        
-        % If analysis requested and not done already, meets yes_ana
-        % criteria and the clipinfo has already been determined
-        if ~isempty(dir([currDataPath filesep 'clipInfo.mat'])) && ...
-                yes_ana(cList.age(i),cList.orient(i),do) && ...
-                isempty(dir([currDataPath filesep 'Initial conditions.mat'])) 
-                          
-            % Load frame intervals ('clipInfo')
-            load([currDataPath filesep 'clipInfo'])
-            
-            if ~isnan(clipInfo.startFrame)
-                disp(['Initial conditions: ' currVidPath])
-                disp('')
-                
-                % First image
-                im = getFrame(currVidPath,v,v.UserData.FirstFrame,imInvert,'gray');
-                
-                % Initial position
-                disp(' ')
-                disp('Select animal to be tracked')
-                [x,y] = imInteract(im,'points',1);
-                
-                % Threshold
-                disp(' ')
-                disp('Select threshold')
-                tVal = imInteract(im,'threshold');
-                
-                % Radius
-                disp(' ')
-                disp('Select roi radius')
-                r = imInteract(im,'radius',x,y);
-                
-                % Store data
-                iC.x       = x;
-                iC.y       = y;
-                iC.tVal    = tVal;
-                iC.r       = r;
-                iC.useMean = 0;
-                
-                % Save data
-                save([currDataPath filesep 'Initial conditions'],'iC')
-                
-                clear im useMean im0Mean im0NoMean x y tVal r
-            end
-        end
-    end    
-    disp(' ')  
-end
+
+%% Initialize data structures for analysis
+
+% % Loop thru sequences
+% for i = 1:length(cList.vidType)
+%     
+%     % Load initial conditions (iC)
+%     load([currDataPath filesep 'Initial conditions'])
+%     
+%     % Load frame intervals ('clipInfo')
+%     load([currDataPath filesep 'clipInfo'])
+%     
+%     if isempty(dir([currDataPath filesep 'Centroid.mat']))
+%         
+%         % Make empty Centroid structure
+%         Centroid.frames   = [clipInfo.startFrame:clipInfo.endFrame]';
+%         Centroid.x        = nan(size(Centroid.frames));
+%         Centroid.y        = nan(size(Centroid.frames));
+%         Centroid.y_flip   = nan(size(Centroid.frames));
+%         Centroid.xPerim{1}  = nan;
+%         Centroid.yPerim{1}  = nan;
+%         
+%         % Save data
+%         save([currDataPath filesep 'Centroid'],'Centroid')
+%     end
+%     
+% %     if isempty(dir([currDataPath filesep 'Rotation.mat']))
+% %         
+% %         % Make empty Centroid structure
+% %         Rotation.frames   = [clipInfo.startFrame:clipInfo.endFrame]';
+% %         Rotation.x        = nan(size(Rotation.frames));
+% %         Rotation.y        = nan(size(Rotation.frames));
+% %         Rotation.y_flip   = nan(size(Rotation.frames));
+% %         
+% %         % Save data
+% %         save([currDataPath filesep 'Rotation'],'Rotation')
+% %     end
+% end
 
 
 %% Track centroid coordinates
 
-if do.Centroids
-    
-    % Loop thru sequences
-    for i = 1:length(cList.vidType)
-        
-        currDataPath = [dataPath filesep cList.path{i} filesep cList.fName{i}];
-        currVidPath  = [vidPath filesep cList.path{i} filesep cList.fName{i} cList.ext{i}];
-        
-        % If analysis requested and not done already . . .
-        if ~isempty(dir([currDataPath filesep 'Initial conditions.mat'])) && ...
-                yes_ana(cList.age(i),cList.orient(i),do) && ...
-                isempty(dir([currDataPath filesep 'Centroid.mat']))
-            
-            disp(['Tracking centroid: ' currVidPath])
-            disp('')
-            
-            % Load initial conditions (iC)
-            load([currDataPath filesep 'Initial conditions'])
-            
-            % Load frame intervals ('clipInfo')
-            load([currDataPath filesep 'clipInfo'])
-              
-            % Frames
-            frames = clipInfo.startFrame:clipInfo.endFrame;
-            
-            % Region of interest for first frame
-            roi0 = giveROI('define','circular',numroipts,iC.r,iC.x,iC.y);
-            
-            % Run tracker code for centroid
-            Centroid = tracker(currVidPath,v,imInvert,'threshold translation',...
-                roi0,iC.tVal,frames);
-            
-            % Save data
-            save([currDataPath filesep 'Centroid'],'Centroid')
-        end
-        disp(' ')
-    end    
-end
+% if do.Centroids
+%     
+%     % Loop thru sequences
+%     for i = 1:length(cList.vidType)
+%         
+%         currDataPath = [dataPath filesep cList.path{i} filesep cList.fName{i}];
+%         currVidPath  = [vidPath filesep cList.path{i} filesep cList.fName{i} cList.ext{i}];
+%         
+%         % Check approval status, if file present
+%         if ~isempty(dir([currDataPath filesep 'anaStatus.mat']))
+%             load([currDataPath filesep 'anaStatus.mat'])
+%         else
+%             anaStatus.centroid = 'not approved';
+%         end
+%         
+%         if ~strcmp(anaStatus.centroid,'approved')
+%         
+%         % If analysis requested and not done already . . .
+% %         if ~isempty(dir([currDataPath filesep 'Initial conditions.mat'])) && ...
+% %                 yes_ana(cList.age(i),cList.orient(i),do) 
+%             
+% %             disp(['Tracking centroid: ' currVidPath])
+% %             disp('')
+%             
+%             % Load initial conditions (iC)
+%             load([currDataPath filesep 'Initial conditions'])
+%             
+%             % Load frame intervals ('clipInfo')
+%             load([currDataPath filesep 'clipInfo'])
+%               
+%             % Insert number of frames to save
+%             iC.numForSave = numForSave;
+%             
+%             % Frames
+%             frames = clipInfo.startFrame:clipInfo.endFrame;
+%             
+%             % Region of interest for first frame
+%             roi0 = giveROI('define','circular',numroipts,iC.r,iC.x,iC.y);
+%             
+%             % Centroid data file
+%             cDataFile = [currDataPath filesep 'Centroid.mat'];
+%             
+%             % Run tracker code for centroid
+%             tracker(currVidPath,v,currDataPath,imInvert,...
+%                            'threshold translation',roi0,iC.tVal,frames);
+%             
+%             % Save data
+%             %save([currDataPath filesep 'Centroid'],'Centroid')
+%             
+%             clear cDataFile
+% %         end
+%         disp(' ')
+%     end    
+% end
 
 
 %% Generate centroid movies for review
@@ -245,14 +566,14 @@ if do.MakeCentroidMovies
             disp(' ')
             
             % Make movie
-            M = aniData(currVidPath,v,imInvert,'Centroid tracking',S,0);
+            aniData(currVidPath,v,currDataPath,imInvert,'Centroid tracking',S,1);
             
-            mov.dataPath      = currDataPath;
-            mov.currVidPath   = currVidPath;
-            mov.M             = M;
-            
-            % Save movie data
-            save([currDataPath filesep 'centroid movie'],'mov','-v7.3')
+%             mov.dataPath      = currDataPath;
+%             mov.currVidPath   = currVidPath;
+%             mov.M             = M;
+%             
+%             % Save movie data
+%             save([currDataPath filesep 'centroid movie'],'mov','-v7.3')
         end
     end
 end
@@ -460,7 +781,7 @@ if do.MakeRotationMovies
             disp(' ')
             
             % Make movie
-            M = aniData(currVidPath,v,imInvert,'Centroid & Rotation',S,0);
+            M = aniData(currVidPath,v,currDataPath,imInvert,'Centroid & Rotation',S,0);
             
             mov.dataPath      = currDataPath;
             mov.currVidPath   = currVidPath;
@@ -570,123 +891,22 @@ yes = ((do.ana_adult   &&  strcmp(age,'a')) || ...
         (do.ana_upside &&  strcmp(wallorient,'u')));
     
 
-function selectDurations(cList,dataPath,vidPath,do)
-% Interactively prompts to select a duration for analysis
 
-% Loop thru sequences
-for i = 1:length(cList.vidType)
-
-    if yes_ana(cList.age(i),cList.orient(i),do)
-
-        currDataPath = [dataPath filesep cList.path{i} filesep cList.fName{i}];
-
-        % Check for path in data dir
-        if isempty(dir(currDataPath))
-            % Make diretcory, if not there
-            mkdir(currDataPath);
-        end
-
-        if isempty(dir([currDataPath filesep 'clipInfo.mat']))
-
-            disp(['selectDurations: ' currDataPath]);
-            disp('')
-            
-            getDefaults = 1;
-
-            % Make figure
-            f = figure;
-
-            % Loop for multiple tries at frame numbers
-            while true
-
-                if getDefaults
-                    % Current path
-                    currVidPath = [vidPath filesep cList.path{i} filesep ...
-                        cList.fName{i} cList.ext{i}];
-
-                    % Current video object
-                    v = defineVidObject(currVidPath,'JPG');
-
-                    firstFrame = v.UserData.FirstFrame;
-                    lastFrame  = v.UserData.LastFrame;
-                end
-
-                im1 = getFrame(currVidPath,v,firstFrame);
-                im2 = getFrame(currVidPath,v,lastFrame);
-
-                % Plot candidate frames
-                subplot(1,2,1)
-                imshow(im1,'InitialMag','fit')
-                title('First frame')
-
-                subplot(1,2,2)
-                imshow(im2,'InitialMag','fit')
-                title('Last frame')
-
-                % Ask for approval on quality
-                an = questdlg('Is this video worth analyzing?','','Yes',...
-                    'No','Cancel','Yes');
-
-                if strcmp(an,'Yes')
-                    % Do nothing
-
-                elseif strcmp(an,'No')
-
-                    firstFrame = nan;
-                    lastFrame  = nan;
-
-                    break
-
-                else
-                    return
-                end
-
-
-                % Ask for approval on frames
-                an = questdlg('Is the sea star in both frames?','','Yes',...
-                    'No','Cancel','Yes');
-
-                if strcmp(an,'Yes')
-
-                    close(f)
-                    break
-
-                elseif strcmp(an,'No')
-
-                    % Prompt for frame intervals
-                    [firstFrame,lastFrame] = getFrameNum(firstFrame,lastFrame,...
-                        im1,im2);
-                    getDefaults = 0;
-
-                else
-                    return
-                end
-            end
-
-            clipInfo.startFrame = firstFrame;
-            clipInfo.endFrame   = lastFrame;
-
-            save([currDataPath filesep 'clipInfo'],'clipInfo')
-        end
-    end
-end
-
-
-function [firstFrame,lastFrame] = getFrameNum(firstFrame,lastFrame,im1,im2)
-
-prompt={'Start frame num:','Last frame num:'};
-name='Choose clip duration';
-numlines=1;
-defaultanswer={num2str(firstFrame),num2str(lastFrame)};
-
-answer = inputdlg(prompt,name,numlines,defaultanswer);
-
-if isempty(answer)
-    return
-end
-
-firstFrame   = str2num(answer{1});
-lastFrame    = str2num(answer{2});
+% function [firstFrame,lastFrame] = getFrameNum(firstFrame,lastFrame,im1,im2)
+% 
+% prompt     = {'Start frame num:','Last frame num:'};
+% name= 'Choose clip duration';
+% numlines=1;
+% defaultanswer={num2str(firstFrame),num2str(lastFrame)};
+% 
+% answer = inputdlg(prompt,name,numlines,defaultanswer);
+% 
+% if isempty(answer)
+%     return
+% end
+% 
+% firstFrame   = str2num(answer{1});
+% lastFrame    = str2num(answer{2});
 
 
 function cList = catVidfiles(vidPath)
@@ -708,8 +928,6 @@ for i = 1:length(a1)
     else       
         currAge = [];        
     end
-    
-   
     
     if ~isempty(currAge)
         
@@ -808,6 +1026,7 @@ for i = 1:length(a1)
                                 movPath{m} = [a1(i).name filesep ...
                                     a2(j).name filesep a3(k).name ...
                                     filesep a4(l).name];
+                                m = m + 1;
                             end
                         end
 
