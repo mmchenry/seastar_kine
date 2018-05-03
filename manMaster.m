@@ -1,4 +1,4 @@
-function acqMaster
+function manMaster
 % Acquisition of sea star kinematics
 
 %% Code execution
@@ -10,27 +10,13 @@ do.choose_dur = 1;
 do.initialConditions = 1;
   
 % Whether to track the body centroid
-do.Centroids = 1;
-
-% Review results of centroid tracking
-do.CentroidReview = 1;  
-
-% Create movies of the Centroid movies for review
-do.MakeCentroidMovies = 1;
+do.Centroids = 0;
 
 % Track body rotation
-do.bodyRotation = 1;
+do.bodyRotation = 0;
 
-do.MakeRotationMovies = 1;
-
-do.RotationReview = 1;
-
-% Designate which categories to analyze
-do.ana_adult  = 0;
-do.ana_juv    = 1;
-do.ana_horiz  = 0;
-do.ana_vert   = 0;
-do.ana_upside = 1;
+% Manual tracking of tube feet
+do.manTracking = 1;
 
 
 %% General parameters
@@ -54,8 +40,9 @@ if ~isempty(dir(['/Users/mmchenry/Documents/Matlab code']))
     kinePath = '/Users/mmchenry/Documents/Matlab code/kineBox_old';
     
     % Path to root dir of video (CSULB project, external drive)
-    vidPath = '/Volumes/Video/Sea stars/CSULB test/Raw video';
-    %vidPath = '/Volumes/Video/Sea stars/CSULB/Raw video';
+    %vidPath = '/Volumes/Video/Sea stars/CSULB test/Raw video';
+    vidPath = '/Volumes/Video/Sea stars/CSULB/Raw video';
+    %vidPath = '/Users/mmchenry/Documents/Video/Sea stars'
     
     % Location of video frames
     vidFramePath = '/Volumes/Video/Sea stars/CSULB test/Video frames';
@@ -63,15 +50,16 @@ if ~isempty(dir(['/Users/mmchenry/Documents/Matlab code']))
     % Path to root of data
     dataPath = '/Users/mmchenry/Documents/Projects/Seastars/CSULB data';
   % remember to undo %%  to run all vids
-%% elseif ~isempty(dir(['C:\Program Files\MATLAB\R2016a']))
+  
+ elseif ~isempty(dir(['C:\Program Files\MATLAB\R2016a']))
     
     %vidPath = '\\flow.local\shared\Sea stars';
-   %% vidPath = 'C:\Users\andres\Documents\Sea stars';
+    %vidPath = 'C:\Users\andres\Documents\Sea stars';
     %special vid path
     %vidpath=
-    %% dataPath = '\\flow.local\andres\Sea stars\CSULB data';
+    % dataPath = '\\flow.local\andres\Sea stars\CSULB data';
     
-    %% kinePath = 'C:\Users\andres\Documents\GitPath\kineBox';
+    % kinePath = 'C:\Users\andres\Documents\GitPath\kineBox';
     
 % Line to assign single vids    
 elseif ~isempty(dir(['C:\Program Files\MATLAB\R2016a']))
@@ -80,7 +68,7 @@ elseif ~isempty(dir(['C:\Program Files\MATLAB\R2016a']))
     vidPath = 'C:\Users\andres\Documents\SS Assign';
     %special vid path
     %vidpath=
-    %% dataPath = '\\flow.local\andres\SS Assign\CSULB data'; %% by CG
+    % dataPath = '\\flow.local\andres\SS Assign\CSULB data'; %% by CG
     dataPath = 'C:\Users\andres\Documents\dataPath'
     
     kinePath = 'C:\Users\andres\Documents\GitPath\kineBox';
@@ -89,19 +77,58 @@ else
     
 end
 
-
-%% Initialize
-
-% Add kinePath
 addpath(kinePath)
 
-% Add sequence path
-path_seq = ['CSULB juvenile' filesep 'SS18' filesep 'timelapse7'];
 
+%% List of sequences to analyze
 
-%% Catalog sequence videos
+% Vist of all video filese
+cList0 = catVidfiles(vidPath);
 
-cList = catVidfiles(vidPath);
+% Define path relative to root
+
+% Initialize index
+i = 1;
+
+% Add sequences to this list for analysis ---------
+good(i).path  =  ['Juveniles' filesep 'Horizontal' filesep 'SS20']; 
+good(i).fName = '400A8443';
+i = i + 1;
+
+% --------------
+
+% Make cList to only include good sequences
+k = 1;
+for i = 1:length(good)
+   for j = 1:length(cList0.path)
+      if strcmp(good(i).path,cList0.path{j}) &&  strcmp(good(i).fName,cList0.fName{j})
+          
+          % Transfer all data to cList
+          cList.age(k,1)      = cList0.age(j);
+          cList.indiv(k,1)    = cList0.indiv(j);
+          cList.orient(k,1)   = cList0.orient(j);
+          cList.vidType{k,1}  = cList0.vidType{j};
+          cList.path{k,1}     = cList0.path{j};
+          cList.fName{k,1}    = cList0.fName{j};
+          cList.ext{k,1}      = cList0.ext{j};
+          cList.calPath{k,1}  = cList0.calPath{j};
+          
+          k = k + 1;
+          
+          break
+      end
+   end
+end
+
+if k==1
+    error('No matching videos found in list')
+    
+elseif length(good)~=length(cList)
+    warning('At lest one of the sequences not found in the video path');
+    
+end
+
+clear good cList0
 
 
 %% Produce video stills
@@ -130,7 +157,6 @@ if do.initialConditions
         % If analysis requested and not done already, meets yes_ana
         % criteria and the clipinfo has already been determined
         if ~isempty(dir([currDataPath filesep 'clipInfo.mat'])) && ...
-                yes_ana(cList.age(i),cList.orient(i),do) && ...
                 isempty(dir([currDataPath filesep 'Initial conditions.mat'])) 
                           
             % Load frame intervals ('clipInfo')
@@ -189,7 +215,6 @@ if do.Centroids
         
         % If analysis requested and not done already . . .
         if ~isempty(dir([currDataPath filesep 'Initial conditions.mat'])) && ...
-                yes_ana(cList.age(i),cList.orient(i),do) && ...
                 isempty(dir([currDataPath filesep 'Centroid.mat']))
             
             disp(['Tracking centroid: ' currVidPath])
@@ -221,151 +246,6 @@ if do.Centroids
         
         clear v currDataPath currVidPath roi0 frames iC clipInfo Centroid
     end    
-end
-
-
-%% Generate centroid movies for review
-
-if do.MakeCentroidMovies
-    
-    % Loop thru sequences
-    for i = 1:length(cList.vidType)
-        
-        % Current paths
-        currDataPath = [dataPath filesep cList.path{i} filesep cList.fName{i}];
-        currVidPath  = [vidPath filesep cList.path{i} filesep cList.fName{i} cList.ext{i}];
-        
-        % Check status
-        if ~isempty(dir([currDataPath filesep 'anaStatus.mat']))
-            load([currDataPath filesep 'anaStatus.mat'])
-        else
-            anaStatus.centroid = '';
-        end
-        
-        % If centroid data there and centroid data not yet approved
-        if isempty(dir([currDataPath filesep 'centroid movie.mat'])) && ...
-           ~isempty(dir([currDataPath filesep 'Centroid.mat'])) && ...
-            isempty(anaStatus.centroid)
-            
-            % Load initial conditions (iC)
-            load([currDataPath filesep 'Initial conditions'])
-            
-            % Load centroid data (Centroid)
-            load([currDataPath filesep 'Centroid.mat'])
-            
-            % Load frame intervals ('clipInfo')
-            load([currDataPath filesep 'clipInfo'])
-            
-            % Load video info (v)
-            v = defineVidObject(currVidPath);
-            
-            % Frames
-            frames = clipInfo.startFrame:clipInfo.endFrame;
-            
-            % Region of interest for first frame
-            roi0 = giveROI('define','circular',numroipts,iC.r,iC.x,iC.y);
-            
-            % Create coordinate transformation structure 
-            S = defineSystem2d('roi',roi0,Centroid);
-            
-            disp(' ')
-            disp(['Making Centroid Movie: ' currVidPath])
-            disp(' ')
-            
-            % Make movie
-            M = aniData(currVidPath,v,imInvert,'Centroid tracking',S,0);
-            
-            mov.dataPath      = currDataPath;
-            mov.currVidPath   = currVidPath;
-            mov.M             = M;
-            
-            % Save movie data
-            save([currDataPath filesep 'centroid movie'],'mov','-v7.3')
-        end
-        
-        clear v currDataPath currVidPath iC Centroid clipInfo S M mov roi0 frames 
-    end   
-end
-
-
-%% Review recent centroid tracking
-
-if do.CentroidReview
-    
-    % Loop thru sequences
-    for i = 1:length(cList.vidType)
-        
-        % Current paths
-        currDataPath = [dataPath filesep cList.path{i} filesep cList.fName{i}];
-        currVidPath  = [vidPath filesep cList.path{i} filesep cList.fName{i} cList.ext{i}];
-        
-        % Check status
-        if ~isempty(dir([currDataPath filesep 'anaStatus.mat']))
-            load([currDataPath filesep 'anaStatus.mat'])
-        else
-            anaStatus.centroid = '';
-        end
-        
-        % If centroid data there and centroid data not yet approved
-        if ~isempty(dir([currDataPath filesep 'centroid movie.mat'])) && ...
-            isempty(anaStatus.centroid)
-            
-            % Load centroid movie (mov)
-            load([currDataPath filesep 'centroid movie'])
-
-            % Make figure window
-            f = figure('units','normalized');
-            
-            % Status
-            disp(' ')
-            disp(['Approving tracking : ' currVidPath])
-            disp(' ');
-            
-            while true
-                
-                movie(f,mov.M,1,20,[0 0 1 1])
-                
-                b = questdlg('Does the tracking look good?','','Yes','No','Replay','Yes');
-                
-                if strcmp(b,'Yes')
-                    
-                    % Update status
-                    anaStatus.centroid = 'approved';
-                    
-                    % Prompt for approval
-                     b2 = questdlg('Delete the movie data?','','Yes','No','Yes');
-                    
-                     if strcmp(b2,'Yes')
-                         % Delete movie data
-                         delete([currDataPath filesep 'centroid movie.mat']);
-                     end
-                    
-                    % Save status file
-                    save([currDataPath filesep 'anaStatus.mat'],'anaStatus')
-                    
-                    break
-                    
-                elseif strcmp(b,'No')
-                    
-                    % Update status
-                    anaStatus.centroid = 'not approved';
-                    
-                    % Delete movie data
-                    delete([currDataPath filesep 'centroid movie.mat']);
-                    
-                    % Save status file
-                    save([currDataPath filesep 'anaStatus.mat'],'anaStatus')
-                    
-                    break
-                    
-                elseif isempty(b)
-                    return
-                end
-            end   
-            close(f)
-        end  
-        clear v currDataPath currVidPath b b2 anaStatus f mov  
-    end   
 end
 
 
@@ -434,6 +314,9 @@ for i = 1:length(cList.vidType)
     % If centroid data there and centroid data not yet approved
     if isempty(dir([currDataPath filesep 'Transformation.mat']))
         
+        % Load initial conditions (iC)
+        load([currDataPath filesep 'Initial conditions'])
+            
         % Region of interest for first frame
         roi0 = giveROI('define','circular',numroipts,iC.r,iC.x,iC.y);
         
@@ -453,162 +336,50 @@ for i = 1:length(cList.vidType)
 end
 
 
-%% Review rotation: make movies
+%% Manual tracking mode (do.manTracking)
 
-if do.MakeRotationMovies
+% Loop thru sequences
+for i = 1:length(cList.vidType)
     
-    % Loop thru sequences
-    for i = 1:length(cList.vidType)
-        
-        % Current paths
-        currDataPath = [dataPath filesep cList.path{i} filesep cList.fName{i}];
-        currVidPath  = [vidPath filesep cList.path{i} filesep cList.fName{i} cList.ext{i}];
-        
-        % Check approval status
-        if ~isempty(dir([currDataPath filesep 'anaStatus.mat']))
-            load([currDataPath filesep 'anaStatus.mat'])
-        else
-            warning(['You need to approve centroid tracking for' ...
-                currDataPath])
-        end
-        
-        if ~isfield(anaStatus,'Rotation')
-            anaStatus.Rotation = '';
-        end
-        
-        % If centroid data there and centroid data not yet approved
-        if ~isempty(dir([currDataPath filesep 'Rotation.mat'])) && ...
-           ~isempty(dir([currDataPath filesep 'Transformation.mat'])) && ...
-            isempty(dir([currDataPath filesep 'Rotation movie.mat'])) && ...
-            isempty(anaStatus.Rotation)
-            
-            % Load initial conditions (iC)
-            load([currDataPath filesep 'Initial conditions'])
-            
-            % Load tranfromation strcuture (S)
-            load([currDataPath filesep 'Transformation'])
-            
-                % Load video info (v)                added by CG
-            v = defineVidObject(currVidPath);
-        
-            
-            
-            disp(' ')
-            disp(['Making Pred Rotation Movie: ' currVidPath])
-            disp(' ')
-            
-            % Make movie
-            M = aniData(currVidPath,v,imInvert,'Centroid & Rotation',S,0);
-            
-            mov.dataPath      = currDataPath;
-            mov.currVidPath   = currVidPath;
-            mov.M             = M;
-            
-            % Save movie data
-            save([currDataPath filesep 'Rotation movie'],'mov','-v7.3')
-        end
-        clear M mov Rotation S iC currDataPath currVidPath
+    % Current paths
+    currDataPath = [dataPath filesep cList.path{i} filesep cList.fName{i}];
+    currVidPath  = [vidPath filesep cList.path{i} filesep cList.fName{i} cList.ext{i}];
+    
+    
+    % Load video info (v)
+    v = defineVidObject(currVidPath);
+    
+    % Define frames vector
+    frames = v.UserData.FirstFrame:v.UserData.LastFrame;
+    
+    % Load initial conditions (iC)
+    load([currDataPath filesep 'Initial conditions'])
+    %
+    %         % Region of interest for first frame
+    %         roi0 = giveROI('define','circular',numroipts,iC.r,iC.x,iC.y);
+    %
+    %         % Load trasnformation data (S)
+    %         load([currDataPath filesep 'Transformation.mat'])
+    
+    if isempty(dir([currDataPath filesep 'Manual tracking.mat']))
+        H = [];
+    else
+        load([currDataPath filesep 'Manual tracking.mat']);
     end
-end
-
-
-%% Approve tracking movies
-
-if do.RotationReview
     
-    % Loop thru sequences
-    for i = 1:length(cList.vidType)
-        
-        % Current paths
-        currDataPath = [dataPath filesep cList.path{i} filesep cList.fName{i}];
-        currVidPath  = [vidPath filesep cList.path{i} filesep cList.fName{i} cList.ext{i}];
-        
-        % Check approval status
-        if ~isempty(dir([currDataPath filesep 'anaStatus.mat']))
-            load([currDataPath filesep 'anaStatus.mat'])
-        else
-            error(['You first need to approve centroid tracking for' ...
-                currDataPath])
-        end
-        
-        % If centroid data there and centroid data not yet approved
-        if ~isempty(dir([currDataPath filesep 'Rotation movie.mat'])) && ...
-                ~isfield(anaStatus,'Rotation_pd')
-            
-            % Load centroid movie (mov)
-            load([currDataPath filesep 'Rotation movie'])
+    % Get coordinates via interactive mode
+    H = videoGUI(currVidPath,v,frames,0,'simple',iC.r,[0 1 0],H);
+    
+    % Save data
+    save([currDataPath filesep 'Manual tracking.mat'],'H');
 
-            % Make figure window
-            f = figure('units','normalized');
-            
-            % Status
-            disp(' ')
-            disp(['Approving tracking : ' currVidPath])
-            disp(' ');
-            
-            while true
-                
-                % Play movie
-                movie(f,mov.M,1,20,[0 0 1 1])
-                
-                % Prompt for approval
-                b = questdlg('Does the tracking look good?','','Yes','No','Replay','Yes');
-                
-                if strcmp(b,'Yes')
-                    
-                    % Update status
-                    anaStatus.Rotation_pd = 'approved';
-                    
-                    % Prompt for approval
-                     b2 = questdlg('Delete the movie data?','','Yes','No','Yes');
-                    
-                     if strcmp(b2,'Yes')
-                         % Delete movie data
-                         delete([currDataPath filesep 'Rotation movie.mat']);
-                     end
-                    
-                    % Save status file
-                    save([currDataPath filesep 'anaStatus.mat'],'anaStatus')
-                    
-                    break
-                    
-                elseif strcmp(b,'No')
-                    
-                    % Update status
-                    anaStatus.Rotation_pd = 'not approved';
-                    
-                    % Delete movie data
-                    delete([currDataPath filesep 'Rotation movie.mat']);
-                    
-                    % Save status file
-                    save([currDataPath filesep 'anaStatus.mat'],'anaStatus')
-                    
-                    break
-                    
-                elseif isempty(b)
-                    return
-                end
-            end   
-            close(f)
-        end 
-        clear f M mov Rotation b b2 anaStatus currDataPath currVidPath
-    end   
+        
+    clear roi0 currDataPath currVidPath Rotation S
 end
 
 
 
-%%
-%curr_vidPath = uigetdir(vidPath,'Select video directory')
 
-
-function yes = yes_ana(age,wallorient,do)
-
-yes = ((do.ana_adult   &&  strcmp(age,'a')) || ...
-        (do.ana_juv    &&  strcmp(age,'j'))) && ...
-       ((do.ana_horiz  &&  strcmp(wallorient,'h')) || ...
-        (do.ana_vert   &&  strcmp(wallorient,'v')) || ...
-        (do.ana_upside &&  strcmp(wallorient,'u')));
-    
 
 function selectDurations(cList,dataPath,vidPath,do)
 % Interactively prompts to select a duration for analysis
@@ -616,7 +387,7 @@ function selectDurations(cList,dataPath,vidPath,do)
 % Loop thru sequences
 for i = 1:length(cList.vidType)
 
-    if yes_ana(cList.age(i),cList.orient(i),do)
+    if 1
 
         currDataPath = [dataPath filesep cList.path{i} filesep cList.fName{i}];
 
@@ -730,7 +501,7 @@ lastFrame    = str2num(answer{2});
 
 
 function cList = catVidfiles(vidPath)
-
+% Catalogs all video files in directory tree
 
 a1 = dir(vidPath);
 
