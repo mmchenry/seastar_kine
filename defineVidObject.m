@@ -65,7 +65,9 @@ else
     %[pathstr,name,ext] = fileparts(vid_path);
     
     % Find video info
+    warning off
     v = VideoReader(vid_path);
+    warning on
     
     % Store number of frames
     v.UserData.FirstFrame = 1;

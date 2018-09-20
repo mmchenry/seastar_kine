@@ -63,15 +63,15 @@ if ~isempty(dir(['/Users/mmchenry/Documents/Matlab code']))
     % Path to root of data
     dataPath = '/Users/mmchenry/Documents/Projects/Seastars/CSULB data';
   % remember to undo %%  to run all vids
-%% elseif ~isempty(dir(['C:\Program Files\MATLAB\R2016a']))
+% elseif ~isempty(dir(['C:\Program Files\MATLAB\R2016a']))
     
     %vidPath = '\\flow.local\shared\Sea stars';
-   %% vidPath = 'C:\Users\andres\Documents\Sea stars';
+   % vidPath = 'C:\Users\andres\Documents\Sea stars';
     %special vid path
     %vidpath=
-    %% dataPath = '\\flow.local\andres\Sea stars\CSULB data';
+    % dataPath = '\\flow.local\andres\Sea stars\CSULB data';
     
-    %% kinePath = 'C:\Users\andres\Documents\GitPath\kineBox';
+    % kinePath = 'C:\Users\andres\Documents\GitPath\kineBox';
     
 % Line to assign single vids    
 elseif ~isempty(dir(['C:\Program Files\MATLAB\R2016a']))
@@ -80,7 +80,7 @@ elseif ~isempty(dir(['C:\Program Files\MATLAB\R2016a']))
     vidPath = 'C:\Users\andres\Documents\SS Assign';
     %special vid path
     %vidpath=
-    %% dataPath = '\\flow.local\andres\SS Assign\CSULB data'; %% by CG
+    % dataPath = '\\flow.local\andres\SS Assign\CSULB data'; %% by CG
     dataPath = 'C:\Users\andres\Documents\dataPath'
     
     kinePath = 'C:\Users\andres\Documents\GitPath\kineBox';

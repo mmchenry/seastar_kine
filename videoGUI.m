@@ -77,6 +77,8 @@ disp('    up arrow    : advance multiple frames')
 disp('    down arrow  : go back multiple frames')
 disp('    s           : set number of frames to advance for up/down arrows')
 disp('    1 - 9       : jump to relative position in video segment')
+disp('    f           : Jump to frame number')
+disp('    t           : Jump to time')
 disp('    +           : zoom in')
 disp('    -           : zoom out')
 %disp('    i           : invert image')
@@ -140,7 +142,14 @@ end
             'renderer','painters',...
             'Units','pixels');
         
-        scrsize = get(0,'screensize');
+        mPos = get(0,'MonitorPositions');
+        
+        if size(mPos,1)==3
+            scrsize = mPos(3,:);
+        else       
+            scrsize = get(0,'screensize');          
+        end
+        
         set(hFig,'Position',scrsize,'Color','k');
         
         %set(hFig,'Units','normalized');
@@ -576,7 +585,66 @@ function keyPress(fig, key, hFig, hAxes)
                  % Set new frame
                  newIndex = round((req_num/10)*length(H.frames));
              end
-                     
+               
+         % Key in time (in s)
+         elseif strcmp(key.Key,'t')|| strcmp(key.Key,'T')
+             
+             answer = inputdlg({'Time: min','Time: sec'},'',1,{'0',''});
+             
+             % If answer provided
+             if ~isempty(answer)
+                 
+                % Convert time into seconds
+                timeval = str2num(answer{1})*60 + str2num(answer{2});
+                 
+                % Translate into frames
+                aFrame = round(timeval*H.v.FrameRate);
+                
+                if aFrame<min(H.frames)
+                    warning('Requested time happens before analyzed interval');
+                    newIndex = [];
+                    
+                elseif aFrame>max(H.frames)
+                    warning('Requested time happens after analyzed interval');
+                    newIndex = [];
+                    
+                else
+                    newIndex = find(aFrame==H.frames,1,'first');
+                end
+             
+             % If no answer
+             else
+                 newIndex = [];
+             end
+             
+         % Key in frame number
+         elseif strcmp(key.Key,'f')|| strcmp(key.Key,'F')
+             
+             answer = inputdlg({'Time: frame'},'',1,{''});
+             
+             % If answer provided
+             if ~isempty(answer)
+                 
+                % Translate into frames
+                aFrame = round(answer{1});
+                
+                if aFrame<min(H.frames)
+                    warning('Requested time happens before analyzed interval');
+                    newIndex = [];
+                    
+                elseif aFrame>max(H.frames)
+                    warning('Requested time happens after analyzed interval');
+                    newIndex = [];
+                    
+                else
+                    newIndex = find(aFrame==H.frames,1,'first');
+                end
+             
+             % If no answer
+             else
+                 newIndex = [];
+             end
+             
          end
 
          % If new newframe

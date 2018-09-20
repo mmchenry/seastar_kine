@@ -54,7 +54,7 @@ function im = getFrame(vid_path,v,fr_num,imInvert,clrMode,imMean)
 %% Read frame
 
 % If it is an image sequence . . .
-if isfield(v.UserData,'FileInfo');
+if isfield(v.UserData,'FileInfo')
 
     % Read image
     im = imread([vid_path filesep v.UserData.FileInfo(iFrame).name]);    
@@ -64,7 +64,10 @@ if isfield(v.UserData,'FileInfo');
 else
   
     % Adjust items to new 'v'
+    warning off
     v = VideoReader(vid_path);
+    warning on
+    
     v.CurrentTime = fr_num./v.FrameRate;
     
      % Read next available frame
