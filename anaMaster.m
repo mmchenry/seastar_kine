@@ -1,13 +1,13 @@
 function anaMaster(orientation,SS,seqname)
 % Runs analysis of kinematic data
 
-%Assign defaults
+% Assign defaults
 if nargin<3
-    seqname = 's04';
+    seqname = 's03';
     if nargin < 2
-        SS = 'SS41';
+        SS = 'SS37';
         if nargin < 1
-            orientation = 'Upside-down';
+            orientation = 'Horizontal';
         end
     end
 end
@@ -72,15 +72,35 @@ load([currDataPath filesep 'Manual tracking.mat'],'-mat')
 warning on
 
 % Define frames vector
-frames = v.UserData.FirstFrame:v.UserData.LastFrame;
+%frames = v.UserData.FirstFrame:v.UserData.LastFrame;
 
 % Load initial conditions (iC)
 load([currDataPath filesep 'Initial conditions'])
 
+% % Cue up coordinates
+% xBase = nan(length(H.ft(1).xBase),length(H.ft));
+% yBase = xBase;
+% xTip  = xBase;
+% yTip  = xBase;
+
+% Create matrices of 
+for i = 1:length(H.ft)
+    xBase(:,i)  = H.ft(i).xBase;
+    yBase(:,i)  = H.ft(i).yBase;
+    xTip(:,i)   = H.ft(i).xTip;
+    yTip(:,i)   = H.ft(i).yTip;
+end
+
+% Data frames
+tmp = ~isnan(xTip);
+dFrames = H.frames(sum(tmp,2)>0);
+clear tmp
+
+
 % Loop trhu frames
-for i = 1:skipPlay:length(frames)
+for i = min(dFrames):max(dFrames)
     
-    cFrame = frames(i);
+    cFrame = H.frames(i);
     
     %  frame
     im = getFrame(currVidPath,v,cFrame,imInvert,'gray');

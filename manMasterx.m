@@ -97,7 +97,7 @@ end
 %kinePath = '/Volumes/GoogleDrive/My Drive/Projects/Andres sea stars/Up-side down SS41';
 camName = 'canon';
 
-addpath(kinePath)
+%addpath(kinePath)
 
 
 %% List of sequences to analyze
@@ -581,6 +581,9 @@ for i = 1:length(a1)
             % Catalog, only if movies present
             if length(a3)>0
                 
+                movPath = [];
+                movType = [];
+                
                 % Loop trhu individual directories
                 for k = 1:length(a3)
                     
@@ -628,37 +631,38 @@ for i = 1:length(a1)
                     end
                 end
 
-                % Loop trhu sequences
-                for f = 1:length(movType)
-                    
-                    % Extract file parts
-                    [pathstr,name,ext] = fileparts(movPath{f});
-                    
-                    % Store info on inidvidual
-                    cList.age(n,1)    = currAge;
-                    cList.indiv(n,1)  = indivNum;
-                    cList.orient(n,1) = currOrient;
-                    
-                    cList.vidType{n} = movType{f};
-                    cList.path{n}    = pathstr;
-                    cList.fName{n}   = name;
-                    cList.ext{n}     = ext;
-                    
-                    novid = 0;
-                    
-                    if isempty(cal.Type)
-                        cList.calPath{n} = [];
-                        %disp(' ')
-                        warning(['No calibration for: ' movPath{f}]);
-                    else
-                        cList.calPath{n} = cal.Path;
+                if ~isempty(movPath)
+                    % Loop trhu sequences
+                    for f = 1:length(movType)
+                        
+                        % Extract file parts
+                        [pathstr,name,ext] = fileparts(movPath{f});
+                        
+                        % Store info on inidvidual
+                        cList.age(n,1)    = currAge;
+                        cList.indiv(n,1)  = indivNum;
+                        cList.orient(n,1) = currOrient;
+                        
+                        cList.vidType{n} = movType{f};
+                        cList.path{n}    = pathstr;
+                        cList.fName{n}   = name;
+                        cList.ext{n}     = ext;
+                        
+                        novid = 0;
+                        
+                        if isempty(cal.Type)
+                            cList.calPath{n} = [];
+                            %disp(' ')
+                            warning(['No calibration for: ' movPath{f}]);
+                        else
+                            cList.calPath{n} = cal.Path;
+                        end
+                        
+                        % Advance sequence index
+                        n = n + 1;
                     end
-                    
-                    % Advance sequence index
-                    n = n + 1;
                 end
                 
-                clear movType
                 
             else
                 warning(['No videos in: ' vidPath filesep a1(i).name ...

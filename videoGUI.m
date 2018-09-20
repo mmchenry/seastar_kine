@@ -75,7 +75,7 @@ disp('    right arrow : advance one frame')
 disp('    left arrow  : go back one frame')
 disp('    up arrow    : advance multiple frames')
 disp('    down arrow  : go back multiple frames')
-disp('    s           : set number of frames to advance for up/down arrows')
+disp('    j           : set number of frames to jump for up/down arrows')
 disp('    1 - 9       : jump to relative position in video segment')
 disp('    f           : Jump to frame number')
 disp('    t           : Jump to time')
@@ -84,7 +84,7 @@ disp('    -           : zoom out')
 %disp('    i           : invert image')
 %disp('    d           : delete all points after current in interval')
 %disp('    a           : delete all points in interval')
-disp('    n           : Start on new tubefoot')
+disp('    s           : Save current tubefoot coordinates')
 disp('    q           : quit interaction mode')
 disp(' ')
  
@@ -370,9 +370,29 @@ function keyPress(fig, key, hFig, hAxes)
      % QUIT ('q')
       if strcmp(key.Key,'Q') || strcmp(key.Key,'q')
          
-         assignin('caller','H',H);
+         % If there's any unsaved data . . .
+         if sum(~isnan(H.ft(end).xTip))>0 || sum(~isnan(H.ft(end).xBase))>0
+             
+             bName = questdlg(['Are you sure you want to quit without ' ...
+                 'saving the current tube foot data?'],'','Yes','No, Cancel','Yes');
+             
+             if strcmp(bName,'Yes')
+                assignin('caller','H',H);
+                closefig = 1;
+             end
+             
+         % If there's no data    
+         else
+             if length(H.ft)==1
+                 H = rmfield(H,'ft');
+             else
+                 H.ft = H.ft(1:end-1);
+             end
+             
+             assignin('caller','H',H);
+             closefig = 1;
+         end
          
-         closefig = 1;
          
      % DELETE
      elseif strcmp(key.Key,'backspace')
@@ -458,7 +478,7 @@ function keyPress(fig, key, hFig, hAxes)
 %           update_fig(hFig, hAxes)
 
       % S (set interval)
-      elseif strcmp(key.Key,'s') || strcmp(key.Key,'S')
+      elseif strcmp(key.Key,'j') || strcmp(key.Key,'J')
           
           % Prompt for interval
           answer = inputdlg({'Frame interval'},'Set frame interval',1,...
@@ -477,7 +497,7 @@ function keyPress(fig, key, hFig, hAxes)
           update_fig(hFig, hAxes)
           
     % N (start new foot)
-      elseif strcmp(key.Key,'n') || strcmp(key.Key,'N')  
+      elseif strcmp(key.Key,'s') || strcmp(key.Key,'S')  
           
           disp(' ');
           disp(' Tube feet are numbered 1, 2, 3 . . . with 1 in the first proximal position');
@@ -598,7 +618,7 @@ function keyPress(fig, key, hFig, hAxes)
                 timeval = str2num(answer{1})*60 + str2num(answer{2});
                  
                 % Translate into frames
-                aFrame = round(timeval*H.v.FrameRate);
+                aFrame = ceil(timeval*H.v.FrameRate);
                 
                 if aFrame<min(H.frames)
                     warning('Requested time happens before analyzed interval');
@@ -788,17 +808,25 @@ function update_fig(hFig, hAxes)
 
     % List frame number in title 1
     obj = findobj('tag','title1');
-    t_str = ['Full Frame :  Frame ' num2str(H.frames(H.iFrame)) ];
+    
+    % Define time variables
+    currTime = (H.frames(H.iFrame))./H.v.FrameRate;
+    currMin = floor(currTime/60);
+    currSec = floor(currTime - currMin*60);
+    currFrac = floor((currTime - currMin*60-currSec)*100);
+    
+    % Convert to strings
+    currMin  = num2str(currMin);
+    currSec  = ['0' num2str(currSec)];
+    currFrac = num2str(currFrac);
+    
+    t_str = ['Full Frame :  Frame ' num2str(H.frames(H.iFrame)) ' (' ...
+        currMin ':' currSec(end-1:end) ':' currFrac ')'];
     set(obj,'String',t_str);
 
     % List mode in title 2
     obj = findobj('tag','title2');
     set(obj,'String','ROI');
-
-    % Index for current frame
-%         iFrame = find(H.cFrame==H.frames,1,'first');
-
-
 
     % Current frame
     cFrame = H.frames(H.iFrame);
