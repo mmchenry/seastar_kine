@@ -10,13 +10,13 @@ do.choose_dur = 0;
 do.initialConditions = 0;
   
 % Whether to track the body centroid
-do.Centroids = 0;
+do.Centroids = 1;
 
 % Track body rotation
-do.bodyRotation = 0;
+do.bodyRotation = 1;
 
 % Manual tracking of tube feet
-do.manTracking = 1;
+do.manTracking = 0;
 
 
 %% General parameters
@@ -71,7 +71,7 @@ elseif ~isempty(dir(['C:\Program Files\MATLAB\R2016a']))
     %special vid path
     %vidpath=
     % dataPath = '\\flow.local\andres\SS Assign\CSULB data'; %% by CG
-    dataPath = 'C:\Users\andres\Documents\dataPath'
+    dataPath = 'C:\Users\andres\Documents\dataPath';
     
     kinePath = 'C:\Users\andres\Documents\GitPath\kineBox';
    
@@ -673,9 +673,7 @@ for i = 1:length(a1)
 end
 
 
-
-
-
 if novid==1
     warning('No video files found')
+    cList = [];
 end
