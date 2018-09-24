@@ -414,39 +414,82 @@ function keyPress(fig, key, hFig, hAxes)
      % PLUS (zoom in)
      elseif strcmp(key.Key,'hyphen') || strcmp(key.Key,'minus')
          
+         zoomFactor = 1.5;
+         
          xCntr = H.roi(1) + H.roi(3)/2;
-         yCntr = H.roi(2) + H.roi(4)/2; 
+         yCntr = H.roi(2) + H.roi(4)/2;
          
          % Enlarge roi
-         H.roi(3) = 1.5*H.roi(3);
-         H.roi(4) = 1.5*H.roi(4);
-         H.roi(1) = xCntr - H.roi(3)/2;
-         H.roi(2) = yCntr - H.roi(4)/2;
+         if (zoomFactor*H.roi(3)>H.v.Height) || (zoomFactor*H.roi(4)>H.v.Width)
+             warning('You cannot have an ROI larger than the video frame')
+         else
+             H.roi(3) = zoomFactor*H.roi(3);
+             H.roi(4) = zoomFactor*H.roi(4);
+         end
+         %H.roi(1) = xCntr - H.roi(3)/2;
+         %H.roi(2) = yCntr - H.roi(4)/2;
          
-        % Store coordinate data
-        guidata(hAxes.axis1, H);
-       
-       % Update figure
-       update_fig(hFig, hAxes)
+         % Update roi x-coordinate
+         if (xCntr-H.roi(3)/2) < 0
+             H.roi(1) = 1;
+         elseif (xCntr+H.roi(3)/2) > H.v.Width
+             H.roi(1) = H.v.Width-H.roi(3);
+         else
+             H.roi(1) = xCntr-H.roi(3)/2;
+         end
+         
+         % Update roi y-coordinate
+         if (yCntr-H.roi(4)/2) < 0
+             H.roi(2) = 1;
+         elseif (yCntr+H.roi(4)/2) > H.v.Height
+             H.roi(2) = floor(H.v.Height - H.roi(4));
+         else
+             H.roi(2) = yCntr-H.roi(4)/2;
+         end
+         
+         % Store coordinate data
+         guidata(hAxes.axis1, H);
+         
+         % Update figure
+         update_fig(hFig, hAxes)
        
      % PLUS (zoom out)
       elseif strcmp(key.Key,'equal') || strcmp(key.Key,'plus')
           
-         
-         xCntr = H.roi(1) + H.roi(3)/2;
-         yCntr = H.roi(2) + H.roi(4)/2; 
-         
-         % Enlarge roi
-         H.roi(3) = H.roi(3)/1.5;
-         H.roi(4) = H.roi(4)/1.5;
-         H.roi(1) = xCntr - H.roi(3)/2;
-         H.roi(2) = yCntr - H.roi(4)/2;
-         
-        % Store coordinate data
-        guidata(hAxes.axis1, H);
-       
-       % Update figure
-       update_fig(hFig, hAxes)
+          
+          xCntr = H.roi(1) + H.roi(3)/2;
+          yCntr = H.roi(2) + H.roi(4)/2;
+          
+          % Enlarge roi
+          H.roi(3) = H.roi(3)/1.5;
+          H.roi(4) = H.roi(4)/1.5;
+          %H.roi(1) = xCntr - H.roi(3)/2;
+          %H.roi(2) = yCntr - H.roi(4)/2;
+          
+          % Update roi x-coordinate
+          if (xCntr-H.roi(3)/2) < 0
+              H.roi(1) = 1;
+          elseif (xCntr+H.roi(3)/2) > H.v.Width
+              H.roi(1) = H.v.Width-H.roi(3);
+          else
+              H.roi(1) = xCntr-H.roi(3)/2;
+          end
+          
+          % Update roi y-coordinate
+          if (yCntr-H.roi(4)/2) < 0
+              H.roi(2) = 1;
+          elseif (yCntr+H.roi(4)/2) > H.v.Height
+              H.roi(2) = floor(H.v.Height - H.roi(4));
+          else
+              H.roi(2) = yCntr-H.roi(4)/2;
+          end
+          
+          
+          % Store coordinate data
+          guidata(hAxes.axis1, H);
+          
+          % Update figure
+          update_fig(hFig, hAxes)
        
 %      % D (delete data)
 %      elseif strcmp(key.Key,'d') || strcmp(key.Key,'D')
@@ -501,7 +544,9 @@ function keyPress(fig, key, hFig, hAxes)
           
           disp(' ');
           disp(' Tube feet are numbered 1, 2, 3 . . . with 1 in the first proximal position');
-          disp(' and A or B, with A in the more clockwise position and B counter-clockwise');
+          disp(' and A or B, with B in the more clockwise position and A more counter-clockwise.');
+          disp(' For example, for 2 tubefeet next to each other in the 2:00 and 3:00 positions, "A" would');
+          disp(' be at 2:00 and the "B" arm would be at 3:00.');
           disp(' ');
           
           answer = inputdlg({'Tube foot number (1-12)','Tube foot letter (A or B)'},...
@@ -698,14 +743,29 @@ function butDown(fig, key, hFig, hAxes)
     C2 = get(hAxes.axis2, 'CurrentPoint');
     C1 = get(hAxes.axis1, 'CurrentPoint');
     
+
     hold on
      % If in full frame box . . .
     if (C1(1,1)>=0) && (C1(1,1)<=hAxes.axis1.XLim(2)) && ...
        (C1(1,2)>=0) && (C1(1,2)<=hAxes.axis1.YLim(2))     
         
-       % Update roi
-       H.roi(1) = C1(1,1)-H.roi(3)/2;
-       H.roi(2) = C1(1,2)-H.roi(4)/2;
+       % Update roi x-coordinate      
+       if (C1(1,1)-H.roi(3)/2) < 0
+            H.roi(1) = 1;
+       elseif (C1(1,1)+H.roi(3)/2) > H.v.Width
+           H.roi(1) = H.v.Width-H.roi(3);
+       else
+           H.roi(1) = C1(1,1)-H.roi(3)/2;
+       end
+       
+       % Update roi y-coordinate 
+       if (C1(1,2)-H.roi(4)/2) < 0
+           H.roi(2) = 1;
+       elseif (C1(1,2)+H.roi(4)/2) > H.v.Height
+           H.roi(2) = floor(H.v.Height - H.roi(4));
+       else
+           H.roi(2) = C1(1,2)-H.roi(4)/2;
+       end
                 
     % If in roi box . . .
     elseif (C2(1,1)>=0) && (C2(1,1)<=hAxes.axis2.XLim(2)) && ...
@@ -821,7 +881,7 @@ function update_fig(hFig, hAxes)
     currFrac = num2str(currFrac);
     
     t_str = ['Full Frame :  Frame ' num2str(H.frames(H.iFrame)) ' (' ...
-        currMin ':' currSec(end-1:end) ':' currFrac ')'];
+             currMin ':' currSec(end-1:end) ':' currFrac ')'];
     set(obj,'String',t_str);
 
     % List mode in title 2
@@ -837,9 +897,7 @@ function update_fig(hFig, hAxes)
     % Read input video frame
     frame = getFrame(H.vid_path,H.v,cFrame,H.imInvert,'rgb');
 
-    % Display full video frame
-    delete(hAxes.axis1.Children)
-    showFrameOnAxis(hAxes.axis1, frame, 0);
+    
 
 %         % Get window dimensions (full frame FOR)
 %         winWidth1  = size(hAxes.axis1.Children(end).CData,2);
@@ -852,8 +910,25 @@ function update_fig(hFig, hAxes)
     % Center of ROI (Full frame FOR)
     xCntr = H.roi(1) + H.roi(3)/2;
     yCntr = H.roi(2) + H.roi(4)/2;
+    
+%     if (yCntr-H.roi(4)/2)<1
+%         yCntr = ceil(H.roi(4)/2);
+%         
+%     elseif (yCntr+H.roi(4)/2)>size(frame,1)
+%         yCntr = floor(size(frame,1) - H.roi(4)/2);
+%         
+%     end
 
-
+    
+    % FULL FRAME WINDOW --------------------------------------------------
+    
+    % Display full video frame
+    delete(hAxes.axis1.Children)
+    showFrameOnAxis(hAxes.axis1, frame, 0);
+    
+    % Marker size
+    mSize = 100;
+    
     % Hold on Axis1
     set(hAxes.axis1,'NextPlot','Add')
 
@@ -864,13 +939,39 @@ function update_fig(hFig, hAxes)
         mean([x1 x2]).*[1 1],[y1 y2], 'w:', ...
         [x1 x2], mean([y1 y2]).*[1 1], 'w:',...
         'Parent',hAxes.axis1);
+    
+    % Plot prior base points
+    h2 = scatter(allBase.x,allBase.y,'g+','Parent',hAxes.axis1,...
+        'MarkerEdgeColor',[1 1 1],'MarkerfaceColor','none','SizeData',mSize);   
+    
+    % Plot prior tip points
+    h2 = scatter(allTip.x,allTip.y,'Parent',hAxes.axis1,...
+        'MarkerEdgeColor',[1 1 1],'MarkerfaceColor','none','SizeData',mSize);
+    
+    % Plot current tip point
+    h2 = scatter(currTip.x,currTip.y,'Parent',hAxes.axis1,...
+        'MarkerEdgeColor',[0 1 0],'MarkerfaceColor','none','SizeData',mSize);
+    
+     % Plot current base point
+    h2 = scatter(currBase.x,currBase.y,'g+',...
+              'Parent',hAxes.axis1,'MarkerEdgeColor',[0 1 0],...
+              'MarkerfaceColor','none','SizeData',mSize);  
 
     % Hold off Axis1
     set(hAxes.axis1,'NextPlot','Replace');
 
+    
+    % ZOOMED WINDOW -------------------------------------------------------
+    
     % Get cropped image
     im2 = imcrop(frame, H.roi);
 
+    if size(im2,2)/size(im2,1) ~= H.roi(3)./H.roi(4)
+        beep;beep;
+        warning(['DO NOT SELECT POINTS : Cropped frame does not have ' ...
+                 'same dimensions as the roi. Choose another ROI.'])
+    end
+    
     % Display cropped image
     delete(hAxes.axis2.Children);
     showFrameOnAxis(hAxes.axis2, im2, 0);

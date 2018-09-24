@@ -1,13 +1,27 @@
-function anaMaster(orientation,SS,seqname)
+function anaMaster(Orientation,SSnum,seqname)
 % Runs analysis of kinematic data
+% Direction       - 'h', 'u',  or 'v'
+% SSnum             - Individual number of sea star.
+% seqnum            - number of sequenc
+
+
+if nargin<3
+    error('You need to specific sequence info')
+elseif 
+    
+end
+
 
 % Assign defaults
 if nargin<3
-    seqname = 's03';
+    %seqname = 's03';
+    seqname = 's01';
     if nargin < 2
-        SS = 'SS37';
+        %SS = 'SS37';
+        SS = 'SS38';
         if nargin < 1
             orientation = 'Horizontal';
+            %orientation = 'Upside-down';
         end
     end
 end
@@ -84,7 +98,7 @@ load([currDataPath filesep 'Initial conditions'])
 % yTip  = xBase;
 
 % Create matrices of 
-for i = 1:length(H.ft)
+for i = 1:(length(H.ft)-2)
     xBase(:,i)  = H.ft(i).xBase;
     yBase(:,i)  = H.ft(i).yBase;
     xTip(:,i)   = H.ft(i).xTip;

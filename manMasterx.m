@@ -1,5 +1,51 @@
-function manMasterx
+function manMasterx(Orientation,SSnum,seqnum)
 % Acquisition of sea star kinematics
+% Orientation - indicates the wall orientation ('h','v','u')
+% SSnum       - number of seastar
+% seqnum      - sequence number
+
+
+%% Deal with inputs
+
+if nargin >=3
+    
+    if strcmp(Orientation,'h')
+        Orientation = 'Horizontal';
+        
+    elseif strcmp(Orientation,'v')
+        Orientation = 'Vertical';
+        
+    elseif strcmp(Orientation,'u')    
+        Orientation = 'Upside-down';
+        
+    else
+        error('Do not recorgnize the orientation requested');
+    end
+    
+    % Make string out of seastar number
+    SSnum = ['0' num2str(SSnum)];
+    SSnum = ['SS' SSnum(end-1:end)];
+    
+    % Make string out of sequence number
+    seqnum = ['0' num2str(seqnum)];
+    seqnum = seqnum(end-1:end);
+    
+    good(1).path  =  [Orientation filesep SSnum filesep 'canon']; 
+    good(1).fName = ['s' seqnum];
+    
+    clear Orientation SSnum seqnum
+    
+else
+    % Add sequences to this list for analysis ---------
+    %good(i).path  =  ['Upside-down' filesep 'SS41' filesep 'canon'];
+    %good(i).path  =  ['Horizontal' filesep 'SS37' filesep 'canon'];
+    good(1).path  =  ['Horizontal' filesep 'SS38' filesep 'canon'];
+    %good(i).fName = 's03';
+    %good(i).fName = 's04';
+    good(1).fName = 's01';
+    
+end
+    
 
 %% Code execution
 
@@ -109,12 +155,6 @@ cList0 = catVidfiles(vidPath,camName);
 
 % Initialize index
 i = 1;
-
-% Add sequences to this list for analysis ---------
-%good(i).path  =  ['Horizontal' filesep 'SS38' filesep 'canon']; 
-good(i).path  =  ['Horizontal' filesep 'SS37' filesep 'canon']; 
-good(i).fName = 's03';
-i = i + 1;
 
 % --------------
 
@@ -394,7 +434,7 @@ for i = 1:length(cList.vidType)
     if isempty(dir([currDataPath filesep 'Manual tracking.mat']))
         H = [];
     else
-        load([currDataPath filesep 'Manual tracking.mat']);
+        load([currDataPath filesep 'Manual tracking.mat'],'-mat');
     end
     
     % Get coordinates via interactive mode
@@ -560,6 +600,7 @@ for i = 1:length(a1)
         currOrient = [];
     end
     
+   % pause(0.1)
     
     if ~isempty(currOrient)
         
@@ -628,6 +669,7 @@ for i = 1:length(a1)
                         movType{m} = 'mov';
                         
                         m = m + 1;
+                        %pause(0.1)
                     end
                 end
 
