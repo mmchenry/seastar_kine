@@ -431,17 +431,19 @@ for i = 1:length(cList.vidType)
     %         % Load trasnformation data (S)
     %         load([currDataPath filesep 'Transformation.mat'])
     
+    savePath = [currDataPath filesep 'Manual tracking.mat'];
+    
     if isempty(dir([currDataPath filesep 'Manual tracking.mat']))
         H = [];
     else
-        load([currDataPath filesep 'Manual tracking.mat'],'-mat');
+        load(savePath,'-mat');
     end
     
     % Get coordinates via interactive mode
-    H = videoGUI(currVidPath,v,frames,0,'simple',iC.r,[0 1 0],H);
+    H = videoGUI(currVidPath,v,frames,0,'simple',iC.r,[0 1 0],H,savePath);
     
     % Save data
-    save([currDataPath filesep 'Manual tracking.mat'],'H');
+    save(savePath,'H');
 
         
     clear roi0 currDataPath currVidPath Rotation S

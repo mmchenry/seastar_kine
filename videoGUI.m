@@ -30,6 +30,13 @@ if strcmp(acqMode,'simple')
         H = [];
     end
     
+    if length(varargin)>3
+        H.savePath = varargin{4};
+    else
+        error('You need to specify a path for saving data')
+    end
+    
+ 
 %     % Starting values
 %     if length(varargin)>3
 %         xStart = varargin{3};
@@ -520,7 +527,7 @@ function keyPress(fig, key, hFig, hAxes)
 %           % Update figure
 %           update_fig(hFig, hAxes)
 
-      % S (set interval)
+      % J (set interval to jump over frames)
       elseif strcmp(key.Key,'j') || strcmp(key.Key,'J')
           
           % Prompt for interval
@@ -530,7 +537,7 @@ function keyPress(fig, key, hFig, hAxes)
               return
           end
           
-          % Invert image
+          % Advance interval
           H.adInterval = str2num(answer{1});
           
           % Store coordinate data
@@ -538,8 +545,9 @@ function keyPress(fig, key, hFig, hAxes)
     
           % Update figure
           update_fig(hFig, hAxes)
+                  
           
-    % N (start new foot)
+    % S (save tube foot)
       elseif strcmp(key.Key,'s') || strcmp(key.Key,'S')  
           
           disp(' ');
@@ -575,6 +583,9 @@ function keyPress(fig, key, hFig, hAxes)
               if H.ft(end).choseContact==1 && H.ft(end).choseRelease==1 && ...
                       sum(~isnan(H.ft(end).xBase))~=0
                   
+                  % Save data
+                  save(H.savePath,'H')
+             
                   % Make room for a new foot
                   H = makeNewFoot(H,length(H.ft(end).xBase));
                   
@@ -588,6 +599,7 @@ function keyPress(fig, key, hFig, hAxes)
               
               % Update figure
               update_fig(hFig, hAxes)
+
           end
          
      % The following involve changing frame number
@@ -775,19 +787,28 @@ function butDown(fig, key, hFig, hAxes)
        xCurr = H.roi(1) + C2(1,1);
        yCurr = H.roi(2) + C2(1,2);
        
+       % List of items
+       itemlist{1} = 'Tip: first contact';
+       itemlist{2} = 'Tip: release';
+       itemlist{3} = 'Base';
+       itemlist{4} = 'Remove point';
+       
+       
        % Prompt for type
-       answer = questdlg('What type of point ?','','Base','Tip: first contact', ...
-                         'Tip: release','Base');
+%        answer = questdlg('What type of point ?','','Tip: first contact', ...
+%                          'Tip: release','Base','Tip: first contact');
+       [iAns,OK] = listdlg('PromptString','What type of point ?', ...
+                              'SelectionMode','Single','ListString',itemlist);
            
        % Store base point
-       if strcmp(answer,'Base')
+       if OK && iAns==3
            
            % Base point
            H.ft(end).xBase(H.iFrame) = xCurr;
            H.ft(end).yBase(H.iFrame) = yCurr;
            
        % Store tip at time of contact
-       elseif strcmp(answer,'Tip: first contact')
+       elseif OK && iAns==1
            
            % Index of release 
            iRelease = find(~isnan(H.ft(end).xTip),1,'last');
@@ -816,7 +837,7 @@ function butDown(fig, key, hFig, hAxes)
            H.ft(end).choseContact = 1;
            
        % Store tip at time of release
-       elseif strcmp(answer,'Tip: release')
+       elseif OK && iAns==2
            
            % Index of contact
            iContact = find(~isnan(H.ft(end).xTip),1,'first');
@@ -843,12 +864,101 @@ function butDown(fig, key, hFig, hAxes)
            H.ft(end).yTip(iNan) = nan;  
            
            H.ft(end).choseRelease = 1;
+      
+       % Remove point
+       elseif OK && iAns==4
+           
+          % If no points to delete . . .
+          if ~isfield(H,'ft') || (length(H.ft)==1 && sum(~isnan(H.ft(1).xBase))==0)
+              
+              warning('No points to delete');
+          
+          % If cursor in ROI box . . .
+          elseif (C2(1,1)>=0) && (C2(1,1)<=hAxes.axis2.XLim(2)) && ...
+                 (C2(1,2)>=0) && (C2(1,2)<=hAxes.axis2.YLim(2)) 
+         
+               % Current coordinate
+              xCurr = H.roi(1) + C2(1,1);
+              yCurr = H.roi(2) + C2(1,2);
+         
+              % Index in data for current frame
+              if length(H.ft(1).xTip)==length(H.frames)
+                  iFrame = H.iFrame;
+              else
+                  iFrame = H.frames(H.iFrame);
+              end
+
+              % Coordinate container
+              coords = nan(length(H.ft),2);
+              
+              % Loop thru tip values
+              for i = 1:length(H.ft)
+                  coords(i,:) = [H.ft(i).xTip(iFrame) H.ft(i).yTip(iFrame)];
+              end
+                
+              % If no points in frame . . .
+              if sum(~isnan(coords(:)))==0
+                  warning('No points in frame to delete')
+                  
+              else
+                  % Distances to tip points from cursor
+                  dists = hypot(coords(:,1)-xCurr,coords(:,2)-yCurr);
+                  
+                  % Index of min val
+                  iMin = find(dists==min(dists),1,'first');
+                  
+                  % Hold on Axis 2
+                  set(hAxes.axis2,'NextPlot','Add');
+    
+                  % Highlight point
+                  h = scatter(coords(iMin,1)-H.roi(1),coords(iMin,2)-H.roi(2),...
+                      'MarkerEdgeColor','r','SizeData',1000,'LineWidth',5);
+                  
+                  % Hold on Axis 2
+                  set(hAxes.axis2,'NextPlot','Replace');
+                  
+                  % Prompt for type
+                  answer = questdlg('For point highligted in red?','',...
+                           'Delete point','Do not delete','Cancel','Cancel');
+                  
+                  % Remove highlighting
+                  delete(h)     
+                  
+                  % If delete requested
+                  if strcmp(answer,'Delete point')
+                      
+                      if iMin==length(H.ft)
+                          H.ft = H.ft(end-1);
+                      elseif iMin==1
+                          H = rmfield(H,'ft');
+                      else
+                          idx = 1:length(H.ft);
+                          idx = idx ~=iMin;
+                          tmp = H.ft;
+                          H = rmfield(H,'ft');
+                          H.ft = tmp(idx);
+                      end
+                      
+                      % Save data
+                      save(H.savePath,'H')
+                  end
+              end
+
+          % If cursor not in ROI box . . .
+          else
+              
+             warning('Your cursor needs to point to the zoomed window')
+              
+              
+          end
+          
        end
        
+    
     else
         set(gcf,'Pointer','arrow')
     end
-    
+
     % Store coordinate data
     guidata(hAxes.axis1, H);
     
@@ -1010,6 +1120,7 @@ function update_fig(hFig, hAxes)
 
     % Activate ROI panel
     set(hAxes.axis2,'Selected','on')
+    
 end
 
 function H = makeNewFoot(H,dataLen)
