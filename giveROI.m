@@ -171,7 +171,24 @@ if ~strcmp(action,'define')
     bw_roi_mask = roipoly(size(im_roi,1),size(im_roi,2),roi.yPerimL,roi.xPerimL);
     
     % White out area around roi
-    im_roi(~bw_roi_mask) = 255;
+    if size(im_roi,3)==3
+        tmp1 = im_roi(:,:,1);
+        tmp1(~bw_roi_mask) = 255;
+        
+        tmp2 = im_roi(:,:,2);
+        tmp2(~bw_roi_mask) = 255;
+        
+        tmp3 = im_roi(:,:,3);
+        tmp3(~bw_roi_mask) = 255;
+        
+        im_roi(:,:,1) = tmp1;
+        im_roi(:,:,2) = tmp2;
+        im_roi(:,:,3) = tmp3;
+        
+        clear tmp1 tmp2 tmp3
+    else
+        im_roi(~bw_roi_mask) = 255;
+    end
     
     % Reduce size (helps speed up image registration)
     if dSample && (length(im)>maxSize)

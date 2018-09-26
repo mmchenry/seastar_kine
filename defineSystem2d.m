@@ -125,6 +125,10 @@ end
 
 if strcmp(coordType,'roi')
     
+    if size(Centroid.frames,2)>size(Centroid.frames,1)
+        Centroid.frames = Centroid.frames';
+    end
+    
     % Store centroid data
     S.frames        = Centroid.frames;
     S.xCntr         = Centroid.x;
@@ -140,9 +144,17 @@ if strcmp(coordType,'roi')
     elseif isfield(Rotation,'tform_roi')
         S.tform       = Rotation.tform_roi;
         
-    elseif ~isempty(Rotation) && length(Rotation)~=length(Centroid.x)
+    elseif ~isempty(Rotation.ref_frame) && ...
+            length(Rotation.ref_frame)~=length(Centroid.x)
         error('mismatch in length of data sources');
         
+    end
+    
+    % Add rotation angle data
+    if isfield(Rotation,'rot_ang')
+        S.ang = Rotation.rot_ang;
+    else
+        S.ang = [];
     end
     
     % Set reference as first frame
@@ -162,6 +174,7 @@ if strcmp(coordType,'roi')
             S.tform = [];
         end
         
+        % If tform data is present
         if ~isempty(S.tform)
             if size(S.tform,3)<i         
                 S.tform(:,:,i) = Rotation(i).tform_roi;
@@ -185,6 +198,7 @@ if strcmp(coordType,'roi')
             
              % Store net angle
              S.ang(i,1) = ref_rot + rot_ang;
+            
         end
         
         % Number of roi points
@@ -195,7 +209,7 @@ if strcmp(coordType,'roi')
         yC = Centroid.y(i);
         
         % Current roi
-        S.roi(i) = giveROI('define','circular',numroipts,roi0.r,xC,yC);
+        S.roi(i,1) = giveROI('define','circular',numroipts,roi0.r,xC,yC);
     end
 end
 

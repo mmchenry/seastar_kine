@@ -50,19 +50,25 @@ end
 %% Code execution
 
 % Copies over portions of movies as image sequences
-do.choose_dur = 0;
+do.choose_dur = 1;
 
 % Interactively select initial conditions
-do.initialConditions = 0;
+do.initialConditions = 1;
   
 % Whether to track the body centroid
-do.Centroids = 1;
+do.Centroids = 0;
 
 % Track body rotation
-do.bodyRotation = 1;
+do.bodyRotation = 0;
 
 % Manual tracking of tube feet
-do.manTracking = 0;
+do.manTracking = 1;
+
+% Put together manual tracking, centroid, and rotation data
+do.bundleData = 0;
+
+% Make a movie of the data overlaid onto a video 
+do.makeDataMovie = 0;
 
 
 %% General parameters
@@ -195,7 +201,7 @@ end
 clear good cList0
 
 
-%% Produce video stills
+%% Choose durations (do.choose_dur)
 
 if do.choose_dur
     
@@ -204,7 +210,7 @@ if do.choose_dur
 end
 
 
-%% Interactive mode: Select initial conditions
+%% Interactive mode: Select initial conditions (do.initialConditions)
 
 if do.initialConditions
     
@@ -267,7 +273,7 @@ if do.initialConditions
 end
 
 
-%% Track centroid coordinates
+%% Track centroid coordinates (do.Centroids)
 
 if do.Centroids
     
@@ -313,7 +319,7 @@ if do.Centroids
 end
 
 
-%% Track rotation
+%% Track rotation (do.bodyRotation)
 
 if do.bodyRotation
     
@@ -366,9 +372,61 @@ if do.bodyRotation
 end
 
 
-%% Bundle Centroid and Rotation data
+%% Manual tracking mode (do.manTracking)
 
-if 0
+if do.manTracking
+    
+    % Loop thru sequences
+    for i = 1:length(cList.vidType)
+        
+        % Current paths
+        currDataPath = [dataPath filesep cList.path{i} filesep cList.fName{i}];
+        currVidPath  = [vidPath filesep cList.path{i} filesep cList.fName{i} cList.ext{i}];
+        
+        % Load frame intervals ('clipInfo')
+        load([currDataPath filesep 'clipInfo'])
+        
+        % Load video info (v)
+        v = defineVidObject(currVidPath);
+        
+        % Define frames vector
+        %frames = v.UserData.FirstFrame:v.UserData.LastFrame;
+        % Frames
+        frames = clipInfo.startFrame:clipInfo.endFrame;
+        
+        % Load initial conditions (iC)
+        load([currDataPath filesep 'Initial conditions'])
+        %
+        %         % Region of interest for first frame
+        %         roi0 = giveROI('define','circular',numroipts,iC.r,iC.x,iC.y);
+        %
+        %         % Load trasnformation data (S)
+        %         load([currDataPath filesep 'Transformation.mat'])
+        
+        savePath = [currDataPath filesep 'Manual tracking.mat'];
+        
+        if isempty(dir([currDataPath filesep 'Manual tracking.mat']))
+            H = [];
+        else
+            load(savePath,'-mat');
+        end
+        
+        % Get coordinates via interactive mode
+        H = videoGUI(currVidPath,v,frames,0,'simple',iC.r,[0 1 0],H,savePath);
+        
+        % Save data
+        v = H.v;
+        H = rmfield(H,'v');
+        save(savePath,'H')
+        
+        clear roi0 currDataPath currVidPath Rotation S
+    end
+end
+
+
+%% Bundle all data
+
+if do.bundleData
     % Loop thru sequences
     for i = 1:length(cList.vidType)
     
@@ -377,7 +435,7 @@ if 0
         currVidPath  = [vidPath filesep cList.path{i} filesep cList.fName{i} cList.ext{i}];
     
         % If centroid data there and centroid data not yet approved
-         if isempty(dir([currDataPath filesep 'Transformation.mat']))
+         if isempty(dir([currDataPath filesep 'Bundled Data.mat']))
         
             % Load initial conditions (iC)
             load([currDataPath filesep 'Initial conditions'])
@@ -390,65 +448,106 @@ if 0
         
             % Load rotation data (Rotation)
             load([currDataPath filesep 'Rotation.mat'])
+            
+            % Load manual tracking data (H)
+            load([currDataPath filesep 'Manual tracking.mat'],'-mat')
         
             % Create coordinate transformation structure
-            S = defineSystem2d('roi',roi0,Centroid,Rotation);
+            S_t = defineSystem2d('roi',roi0,Centroid,Rotation);
         
+            if ~isfield(H,'ft') || (length(H.ft)==1 && sum(~isnan(H.ft(1).xBase))==0)
+                error('There are no manual points yet selected')
+            end
+            
+            % Find bounds of frame numbers
+            frMin = max([H.frames(1)  S_t.frames(1)]);
+            frMax = min([H.frames(end) length(H.ft(1).xBase) S_t.frames(end)]);
+            
+            % Definitive frame vector
+            frames = frMin:frMax;
+            
+            % Loop trhu common frames
+            for j = 1:length(frames)
+                
+                % Index for current frame in S_t data
+                iS_t = find(S_t.frames==frames(j),1,'first');
+                
+                % Copy over from S_t to S
+                S.frames(j)    = frames(j);
+                S.xCntr(j)     = S_t.xCntr(iS_t);
+                S.yCntr(j)     = S_t.yCntr(iS_t);
+                S.ang(j)       = S_t.ang(iS_t);
+                S.roi(j)       = S_t.roi(iS_t);
+
+                clear iS_t
+                
+                % Loop thru tube feet
+                for k = 1:length(H.ft)
+                    % Index for current frame for manual data
+                    iH = find(H.frames==frames(j),1,'first');
+                    
+                    % Transfer data 
+                    S.ft(k).xBase(j)   = H.ft(k).xBase(iH);
+                    S.ft(k).yBase(j)   = H.ft(k).yBase(iH);
+                    S.ft(k).xTip(j)    = H.ft(k).xTip(iH);
+                    S.ft(k).yTip(j)    = H.ft(k).yTip(iH);
+                    S.ft(k).footNum    = H.ft(k).footNum;
+                    S.ft(k).footLet    = H.ft(k).footLet;
+                    
+                    clear iH
+                end
+                
+                
+            end
+            
+            % Transfer other data
+            S.orient    = cList.orient;
+            S.indiv     = cList.indiv(i);
+            S.vidPath   = cList.path{i};
+            S.vidName   = cList.fName{i};
+            S.vidExt    = cList.ext{i};
+            S.calPath   = cList.calPath{i};
+            %S.ft        = H.ft;
+            
             % Save transformation data
-            save([currDataPath filesep 'Transformation'],'S')
+            save([currDataPath filesep 'Bundled Data'],'S')
          end  
-        clear roi0 currDataPath currVidPath Rotation S
+        clear roi0 currDataPath currVidPath Rotation S frMin frMax frames
     end
 end
 
 
-%% Manual tracking mode (do.manTracking)
+%% Make movie of data
 
-% Loop thru sequences
-for i = 1:length(cList.vidType)
+if do.makeDataMovie
     
-    % Current paths
-    currDataPath = [dataPath filesep cList.path{i} filesep cList.fName{i}];
-    currVidPath  = [vidPath filesep cList.path{i} filesep cList.fName{i} cList.ext{i}];
+    % Output video path
+    outVidPath   = [vidPath filesep 'Data movies'];
     
-    % Load frame intervals ('clipInfo')
-    load([currDataPath filesep 'clipInfo'])
+    imVis = 1;
     
-    % Load video info (v)
-    v = defineVidObject(currVidPath);
-    
-    % Define frames vector
-    %frames = v.UserData.FirstFrame:v.UserData.LastFrame;
-    % Frames
-    frames = clipInfo.startFrame:clipInfo.endFrame;
-    
-    % Load initial conditions (iC)
-    load([currDataPath filesep 'Initial conditions'])
-    %
-    %         % Region of interest for first frame
-    %         roi0 = giveROI('define','circular',numroipts,iC.r,iC.x,iC.y);
-    %
-    %         % Load trasnformation data (S)
-    %         load([currDataPath filesep 'Transformation.mat'])
-    
-    savePath = [currDataPath filesep 'Manual tracking.mat'];
-    
-    if isempty(dir([currDataPath filesep 'Manual tracking.mat']))
-        H = [];
-    else
-        load(savePath,'-mat');
-    end
-    
-    % Get coordinates via interactive mode
-    H = videoGUI(currVidPath,v,frames,0,'simple',iC.r,[0 1 0],H,savePath);
-    
-    % Save data
-    save(savePath,'H');
-
+    % Loop thru sequences
+    for i = 1:length(cList.vidType)
+          
+        % Current paths
+        currDataPath = [dataPath filesep cList.path{i} filesep cList.fName{i}];
+        currVidPath  = [vidPath filesep cList.path{i} filesep cList.fName{i} cList.ext{i}];
         
-    clear roi0 currDataPath currVidPath Rotation S
+        % Load data bundle ('S')
+        load([currDataPath filesep 'Bundled Data.mat'])
+        
+        % Load video info (v)
+        v = defineVidObject(currVidPath);
+        
+        % Make filename for video 
+        ssnum = ['0' num2str(S.indiv)]; 
+        fName = [S.orient 'SS' ssnum(end-1:end) '_' S.vidName];
+        
+        makeDataMovie(currVidPath,v,S,[outVidPath filesep fName],imVis,'two view')
+        
+    end
+    
 end
-
 
 
 

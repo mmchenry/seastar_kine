@@ -583,8 +583,14 @@ function keyPress(fig, key, hFig, hAxes)
               if H.ft(end).choseContact==1 && H.ft(end).choseRelease==1 && ...
                       sum(~isnan(H.ft(end).xBase))~=0
                   
-                  % Save data
+                  
+                  
+                  % Save data (without 'v' field)
+                  v = H.v;
+                  H = rmfield(H,'v');
                   save(H.savePath,'H')
+                  H.v = v;
+                  
              
                   % Make room for a new foot
                   H = makeNewFoot(H,length(H.ft(end).xBase));
@@ -940,7 +946,10 @@ function butDown(fig, key, hFig, hAxes)
                       end
                       
                       % Save data
+                      v = H.v;
+                      H = rmfield(H,'v');
                       save(H.savePath,'H')
+                      H.v = v;
                   end
               end
 
