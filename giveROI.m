@@ -239,9 +239,29 @@ if ~strcmp(action,'define')
 %         % Stablize image
 %         imStable = imwarp(im_roi,R,tform,'OutputView',R,...
 %             'FillValues',255,'SmoothEdges',true);
-        
+
+        if size(imStable,3)==3
+            
+            tmp1 = imStable(:,:,1);
+            tmp1(~bw_roi_mask) = 255;
+            
+            tmp2 = imStable(:,:,2);
+            tmp2(~bw_roi_mask) = 255;
+            
+            tmp3 = imStable(:,:,3);
+            tmp3(~bw_roi_mask) = 255;
+            
+            imStable(:,:,1) = tmp1;
+            imStable(:,:,2) = tmp2;
+            imStable(:,:,3) = tmp3;
+            
+            clear tmp1 tmp2 tmp3
+        else
+
         % White out beyond roi
         imStable(~bw_roi_mask) = 255;
+        
+        end
         
         % Deliver imStable
         im_roi = imStable;

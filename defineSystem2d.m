@@ -146,7 +146,7 @@ if strcmp(coordType,'roi')
         
     elseif ~isempty(Rotation.ref_frame) && ...
             length(Rotation.ref_frame)~=length(Centroid.x)
-        error('mismatch in length of data sources');
+        error('mismatch in length of Centroid and Rotation');
         
     end
     

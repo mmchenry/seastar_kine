@@ -50,25 +50,25 @@ end
 %% Code execution
 
 % Copies over portions of movies as image sequences
-do.choose_dur = 1;
+do.choose_dur = 0;
 
 % Interactively select initial conditions
-do.initialConditions = 1;
+do.initialConditions = 0;
   
 % Whether to track the body centroid
 do.Centroids = 0;
 
 % Track body rotation
-do.bodyRotation = 0;
+do.bodyRotation = 1;
 
 % Manual tracking of tube feet
-do.manTracking = 1;
+do.manTracking = 0;
 
 % Put together manual tracking, centroid, and rotation data
-do.bundleData = 0;
+do.bundleData = 1;
 
 % Make a movie of the data overlaid onto a video 
-do.makeDataMovie = 0;
+do.makeDataMovie = 1;
 
 
 %% General parameters
@@ -354,7 +354,7 @@ if do.bodyRotation
             v = defineVidObject(currVidPath);
             
             % Run tracker for predator
-            if isempty(dir([currDataPath filesep 'Rotation.mat']))
+            if 1 %isempty(dir([currDataPath filesep 'Rotation.mat']))
                 disp(' ')
                 disp(['-- Predator rotation :' currDataPath])
                 
@@ -367,7 +367,7 @@ if do.bodyRotation
                 
         end
       
-        clear  v currDataPath currVidPath anaStatus Rotation
+        clear v currDataPath currVidPath anaStatus Rotation
     end
 end
 
@@ -429,91 +429,95 @@ end
 if do.bundleData
     % Loop thru sequences
     for i = 1:length(cList.vidType)
-    
+        
         % Current paths
         currDataPath = [dataPath filesep cList.path{i} filesep cList.fName{i}];
         currVidPath  = [vidPath filesep cList.path{i} filesep cList.fName{i} cList.ext{i}];
-    
-        % If centroid data there and centroid data not yet approved
-         if isempty(dir([currDataPath filesep 'Bundled Data.mat']))
         
-            % Load initial conditions (iC)
-            load([currDataPath filesep 'Initial conditions'])
+        
+        % Load initial conditions (iC)
+        load([currDataPath filesep 'Initial conditions'])
+        
+        % Region of interest for first frame
+        roi0 = giveROI('define','circular',numroipts,iC.r,iC.x,iC.y);
+        
+        % Load centroid data (Centroid)
+        load([currDataPath filesep 'Centroid.mat'])
+        
+        % Load rotation data (Rotation)
+        load([currDataPath filesep 'Rotation.mat'])
+        
+        % Load manual tracking data (H)
+        load([currDataPath filesep 'Manual tracking.mat'],'-mat')
+        
+        % Create coordinate transformation structure
+        S_t = defineSystem2d('roi',roi0,Centroid,Rotation);
+        
+        if ~isfield(H,'ft') || (length(H.ft)==1 && sum(~isnan(H.ft(1).xBase))==0)
+            error('There are no manual points yet selected')
+        end
+        
+        % Find bounds of frame numbers
+        frMin = max([H.frames(1)  S_t.frames(1)]);
+        frMax = min([H.frames(end) length(H.ft(1).xBase) S_t.frames(end)]);
+        
+        % Definitive frame vector
+        frames = frMin:frMax;
+        
+        % Loop trhu common frames
+        for j = 1:length(frames)
             
-            % Region of interest for first frame
-            roi0 = giveROI('define','circular',numroipts,iC.r,iC.x,iC.y);
-        
-            % Load centroid data (Centroid)
-            load([currDataPath filesep 'Centroid.mat'])
-        
-            % Load rotation data (Rotation)
-            load([currDataPath filesep 'Rotation.mat'])
+            % Index for current frame in S_t data
+            iS_t = find(S_t.frames==frames(j),1,'first');
             
-            % Load manual tracking data (H)
-            load([currDataPath filesep 'Manual tracking.mat'],'-mat')
-        
-            % Create coordinate transformation structure
-            S_t = defineSystem2d('roi',roi0,Centroid,Rotation);
-        
-            if ~isfield(H,'ft') || (length(H.ft)==1 && sum(~isnan(H.ft(1).xBase))==0)
-                error('There are no manual points yet selected')
+            % Copy over from S_t to S
+            S.frames(j)    = frames(j);
+            S.xCntr(j)     = S_t.xCntr(iS_t);
+            S.yCntr(j)     = S_t.yCntr(iS_t);
+            S.ang(j)       = S_t.ang(iS_t);
+            S.roi(j)       = S_t.roi(iS_t);
+            
+            clear iS_t
+            
+            % Calcuate tform from rotation angle
+            cOrigin = [S.xCntr(j) S.yCntr(j)];
+            xAxis   = [cOrigin(1)+cos(S.ang(j)/180*pi) cOrigin(2)+sin(S.ang(j)/180*pi)];
+            tform = defineSystem2d('x-axis',cOrigin,xAxis);
+            S.tform(j) = tform.tform;
+            
+            % Loop thru tube feet
+            for k = 1:length(H.ft)
+                % Index for current frame for manual data
+                iH = find(H.frames==frames(j),1,'first');
+                
+                % Transfer data
+                S.ft(k).xBase(j)   = H.ft(k).xBase(iH);
+                S.ft(k).yBase(j)   = H.ft(k).yBase(iH);
+                S.ft(k).xTip(j)    = H.ft(k).xTip(iH);
+                S.ft(k).yTip(j)    = H.ft(k).yTip(iH);
+                S.ft(k).footNum    = H.ft(k).footNum;
+                S.ft(k).footLet    = H.ft(k).footLet;
+                
+                clear iH
             end
             
-            % Find bounds of frame numbers
-            frMin = max([H.frames(1)  S_t.frames(1)]);
-            frMax = min([H.frames(end) length(H.ft(1).xBase) S_t.frames(end)]);
             
-            % Definitive frame vector
-            frames = frMin:frMax;
-            
-            % Loop trhu common frames
-            for j = 1:length(frames)
-                
-                % Index for current frame in S_t data
-                iS_t = find(S_t.frames==frames(j),1,'first');
-                
-                % Copy over from S_t to S
-                S.frames(j)    = frames(j);
-                S.xCntr(j)     = S_t.xCntr(iS_t);
-                S.yCntr(j)     = S_t.yCntr(iS_t);
-                S.ang(j)       = S_t.ang(iS_t);
-                S.roi(j)       = S_t.roi(iS_t);
-
-                clear iS_t
-                
-                % Loop thru tube feet
-                for k = 1:length(H.ft)
-                    % Index for current frame for manual data
-                    iH = find(H.frames==frames(j),1,'first');
-                    
-                    % Transfer data 
-                    S.ft(k).xBase(j)   = H.ft(k).xBase(iH);
-                    S.ft(k).yBase(j)   = H.ft(k).yBase(iH);
-                    S.ft(k).xTip(j)    = H.ft(k).xTip(iH);
-                    S.ft(k).yTip(j)    = H.ft(k).yTip(iH);
-                    S.ft(k).footNum    = H.ft(k).footNum;
-                    S.ft(k).footLet    = H.ft(k).footLet;
-                    
-                    clear iH
-                end
-                
-                
-            end
-            
-            % Transfer other data
-            S.orient    = cList.orient;
-            S.indiv     = cList.indiv(i);
-            S.vidPath   = cList.path{i};
-            S.vidName   = cList.fName{i};
-            S.vidExt    = cList.ext{i};
-            S.calPath   = cList.calPath{i};
-            %S.ft        = H.ft;
-            
-            % Save transformation data
-            save([currDataPath filesep 'Bundled Data'],'S')
-         end  
-        clear roi0 currDataPath currVidPath Rotation S frMin frMax frames
+        end
+        
+        % Transfer other data
+        S.orient    = cList.orient;
+        S.indiv     = cList.indiv(i);
+        S.vidPath   = cList.path{i};
+        S.vidName   = cList.fName{i};
+        S.vidExt    = cList.ext{i};
+        S.calPath   = cList.calPath{i};
+        %S.ft        = H.ft;
+        
+        % Save transformation data
+        save([currDataPath filesep 'Bundled Data'],'S')
     end
+    clear roi0 currDataPath currVidPath Rotation S frMin frMax frames tform
+    
 end
 
 
