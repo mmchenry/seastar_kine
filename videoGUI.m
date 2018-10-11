@@ -208,7 +208,7 @@ end
     end
 
 
-%% Deposite data into figure
+%% Deposit data into figure
 
     function [hFig, hAxes] = putData(hFig, hAxes)
         
@@ -709,7 +709,7 @@ function keyPress(fig, key, hFig, hAxes)
              if ~isempty(answer)
                  
                 % Translate into frames
-                aFrame = round(answer{1});
+                aFrame = round(str2num(answer{1}));
                 
                 if aFrame<min(H.frames)
                     warning('Requested time happens before analyzed interval');

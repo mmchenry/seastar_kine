@@ -20,7 +20,7 @@ function varargout = transCoord2d(trans_type,varargin)
 
 %% Translate inputs
 
-% Inputs for coordinate transformation
+% Inputs for coordinate transformation using tform
 if strcmp(trans_type,'G2L') || ...
    strcmp(trans_type,'L2G')
     
@@ -35,8 +35,12 @@ if strcmp(trans_type,'G2L') || ...
         error('Coordinates need to given as a n x 2 matrix')
     end
     
+    % Check dimensions of tform
+    if tform.Dimensionality~=2
+        error('Code only handles 2D transformations')
+    end
     
-% Inputs for image transformation
+% Inputs for image transformation (uses tform)
 elseif strcmp(trans_type,'bw L2G')
    
    % First input needs to be tform
@@ -51,14 +55,38 @@ elseif strcmp(trans_type,'bw L2G')
     % Image in global FOR
     bw_roi_mask = varargin{4};
     
+    % Check dimensions of tform
+    if tform.Dimensionality~=2
+        error('Code only handles 2D transformations')
+    end
+    
+elseif strcmp(trans_type,'ang G2L') 
+       
+    % First input: origin (1 x 2)
+    originG = varargin{1};
+    
+    % Second input: angle of x-axis (rad)
+    angG = varargin{2};
+    
+    % Third input: global coordinates (n x 2)
+    coordG = varargin{3};
+     
+elseif strcmp(trans_type,'ang L2G')
+    
+    % First input: origin (1x2)
+    originG = varargin{1};
+    
+    % Second input: angle of x-axis (rad)
+    angG = varargin{2};
+    
+    % Third input: local coordinates (n x 2)
+    coordL = varargin{3};
+    
 else
     error('trans_type not recognized');
 end    
 
-% Check dimensions of tform
-if tform.Dimensionality~=2
-    error('Code only handles 2D transformations')
-end
+
 
 %% Transformations
     
@@ -123,10 +151,29 @@ elseif strcmp(trans_type,'bw L2G')
 %     
 %     aaa=3;
     
-% Global to local transformation (coordinates)
-elseif strcmp(trans_type,'im G2L')
+  
+    
+elseif strcmp(trans_type,'ang G2L') 
+    
+    % Define local system
+    S = localSystemAng(originG,angG);
+    
+    % Transformation
+    pts(:,1)    = coordG(:,1)-originG(1);
+    pts(:,2)    = coordG(:,2)-originG(2);   
+    coordL     = [S'*pts']';
     
     
+elseif strcmp(trans_type,'ang L2G') 
+    
+    % Define local system
+    S = localSystemAng(originG,angG);
+    
+    pts         = [inv(S)'*coordL']';
+    coordG(:,1) = pts(:,1) + originG(1);
+    coordG(:,2) = pts(:,2) + originG(2);
+    
+    ttt=3;
 else
     
     error('Do not recognize requested transformation')
@@ -143,10 +190,64 @@ if strcmp(trans_type,'G2L') || ...
 elseif strcmp(trans_type,'bw L2G')
     
     varargout{1}  = imOut;
+      
+elseif strcmp(trans_type,'ang G2L') 
+    
+    varargout{1}  = coordL;
+    
+elseif strcmp(trans_type,'ang L2G') 
+    
+    varargout{1}  = coordG;
     
 end
 
 
+
+function S = localSystem(P1,P2,P3)
+% Defines a transformation matrix for a local coordinate system in an
+% inertial frame of reference.  Uses P1 as the yaxis and P2 as the origin, and 
+% P3 as the x-axis. Coordinates must be (1x3) vectors. Note: if theses axes 
+% are not orthogonal, the x-axis direction is assumed to be more accurate
+% than the z-axis and the y-axis direction is adjusted to make the coordinates 
+% orthoganal.
+ 
+% Check dimensions of inputs
+if size(P1,1)~=1 || size(P1,2)~=2 ||...
+   size(P2,1)~=1 || size(P2,2)~=2 
+    error('Coordinates must be 1x2 vectors');
+end
+ 
+% Define units vectors for x and y axes
+xAxis   = [(P3-P2)./norm(P3-P2) 0];
+yAxis   = [(P1-P2)./norm(P1-P2) 0];
+ 
+% Define yaxis from the cross product
+zAxis   = cross(xAxis,yAxis);
+zAxis   = zAxis./norm(zAxis);
+ 
+% Redefine the yaxis, so all axes are orthoganal
+yAxis   = cross(zAxis,xAxis);
+
+% Trim dimensions
+xAxis = xAxis(1:2);
+yAxis = yAxis(1:2);
+
+% Define transformation matrix
+S       = [xAxis' yAxis'];
+
+
+function S = localSystemAng(originG,angG)
+% originG   - Origin of coord system in global FOR
+% angG      - Angle of x-axis of local FOR wrt to global (rad)
+ 
+% Define axes
+xAxis = [cos(angG) sin(angG)];
+yAxis = [-xAxis(2) xAxis(1)];
+ 
+% Define transformation matrix
+S       = [xAxis' yAxis'];
+ 
+ 
 % 
 % 
 % % FUNCTIONS --------------------------

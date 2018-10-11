@@ -126,8 +126,19 @@ elseif strcmp(method,'body rotation')
         yMask = varargin{6};
     end
     
-elseif strcmp(method,'advanced rotation') || ...
-       strcmp(method,'advanced rotation with mask') || ...
+elseif strcmp(method,'advanced rotation') 
+    
+    
+    r          = varargin{1};
+    Centroid   = varargin{2};
+    frames     = varargin{3};
+    savePath   = varargin{4};
+    
+    % Over how many frames data is saved
+    saveInterval = 20;
+    
+    
+elseif strcmp(method,'advanced rotation with mask') || ...
        strcmp(method,'advanced rotation with simple mask')
 
     r          = varargin{1};
@@ -435,14 +446,11 @@ for i = 1:length(frames)
         cX = Centroid.x(i);
         cY = Centroid.y(i);
         
-        % Mask, if present
-        if ~isempty(xMask)
-            % Make binary mask of tank region
-            bwMask = roipoly(im,xMask,yMask);
-            
-            % Eliminate outside of mask
-            im(~bwMask) = 255;
-        end
+        % Make binary mask of tank region
+        bwMask = roipoly(im,xMask,yMask);
+        
+        % Eliminate outside of mask
+        im(~bwMask) = 255;
 
         % Current roi
         roi = giveROI('define','circular',numroipts,r,cX,cY);
@@ -505,9 +513,7 @@ for i = 1:length(frames)
     end
     
     % Update status
-    %disp(['tracker (' method ') : done ' num2str(i) ' of ' num2str(length(frames))])   
-    disp(['tracker (' method ') : done ' num2str(i) ' of ' num2str(length(frames)) ...
-          '. Angle = ' num2str(Rotation.rot_ang(i,1)) ' deg'])   
+    disp(['tracker (' method ') : done ' num2str(i) ' of ' num2str(length(frames))])   
     
     % Visualize rotation, for debugging 
     if 0
@@ -581,6 +587,9 @@ for i = 1:length(frames)
      % Clear for next iteration
      clear im_roi tform_roi imStable xC yC h imMask im_roi t_txt
 
+     if nFrames >= frameInterval
+        save(savePath,'Rotation')
+     end
 end
 
 

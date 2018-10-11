@@ -40,7 +40,6 @@ vOut.Quality = 50;
 open(vOut)
 
 % Make figure
-set(0,'DefaultFigureWindowStyle','normal')
 f = figure('Visible',imVis);
 fPos = get(f,'Position');
 set(f,'Position',[fPos(1) fPos(2) 1020 1271])
@@ -65,6 +64,30 @@ for i = 1:length(S.frames)
         [im_roi,bw_mask] = giveROI('stabilized',im,S.roi(i),...
             dSample,S.tform(i));
         
+%         % Loop thru tube feet
+%         for j = 1:length(S.ft)
+%             
+%             % Global tip point
+%             tipG(j,:) = [S.ft(j).xTip(i) S.ft(j).yTip(i)];
+%               
+%             % Local tip point
+%             tipL(j,:) = [S.ft(j).xTipL(i) S.ft(j).yTipL(i)];
+%             
+%             % Glocal base point
+%             baseG(j,:) = [S.ft(j).xBase(i) S.ft(j).xBase(i)];
+%             
+%             % Local base point
+%             baseL(j,:) = [S.ft(j).xBaseL(i) S.ft(j).xBaseL(i)];
+%         end
+        
+        % Local tip point
+        %tipL = G2L(cOrigin,-S.ang(i)/180*pi,tipG);
+        
+        % Tip point in region of interest
+%         tipROI(1,:) = tipL(1,:) + size(im_roi,1)/2;
+%         tipROI(2,:) = tipL(2,:) + size(im_roi,2)/2;
+%         tipROI(1,:) = S.ft(j).xTipL + size(im_roi,1)/2;
+%         tipROI(2,:) = S.ft(j).yTipL + size(im_roi,2)/2;
         
         % Plot image
         %figure(f)
@@ -79,7 +102,13 @@ for i = 1:length(S.frames)
         % Outline roi (global)
         line(S.roi(i).xPerimG,S.roi(i).yPerimG,'Color',...
             [clrs{2} 0.5],'LineWidth',1); 
-
+        
+            
+%         scatter(tipG(1,:),tipG(2,:),'MarkerEdgeColor',clrs{3},...
+%             'LineWidth',1,'MarkerEdgeAlpha',0.5,'SizeData',mSize(2));
+        
+        
+        
         % BOTTOM IMAGE  ---------------------
         subplot(2,1,2)
         
@@ -91,19 +120,21 @@ for i = 1:length(S.frames)
         set(a1,'Position',[0 0.27 1 1])
         
         % Add frame number
-        %axes(a2); 
+        axes(a2); 
         h = text(1,30,['Frame ' num2str(S.frames(i))],...
                       'Color','k','FontSize',22,'FontWeight','bold','Parent',a2);
         
         %set(a2,'Position',[0.2 -.05 0.65 0.65])
         set(a2,'Position',[0.25 0 0.5 0.5])
         
-        %axes(a2)
+        axes(a2)
         
         % Loop thru tube feet 
         for j = 1:length(S.ft)
             
             % Top plot
+            %axes(a1)
+            
             line([S.ft(j).xBase(i) S.ft(j).xTip(i)],...
                  [S.ft(j).yBase(i) S.ft(j).yTip(i)],...
                  'Color',[clrs{3} 0.3],'LineWidth',5,'Parent',a1);
@@ -114,7 +145,8 @@ for i = 1:length(S.frames)
                     'SizeData',100,'Parent',a1); 
                
             % Bottom plot
-             
+            
+            
             % Tip plot in roi
             tipR = [S.ft(j).xTipL(i) + size(im_roi,1)/2 ...
                     S.ft(j).yTipL(i) + size(im_roi,2)/2];
@@ -127,8 +159,11 @@ for i = 1:length(S.frames)
         
 %         scatter(tipROI(1,:),tipROI(2,:),'MarkerEdgeColor',clrs{3},...
 %             'LineWidth',2,'MarkerEdgeAlpha',0.5,'SizeData',mSize(1));
-        set(a1,'NextPlot','replace')
-        set(a2,'NextPlot','replace')
+        axes(a1)
+        hold off
+        
+        axes(a2)
+        hold off
 
         clear tipG tipROI
     end

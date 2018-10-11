@@ -435,11 +435,14 @@ for i = 1:length(frames)
         cX = Centroid.x(i);
         cY = Centroid.y(i);
         
-        % Make binary mask of tank region
-        bwMask = roipoly(im,xMask,yMask);
-        
-        % Eliminate outside of mask
-        im(~bwMask) = 255;
+        % Mask, if present
+        if ~isempty(xMask)
+            % Make binary mask of tank region
+            bwMask = roipoly(im,xMask,yMask);
+            
+            % Eliminate outside of mask
+            im(~bwMask) = 255;
+        end
 
         % Current roi
         roi = giveROI('define','circular',numroipts,r,cX,cY);
@@ -502,7 +505,9 @@ for i = 1:length(frames)
     end
     
     % Update status
-    disp(['tracker (' method ') : done ' num2str(i) ' of ' num2str(length(frames))])   
+    %disp(['tracker (' method ') : done ' num2str(i) ' of ' num2str(length(frames))])   
+    disp(['tracker (' method ') : done ' num2str(i) ' of ' num2str(length(frames)) ...
+          '. Angle = ' num2str(Rotation.rot_ang(i,1)) ' deg'])   
     
     % Visualize rotation, for debugging 
     if 0

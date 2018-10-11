@@ -59,13 +59,16 @@ do.initialConditions = 0;
 do.Centroids = 0;
 
 % Track body rotation
-do.bodyRotation = 1;
+do.bodyRotation = 0;
 
 % Manual tracking of tube feet
 do.manTracking = 0;
 
+% Manual tracking of arm tips
+do.armTracking = 0;
+
 % Put together manual tracking, centroid, and rotation data
-do.bundleData = 1;
+do.bundleData = 0;
 
 % Make a movie of the data overlaid onto a video 
 do.makeDataMovie = 1;
@@ -83,67 +86,10 @@ numroipts = 200;
 run_single = 1;
 
 
-%% Manage paths (need to modify for new PC)
+%% Manage paths 
+
+paths = givePaths;
    
-if ~isempty(dir(['/Users/mmchenry/Documents/Matlab code']))
-    
-    % Path to kineBox
-    %kinePath = '/Users/mmchenry/Documents/Matlab code/kineBox';
-    kinePath = '/Users/mmchenry/Documents/Matlab code/kineBox_old';
-    
-    % Path to root dir of video (CSULB project, external drive)
-    %vidPath = '/Volumes/Video/Sea stars/CSULB test/Raw video';
-    %vidPath = '/Volumes/Video/Sea stars/CSULB/Raw video';
-    vidPath = '/Volumes/GoogleDrive/My Drive/Flow backup/Shared_flow';
-    %vidPath = '/Users/mmchenry/Documents/Video/Sea stars'
-    
-    % Location of video frames
-    vidFramePath = '/Volumes/Video/Sea stars/CSULB test/Video frames';
-    
-    % Path to root of data
-    %dataPath = '/Users/mmchenry/Documents/Projects/Seastars/CSULB data';
-  % remember to undo %%  to run all vids
-  dataPath = '/Volumes/GoogleDrive/My Drive/Projects/Andres sea stars/Kinematics';
-  
- elseif ~isempty(dir(['C:\Program Files\MATLAB\R2016a']))
-    
-    %vidPath = '\\flow.local\shared\Sea stars';
-    %vidPath = 'C:\Users\andres\Documents\Sea stars';
-    %special vid path
-    %vidpath=
-    % dataPath = '\\flow.local\andres\Sea stars\CSULB data';
-    
-    % kinePath = 'C:\Users\andres\Documents\GitPath\kineBox';
-    
-% Line to assign single vids    
-elseif ~isempty(dir(['C:\Program Files\MATLAB\R2016a']))
-    
-    %vidPath = '\\flow.local\shared\Sea stars';
-    vidPath = 'C:\Users\andres\Documents\SS Assign';
-    %special vid path
-    %vidpath=
-    % dataPath = '\\flow.local\andres\SS Assign\CSULB data'; %% by CG
-    dataPath = 'C:\Users\andres\Documents\dataPath';
-    
-    kinePath = 'C:\Users\andres\Documents\GitPath\kineBox';
-   
-    %%%Hunk of code added to Andres' Mac%%%
-elseif ~isempty(dir(['/Users/andrescarrillo/seastar_kine']))
-    
-    vidPath = '/Volumes/AChd2TB';
-    %vidPath = '/Volumes/Samsung_T3';
-    %special vid path
-    %vidpath=
-    % dataPath = '\\flow.local\andres\SS Assign\CSULB data'; %% by CG
-    dataPath = '/Users/andrescarrillo/seastar_kine/dataPath';
-    
-    kinePath = '/Users/andrescarrillo/seastar_kine';
-    
-    camName = 'canon';
-else
-    error('Do not recognize computer')
-    
-end
 
 %dataPath = '/Volumes/GoogleDrive/My Drive/Projects/Andres sea stars/Up-side down SS41';
 %kinePath = '/Volumes/GoogleDrive/My Drive/Projects/Andres sea stars/Up-side down SS41';
@@ -155,7 +101,7 @@ camName = 'canon';
 %% List of sequences to analyze
 
 % Vist of all video filese
-cList0 = catVidfiles(vidPath,camName);
+cList0 = catVidfiles(paths.vid,camName);
 
 % Define path relative to root
 
@@ -205,7 +151,7 @@ clear good cList0
 
 if do.choose_dur
     
-    selectDurations(cList,dataPath,vidPath,do)
+    selectDurations(cList,paths,do)
     
 end
 
@@ -217,8 +163,8 @@ if do.initialConditions
     % Loop thru sequences
     for i = 1:length(cList.vidType)
         
-        currDataPath = [dataPath filesep cList.path{i} filesep cList.fName{i}];
-        currVidPath  = [vidPath filesep cList.path{i} filesep cList.fName{i} cList.ext{i}];
+        currDataPath = [paths.data filesep cList.path{i} filesep cList.fName{i}];
+        currVidPath  = [paths.vid filesep cList.path{i} filesep cList.fName{i} cList.ext{i}];
 
         
         % Load video info (v)
@@ -280,8 +226,8 @@ if do.Centroids
     % Loop thru sequences
     for i = 1:length(cList.vidType)
         
-        currDataPath = [dataPath filesep cList.path{i} filesep cList.fName{i}];
-        currVidPath  = [vidPath filesep cList.path{i} filesep cList.fName{i} cList.ext{i}];
+        currDataPath = [paths.data filesep cList.path{i} filesep cList.fName{i}];
+        currVidPath  = [paths.vid filesep cList.path{i} filesep cList.fName{i} cList.ext{i}];
         
         % If analysis requested and not done already . . .
         if ~isempty(dir([currDataPath filesep 'Initial conditions.mat'])) && ...
@@ -327,17 +273,9 @@ if do.bodyRotation
     for i = 1:length(cList.vidType)
         
         % Current paths
-        currDataPath = [dataPath filesep cList.path{i} filesep cList.fName{i}];
-        currVidPath  = [vidPath filesep cList.path{i} filesep cList.fName{i} cList.ext{i}];
-        
-        % Check approval status
-        if ~isempty(dir([currDataPath filesep 'anaStatus.mat']))
-            load([currDataPath filesep 'anaStatus.mat'])
-        else
-            warning(['You have not yet approved centroid tracking for' ...
-                currDataPath])
-        end
-              
+        currDataPath = [paths.data filesep cList.path{i} filesep cList.fName{i}];
+        currVidPath  = [paths.vid filesep cList.path{i} filesep cList.fName{i} cList.ext{i}];
+             
         if ~isempty(dir([currDataPath filesep 'Initial conditions.mat'])) % && ...
         %    strcmp(anaStatus.centroid,'approved')
             
@@ -353,16 +291,27 @@ if do.bodyRotation
             % Load video info (v)
             v = defineVidObject(currVidPath);
             
+            % Path for saving temporary file
+            savePath = [currDataPath filesep 'tmp_Rotation.mat'];
+            
             % Run tracker for predator
             if 1 %isempty(dir([currDataPath filesep 'Rotation.mat']))
                 disp(' ')
                 disp(['-- Predator rotation :' currDataPath])
                 
-                Rotation = tracker(currVidPath,v,imInvert,'advanced rotation',...
-                    iC.r,Centroid,Centroid.frames);
+                Rotation = rotationTracker(currVidPath,v,imInvert,'advanced rotation',...
+                    iC.r,Centroid,Centroid.frames,savePath);
                 
                 % Save rotation data
-                save([currDataPath filesep 'Rotation'],'Rotation')
+                if length(Rotation.rot_ang)
+                    % Save data
+                    save([currDataPath filesep 'Rotation'],'Rotation')
+                    
+                    % Delete temporary file
+                    delete(savePath)
+                else
+                   warning('Rotation tracking incomplete.')  
+                end
             end      
                 
         end
@@ -380,8 +329,8 @@ if do.manTracking
     for i = 1:length(cList.vidType)
         
         % Current paths
-        currDataPath = [dataPath filesep cList.path{i} filesep cList.fName{i}];
-        currVidPath  = [vidPath filesep cList.path{i} filesep cList.fName{i} cList.ext{i}];
+        currDataPath = [paths.data filesep cList.path{i} filesep cList.fName{i}];
+        currVidPath  = [paths.vid filesep cList.path{i} filesep cList.fName{i} cList.ext{i}];
         
         % Load frame intervals ('clipInfo')
         load([currDataPath filesep 'clipInfo'])
@@ -424,22 +373,93 @@ if do.manTracking
 end
 
 
-%% Bundle all data
+%% Track tips of arms (do.armTracking)
 
-if do.bundleData
+if do.armTracking
+    
+    % Number of frames to analyze
+    numFrames = 5;
+    
+    % Number of arms on sea star
+    numArms = 6;
+    
     % Loop thru sequences
     for i = 1:length(cList.vidType)
         
+
         % Current paths
-        currDataPath = [dataPath filesep cList.path{i} filesep cList.fName{i}];
-        currVidPath  = [vidPath filesep cList.path{i} filesep cList.fName{i} cList.ext{i}];
+        currDataPath = [paths.data filesep cList.path{i} filesep cList.fName{i}];
+        currVidPath  = [paths.vid filesep cList.path{i} filesep cList.fName{i} cList.ext{i}];
         
+        % Path for  data
+        savePath = [currDataPath filesep 'Arm coords.mat'];
+        
+        if isempty(dir(savePath))
+            
+            % Load frame intervals ('clipInfo')
+            load([currDataPath filesep 'clipInfo'])
+            
+            % Load video info (v)
+            v = defineVidObject(currVidPath);
+            
+            % Define frames vector
+            %frames = v.UserData.FirstFrame:v.UserData.LastFrame;
+            
+            % Frames
+            frames = round(linspace(clipInfo.startFrame,clipInfo.endFrame,numFrames));
+            
+            % Load initial conditions (iC)
+            load([currDataPath filesep 'Initial conditions'])
+
+            % Get coordinates via interactive mode
+            A = videoGUIarms(currVidPath,v,frames,0,'simple',iC.r,[0 1 0],savePath,numArms);
+            
+            % Default 
+%             dataPass = 1;
+%             
+%             % Check for complete data
+%             if length(A.arm)~=numArms    
+%                 dataPass = 0;
+%             else
+%                 % Loop thru arms
+%                 for j = 1:numArms
+%                     % Any nans?
+%                     if max(isnan(A.arm(j).x))==1
+%                         dataPass = 0;
+%                         break
+%                     end
+%                 end
+%             end
+%             
+%             % Save data
+%             if dataPass            
+%                 % Save data
+%                 save(savePath,'A')
+%             else
+%                 warning('Arm data not saved because data incomplete')
+%             end
+            
+            clear roi0 currDataPath currVidPath Rotation S
+        end
+    end
+end
+
+
+%% Bundle all data
+
+if do.bundleData
+    
+    % Loop thru sequences
+    for i = 1:length(cList.vidType)
+        
+        disp(['Bundling data for ' cList.path{i} filesep cList.fName{i}])
+        
+        % Current paths
+        currDataPath = [paths.data filesep cList.path{i} filesep cList.fName{i}];
+        currVidPath  = [paths.vid filesep cList.path{i} filesep cList.fName{i} cList.ext{i}];
         
         % Load initial conditions (iC)
         load([currDataPath filesep 'Initial conditions'])
-        
-        % Region of interest for first frame
-        roi0 = giveROI('define','circular',numroipts,iC.r,iC.x,iC.y);
         
         % Load centroid data (Centroid)
         load([currDataPath filesep 'Centroid.mat'])
@@ -450,74 +470,26 @@ if do.bundleData
         % Load manual tracking data (H)
         load([currDataPath filesep 'Manual tracking.mat'],'-mat')
         
-        % Create coordinate transformation structure
-        S_t = defineSystem2d('roi',roi0,Centroid,Rotation);
+        % Load arm data (A)
+        load([currDataPath filesep 'Arm coords.mat'],'A')
         
-        if ~isfield(H,'ft') || (length(H.ft)==1 && sum(~isnan(H.ft(1).xBase))==0)
-            error('There are no manual points yet selected')
-        end
+        % Bundle the data into S
+        S = bundleData(iC,Centroid,Rotation,H,A);
         
-        % Find bounds of frame numbers
-        frMin = max([H.frames(1)  S_t.frames(1)]);
-        frMax = min([H.frames(end) length(H.ft(1).xBase) S_t.frames(end)]);
-        
-        % Definitive frame vector
-        frames = frMin:frMax;
-        
-        % Loop trhu common frames
-        for j = 1:length(frames)
-            
-            % Index for current frame in S_t data
-            iS_t = find(S_t.frames==frames(j),1,'first');
-            
-            % Copy over from S_t to S
-            S.frames(j)    = frames(j);
-            S.xCntr(j)     = S_t.xCntr(iS_t);
-            S.yCntr(j)     = S_t.yCntr(iS_t);
-            S.ang(j)       = S_t.ang(iS_t);
-            S.roi(j)       = S_t.roi(iS_t);
-            
-            clear iS_t
-            
-            % Calcuate tform from rotation angle
-            cOrigin = [S.xCntr(j) S.yCntr(j)];
-            xAxis   = [cOrigin(1)+cos(S.ang(j)/180*pi) cOrigin(2)+sin(S.ang(j)/180*pi)];
-            tform = defineSystem2d('x-axis',cOrigin,xAxis);
-            S.tform(j) = tform.tform;
-            
-            % Loop thru tube feet
-            for k = 1:length(H.ft)
-                % Index for current frame for manual data
-                iH = find(H.frames==frames(j),1,'first');
-                
-                % Transfer data
-                S.ft(k).xBase(j)   = H.ft(k).xBase(iH);
-                S.ft(k).yBase(j)   = H.ft(k).yBase(iH);
-                S.ft(k).xTip(j)    = H.ft(k).xTip(iH);
-                S.ft(k).yTip(j)    = H.ft(k).yTip(iH);
-                S.ft(k).footNum    = H.ft(k).footNum;
-                S.ft(k).footLet    = H.ft(k).footLet;
-                
-                clear iH
-            end
-            
-            
-        end
-        
-        % Transfer other data
+        % Transfer sequence data
         S.orient    = cList.orient;
         S.indiv     = cList.indiv(i);
-        S.vidPath   = cList.path{i};
+        S.paths.vid   = cList.path{i};
         S.vidName   = cList.fName{i};
         S.vidExt    = cList.ext{i};
         S.calPath   = cList.calPath{i};
-        %S.ft        = H.ft;
         
-        % Save transformation data
+        % Save bundled data
         save([currDataPath filesep 'Bundled Data'],'S')
-    end
-    clear roi0 currDataPath currVidPath Rotation S frMin frMax frames tform
-    
+        
+        % Clear variables
+        clear iC Centroid Rotation H A
+    end   
 end
 
 
@@ -526,16 +498,16 @@ end
 if do.makeDataMovie
     
     % Output video path
-    outVidPath   = [vidPath filesep 'Data movies'];
+    outVidPath   = [paths.vid filesep 'Data movies'];
     
-    imVis = 1;
+    imVis = 0;
     
     % Loop thru sequences
     for i = 1:length(cList.vidType)
           
         % Current paths
-        currDataPath = [dataPath filesep cList.path{i} filesep cList.fName{i}];
-        currVidPath  = [vidPath filesep cList.path{i} filesep cList.fName{i} cList.ext{i}];
+        currDataPath = [paths.data filesep cList.path{i} filesep cList.fName{i}];
+        currVidPath  = [paths.vid filesep cList.path{i} filesep cList.fName{i} cList.ext{i}];
         
         % Load data bundle ('S')
         load([currDataPath filesep 'Bundled Data.mat'])
@@ -556,7 +528,7 @@ end
 
 
 
-function selectDurations(cList,dataPath,vidPath,do)
+function selectDurations(cList,paths,do)
 % Interactively prompts to select a duration for analysis
 
 % Loop thru sequences
@@ -564,7 +536,7 @@ for i = 1:length(cList.vidType)
 
     if 1
 
-        currDataPath = [dataPath filesep cList.path{i} filesep cList.fName{i}];
+        currDataPath = [paths.data filesep cList.path{i} filesep cList.fName{i}];
 
         % Check for path in data dir
         if isempty(dir(currDataPath))
@@ -587,7 +559,7 @@ for i = 1:length(cList.vidType)
 
                 if getDefaults
                     % Current path
-                    currVidPath = [vidPath filesep cList.path{i} filesep ...
+                    currVidPath = [paths.vid filesep cList.path{i} filesep ...
                         cList.fName{i} cList.ext{i}];
 
                     % Current video object
@@ -675,152 +647,86 @@ firstFrame   = str2num(answer{1});
 lastFrame    = str2num(answer{2});
 
 
-function cList = catVidfiles(vidPath,camName)
-% Catalogs all video files in directory tree
 
 
-a1 = dir(vidPath);
+function ptsL = G2L(cOrigin,theta,ptsG)
+% Coordinate transformation from global to local coordinates
+% cOrgin    - Coordinate origin (3x1)
+% theta     - Azimuth angle of local system wrt global
+% ptsG      - Coordinates in the global FOR (3xn)
 
-
-n = 1;
-novid = 1;
-
-% Loop thru oriention directories
-for i = 1:length(a1)
-    
-    if a1(i).isdir && strcmp(a1(i).name,'Horizontal')
-        
-        currOrient = 'h';
-        
-    elseif a1(i).isdir && strcmp(a1(i).name,'Vertical')
-        
-        currOrient = 'v';
-        
-    elseif a1(i).isdir && ...
-            (strcmp(a1(i).name,'Upside-down') || strcmp(a1(i).name,'UpsideDown'))
-        
-        currOrient = 'u';
-        
-    else
-        currOrient = [];
-    end
-    
-   % pause(0.1)
-    
-    if ~isempty(currOrient)
-        
-        a2 = dir([vidPath filesep a1(i).name filesep 'SS*']);
-
-        % Loop thru juvenile directories
-        for j = 1:length(a2)
-            currAge = 'j';
-            
-            a3 = dir([vidPath filesep a1(i).name filesep a2(j).name filesep ...
-                camName filesep '*.MOV']);
-         
-            indivNum = str2num(a2(j).name(3:4));
-            
-            cal.Type = [];
-            
-            m = 1;
-            
-            % Catalog, only if movies present
-            if length(a3)>0
-                
-                movPath = [];
-                movType = [];
-                
-                % Loop trhu individual directories
-                for k = 1:length(a3)
-                    
-                    %                 if a3(k).isdir && length(a3(k).name)>2 &&...
-                    %                         strcmp(a3(k).name(1:2),'SS')
-                    %
-                    %
-                    %                     % Directory contents for individual
-                    %                     a4 = dir([vidPath filesep a1(j).name filesep ...
-                    %                         a2(j).name filesep a3(k).name]);
-                    %
-                    %                     m = 1;cal.Type=[];
-                    
-                    % Loop thru sequences for the indiviual
-                    
-                    % Extract file parts
-                    %[pathstr,name,ext] = fileparts(movPath{f});
-                    
-                    % If video is a calibration
-                    if length(a3(k).name) > 7 && ...
-                            (strcmp(a3(k).name,'scale.MOV') || ...
-                            strcmp(a3(k).name,'Scale.MOV') || ...
-                            strcmp(a3(k).name,'Calibration.MOV') ||...
-                            strcmp(a3(k).name,'calibration.MOV'))
-                        
-                        if strcmp(a3(k).name(end-2:end),'MOV')
-                            cal.Type = 'mov';
-                            
-                        else
-                            error('no match for calibration type');
-                        end
-                        
-                        % Store calibration path
-                        cal.Path = [a1(i).name filesep ...
-                            a2(j).name filesep a3(k).name];
-                        
-                        % If video is an MOV file . . .
-                    elseif strcmp(a3(k).name(1:2),'s0') && strcmp(a3(k).name(end-2:end),'MOV')
-                        
-                        movPath{m} = [a1(i).name filesep ...
-                            a2(j).name filesep camName filesep a3(k).name ];
-                        movType{m} = 'mov';
-                        
-                        m = m + 1;
-                        %pause(0.1)
-                    end
-                end
-
-                if ~isempty(movPath)
-                    % Loop trhu sequences
-                    for f = 1:length(movType)
-                        
-                        % Extract file parts
-                        [pathstr,name,ext] = fileparts(movPath{f});
-                        
-                        % Store info on inidvidual
-                        cList.age(n,1)    = currAge;
-                        cList.indiv(n,1)  = indivNum;
-                        cList.orient(n,1) = currOrient;
-                        
-                        cList.vidType{n} = movType{f};
-                        cList.path{n}    = pathstr;
-                        cList.fName{n}   = name;
-                        cList.ext{n}     = ext;
-                        
-                        novid = 0;
-                        
-                        if isempty(cal.Type)
-                            cList.calPath{n} = [];
-                            %disp(' ')
-                            warning(['No calibration for: ' movPath{f}]);
-                        else
-                            cList.calPath{n} = cal.Path;
-                        end
-                        
-                        % Advance sequence index
-                        n = n + 1;
-                    end
-                end
-                
-                
-            else
-                warning(['No videos in: ' vidPath filesep a1(i).name ...
-                         filesep a2(j).name filesep camName ])
-            end
-        end
-    end
+if (size(cOrigin,2) > size(cOrigin,1)) || ...
+   ((length(ptsG)>3) && (size(ptsG,1) > size(ptsG,2)))  
+    error('All points should be arrange in column vectors');
 end
 
+% Output nans, if nans are input
+if sum(~isnan(ptsG))==0
+    ptsL = ptsG;
+    
+% Otherwise . . .
+else
+    
+    % Remove nans
+    idx = ~isnan(ptsG(1,:));
+    ptsG = ptsG(:,idx);
+    
+    % Add z-dimension
+    cOrigin = [cOrigin; 0];
+    ptsG    = [ptsG; zeros(1,size(ptsG,2))];
+    
+    % Axes defined
+    xaxis = [cos(theta) sin(theta) 0]';
+    yaxis = [cos(theta+pi/2) sin(theta+pi/2) 0]';
+    zaxis = [0 0 1]';
+    
+    % Rotation matrix
+    S = [xaxis yaxis zaxis];
+    
+    % Local coordinate
+    ptsL = global2localcoord(ptsG,'rr',cOrigin,S);
+    
+    % Remove z-dimension
+    ptsL = ptsL(1:2,:);
+end
 
-if novid==1
-    warning('No video files found')
-    cList = [];
+function ptsG = L2G(cOrigin,theta,ptsL)
+% Coordinate transformation from global to local coordinates
+% cOrgin    - Coordinate origin (3x1)
+% theta     - Azimuth angle of local system wrt global
+% ptsG      - Coordinates in the global FOR (3xn)
+
+if (size(cOrigin,2) > size(cOrigin,1)) || ...
+   ((length(ptsG)>3) && (size(ptsG,1) > size(ptsG,2)))  
+    error('All points should be arrange in column vectors');
+end
+
+% Output nans, if nans are input
+if sum(~isnan(ptsG))==0
+    ptsL = ptsG;
+    
+% Otherwise . . .
+else
+    
+    % Remove nans
+    idx = ~isnan(ptsG(1,:));
+    ptsL = ptsL(:,idx);
+    
+    % Add z-dimension
+    cOrigin = [cOrigin; 0];
+    ptsL    = [ptsL; zeros(1,size(ptsL,2))];
+    
+    % Axes defined
+    xaxis = [cos(theta) sin(theta) 0]';
+    yaxis = [cos(theta+pi/2) sin(theta+pi/2) 0]';
+    zaxis = [0 0 1]';
+    
+    % Rotation matrix
+    S = [xaxis yaxis zaxis];
+    
+    % Local coordinate
+    ptsG = local2globalcoord(ptsL,'rr',cOrigin,S);
+    
+    % Remove z-dimension
+    ptsG = ptsG(1:2,:);
 end

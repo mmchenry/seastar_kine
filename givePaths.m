@@ -1,20 +1,24 @@
-function paths = givePaths(rootPath)
+function paths = givePaths
 % Returns a structure of paths for running code
 
-% If running on Matt's laptop . . .
-if nargin<1 && ~ispc && ~isempty(dir('/Users/mmchenry/Documents/Matlab code'))
-    % Define root in Matt's folder
-    rootPath = '/Users/mmchenry';
+
+if ~isempty(dir(['/Users/mmchenry/Documents/Matlab code']))
     
-    paths.vid_root = [rootPath '/Documents/Projects/kineBox/video'];
+    paths.vid = '/Users/mmchenry/Documents/Video/Sea stars';
+    paths.data = '/Users/mmchenry/Documents/Projects/Andres sea stars/Kinematics';
     
-    paths.data_root = [rootPath '/Documents/Projects/kineBox/data_seastars'];
+% Line to assign single vids    
+elseif ~isempty(dir(['C:\Program Files\MATLAB\R2016a']))
+    
+    paths.vid = 'C:\Users\andres\Documents\SS Assign';
+    paths.data = 'C:\Users\andres\Documents\dataPath';
+    
+elseif ~isempty(dir(['/Users/andrescarrillo/seastar_kine']))
+    
+    paths.vid = '/Volumes/AChd2TB';
+    paths.data = '/Users/andrescarrillo/seastar_kine/dataPath';
+     
+else
+    error('Do not recognize computer')
 end
-
-%TODO: Add your own default, like done above and modify below to match
-% your directory strcuture
-
-% Path to sample videos in Google Drive 
-%paths.vid_root = [rootPath filesep 'Google Drive' filesep 'Projects' filesep 'kineBox'];
-
 
