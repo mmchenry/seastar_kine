@@ -519,6 +519,10 @@ if do.makeDataMovie
         ssnum = ['0' num2str(S.indiv)]; 
         fName = [S.orient 'SS' ssnum(end-1:end) '_' S.vidName];
         
+        % Short version
+        %makeDataMovie(currVidPath,v,S,[outVidPath filesep fName],imVis,'two view skip')
+        
+        % Long version
         makeDataMovie(currVidPath,v,S,[outVidPath filesep fName],imVis,'two view')
         
     end

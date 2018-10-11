@@ -30,6 +30,9 @@ clrs{2} = [41 171 226]./255;
 % Color around tube feet
 clrs{3} = [0 1 0];
 
+% Number of frames for the 'two view skip' mode
+num_frames = 200;
+
 
 %% Intializing things
 
@@ -40,6 +43,7 @@ vOut.Quality = 50;
 open(vOut)
 
 % Make figure
+set(0,'DefaultFigureWindowStyle','normal')
 f = figure('Visible',imVis);
 fPos = get(f,'Position');
 set(f,'Position',[fPos(1) fPos(2) 1020 1271])
@@ -48,46 +52,31 @@ set(f,'Position',[fPos(1) fPos(2) 1020 1271])
 
 %% Creat output
 
+% Define frames
+if strcmp(movType,'two view skip')
+    frames = round(linspace(S.frames(1),S.frames(end),num_frames));
+else
+    frames = S.frames;
+end
 
 % Loop thru data
-for i = 1:length(S.frames)
+for i = 1:length(frames)
+    
+    % Index for frame in the data
+    iFrame = find(S.frames==frames(i),1,'first');
     
     % Current whole frame
-    im = getFrame(vid_path,v,S.frames(i),imInvert,'rgb');
+    im = getFrame(vid_path,v,S.frames(iFrame),imInvert,'rgb');
        
-    if strcmp(movType,'two view')
+    if strcmp(movType,'two view') || strcmp(movType,'two view skip')
         
         % Coordinate origin
-        %cOrigin = [S.xCntr(i); S.yCntr(i)];
+        %cOrigin = [S.xCntr(iFrame); S.yCntr(iFrame)];
         
         % Get roi image
-        [im_roi,bw_mask] = giveROI('stabilized',im,S.roi(i),...
-            dSample,S.tform(i));
+        [im_roi,bw_mask] = giveROI('stabilized',im,S.roi(iFrame),...
+            dSample,S.tform(iFrame));
         
-%         % Loop thru tube feet
-%         for j = 1:length(S.ft)
-%             
-%             % Global tip point
-%             tipG(j,:) = [S.ft(j).xTip(i) S.ft(j).yTip(i)];
-%               
-%             % Local tip point
-%             tipL(j,:) = [S.ft(j).xTipL(i) S.ft(j).yTipL(i)];
-%             
-%             % Glocal base point
-%             baseG(j,:) = [S.ft(j).xBase(i) S.ft(j).xBase(i)];
-%             
-%             % Local base point
-%             baseL(j,:) = [S.ft(j).xBaseL(i) S.ft(j).xBaseL(i)];
-%         end
-        
-        % Local tip point
-        %tipL = G2L(cOrigin,-S.ang(i)/180*pi,tipG);
-        
-        % Tip point in region of interest
-%         tipROI(1,:) = tipL(1,:) + size(im_roi,1)/2;
-%         tipROI(2,:) = tipL(2,:) + size(im_roi,2)/2;
-%         tipROI(1,:) = S.ft(j).xTipL + size(im_roi,1)/2;
-%         tipROI(2,:) = S.ft(j).yTipL + size(im_roi,2)/2;
         
         % Plot image
         %figure(f)
@@ -95,20 +84,14 @@ for i = 1:length(S.frames)
         % Top image
         subplot(2,1,1)
         h = imshow(im,'InitialMag','fit');
-        %title(['Frame ' num2str(S.frames(i))])
+        %title(['Frame ' num2str(S.frames(iFrame))])
         a1 = gca;
         hold on      
         
         % Outline roi (global)
-        line(S.roi(i).xPerimG,S.roi(i).yPerimG,'Color',...
+        line(S.roi(iFrame).xPerimG,S.roi(iFrame).yPerimG,'Color',...
             [clrs{2} 0.5],'LineWidth',1); 
-        
-            
-%         scatter(tipG(1,:),tipG(2,:),'MarkerEdgeColor',clrs{3},...
-%             'LineWidth',1,'MarkerEdgeAlpha',0.5,'SizeData',mSize(2));
-        
-        
-        
+
         % BOTTOM IMAGE  ---------------------
         subplot(2,1,2)
         
@@ -120,36 +103,33 @@ for i = 1:length(S.frames)
         set(a1,'Position',[0 0.27 1 1])
         
         % Add frame number
-        axes(a2); 
-        h = text(1,30,['Frame ' num2str(S.frames(i))],...
+        %axes(a2); 
+        h = text(1,30,['Frame ' num2str(S.frames(iFrame))],...
                       'Color','k','FontSize',22,'FontWeight','bold','Parent',a2);
         
         %set(a2,'Position',[0.2 -.05 0.65 0.65])
         set(a2,'Position',[0.25 0 0.5 0.5])
         
-        axes(a2)
+        %axes(a2)
         
         % Loop thru tube feet 
         for j = 1:length(S.ft)
             
             % Top plot
-            %axes(a1)
-            
-            line([S.ft(j).xBase(i) S.ft(j).xTip(i)],...
-                 [S.ft(j).yBase(i) S.ft(j).yTip(i)],...
+            line([S.ft(j).xBase(iFrame) S.ft(j).xTip(iFrame)],...
+                 [S.ft(j).yBase(iFrame) S.ft(j).yTip(iFrame)],...
                  'Color',[clrs{3} 0.3],'LineWidth',5,'Parent',a1);
-            scatter(S.ft(j).xTip(i),S.ft(j).yTip(i),...
+            scatter(S.ft(j).xTip(iFrame),S.ft(j).yTip(iFrame),...
                     'MarkerFaceColor',clrs{3},...
                     'MarkerEdgeColor',clrs{3},'LineWidth',2,...
                     'MarkerEdgeAlpha',0.8,'MarkerFaceAlpha',0.8,...
                     'SizeData',100,'Parent',a1); 
                
             % Bottom plot
-            
-            
+             
             % Tip plot in roi
-            tipR = [S.ft(j).xTipL(i) + size(im_roi,1)/2 ...
-                    S.ft(j).yTipL(i) + size(im_roi,2)/2];
+            tipR = [S.ft(j).xTipL(iFrame) + size(im_roi,1)/2 ...
+                    S.ft(j).yTipL(iFrame) + size(im_roi,2)/2];
                 
            % Highlight foot
            scatter(tipR(1),tipR(2),'MarkerEdgeColor',clrs{3},...
@@ -159,11 +139,8 @@ for i = 1:length(S.frames)
         
 %         scatter(tipROI(1,:),tipROI(2,:),'MarkerEdgeColor',clrs{3},...
 %             'LineWidth',2,'MarkerEdgeAlpha',0.5,'SizeData',mSize(1));
-        axes(a1)
-        hold off
-        
-        axes(a2)
-        hold off
+        set(a1,'NextPlot','replace')
+        set(a2,'NextPlot','replace')
 
         clear tipG tipROI
     end
@@ -175,7 +152,7 @@ for i = 1:length(S.frames)
     writeVideo(vOut,imFrame);
     
     if ~imVis
-       disp(['DataMovie: Done ' num2str(i) ' of ' num2str(length(S.frames)) ' frames'])
+       disp(['DataMovie: Done ' num2str(i) ' of ' num2str(length(frames)) ' frames'])
     end
 end
 

@@ -30,6 +30,9 @@ clrs{2} = [41 171 226]./255;
 % Color around tube feet
 clrs{3} = [0 1 0];
 
+% Number of frames for the 'two view skip' mode
+num_frames = 50;
+
 
 %% Intializing things
 
@@ -49,21 +52,30 @@ set(f,'Position',[fPos(1) fPos(2) 1020 1271])
 
 %% Creat output
 
+% Define frames
+if strcmp(movType,'two view skip')
+    frames = round(linspace(S.frames(1),S.frames(end),num_frames));
+else
+    frames = S.frames;
+end
 
 % Loop thru data
-for i = 1:length(S.frames)
+for i = 1:length(frames)
+    
+    % Index for frame in the data
+    iFrame = find(S.frames==frames(i),1,'first');
     
     % Current whole frame
-    im = getFrame(vid_path,v,S.frames(i),imInvert,'rgb');
+    im = getFrame(vid_path,v,S.frames(iFrame),imInvert,'rgb');
        
-    if strcmp(movType,'two view')
+    if strcmp(movType,'two view') || strcmp(movType,'two view skip')
         
         % Coordinate origin
-        %cOrigin = [S.xCntr(i); S.yCntr(i)];
+        %cOrigin = [S.xCntr(iFrame); S.yCntr(iFrame)];
         
         % Get roi image
-        [im_roi,bw_mask] = giveROI('stabilized',im,S.roi(i),...
-            dSample,S.tform(i));
+        [im_roi,bw_mask] = giveROI('stabilized',im,S.roi(iFrame),...
+            dSample,S.tform(iFrame));
         
         
         % Plot image
@@ -72,12 +84,12 @@ for i = 1:length(S.frames)
         % Top image
         subplot(2,1,1)
         h = imshow(im,'InitialMag','fit');
-        %title(['Frame ' num2str(S.frames(i))])
+        %title(['Frame ' num2str(S.frames(iFrame))])
         a1 = gca;
         hold on      
         
         % Outline roi (global)
-        line(S.roi(i).xPerimG,S.roi(i).yPerimG,'Color',...
+        line(S.roi(iFrame).xPerimG,S.roi(iFrame).yPerimG,'Color',...
             [clrs{2} 0.5],'LineWidth',1); 
 
         % BOTTOM IMAGE  ---------------------
@@ -92,7 +104,7 @@ for i = 1:length(S.frames)
         
         % Add frame number
         %axes(a2); 
-        h = text(1,30,['Frame ' num2str(S.frames(i))],...
+        h = text(1,30,['Frame ' num2str(S.frames(iFrame))],...
                       'Color','k','FontSize',22,'FontWeight','bold','Parent',a2);
         
         %set(a2,'Position',[0.2 -.05 0.65 0.65])
@@ -104,10 +116,10 @@ for i = 1:length(S.frames)
         for j = 1:length(S.ft)
             
             % Top plot
-            line([S.ft(j).xBase(i) S.ft(j).xTip(i)],...
-                 [S.ft(j).yBase(i) S.ft(j).yTip(i)],...
+            line([S.ft(j).xBase(iFrame) S.ft(j).xTip(iFrame)],...
+                 [S.ft(j).yBase(iFrame) S.ft(j).yTip(iFrame)],...
                  'Color',[clrs{3} 0.3],'LineWidth',5,'Parent',a1);
-            scatter(S.ft(j).xTip(i),S.ft(j).yTip(i),...
+            scatter(S.ft(j).xTip(iFrame),S.ft(j).yTip(iFrame),...
                     'MarkerFaceColor',clrs{3},...
                     'MarkerEdgeColor',clrs{3},'LineWidth',2,...
                     'MarkerEdgeAlpha',0.8,'MarkerFaceAlpha',0.8,...
@@ -116,8 +128,8 @@ for i = 1:length(S.frames)
             % Bottom plot
              
             % Tip plot in roi
-            tipR = [S.ft(j).xTipL(i) + size(im_roi,1)/2 ...
-                    S.ft(j).yTipL(i) + size(im_roi,2)/2];
+            tipR = [S.ft(j).xTipL(iFrame) + size(im_roi,1)/2 ...
+                    S.ft(j).yTipL(iFrame) + size(im_roi,2)/2];
                 
            % Highlight foot
            scatter(tipR(1),tipR(2),'MarkerEdgeColor',clrs{3},...
@@ -140,7 +152,7 @@ for i = 1:length(S.frames)
     writeVideo(vOut,imFrame);
     
     if ~imVis
-       disp(['DataMovie: Done ' num2str(i) ' of ' num2str(length(S.frames)) ' frames'])
+       disp(['DataMovie: Done ' num2str(i) ' of ' num2str(length(frames)) ' frames'])
     end
 end
 

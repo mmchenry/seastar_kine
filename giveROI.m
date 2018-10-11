@@ -127,20 +127,53 @@ if ~strcmp(action,'define')
     % Pad image to the top, if needed
     if roi.rect(2)<1
         n           = abs(roi.rect(2))+1;
-        im          = [ones(n,size(im,2)); im];
+        
+        if size(im,3)>1
+            imT = im;
+            clear im
+            im(:,:,1)   = [ones(n,size(imT,2)); imT(:,:,1)];
+            im(:,:,2)   = [ones(n,size(imT,2)); imT(:,:,2)];
+            im(:,:,3)   = [ones(n,size(imT,2)); imT(:,:,3)];
+            clear imT
+        else
+            im   = [ones(n,size(im,2)); im];
+        end
+        
         roi.rect(2) = 1;
     end
         
     % Pad image to the right, if needed
     if (roi.rect(1)+roi.rect(3)+1)>=size(im,2)
+        
         n = ceil(roi.rect(1)+roi.rect(3)+2 - size(im,2));
-        im = [im ones(size(im,1),n)];     
+        
+        if size(im,3)>1
+            imT = im;
+            clear im
+            im(:,:,1) = [imT(:,:,1) ones(size(imT,1),n)];
+            im(:,:,2) = [imT(:,:,2) ones(size(imT,1),n)];
+            im(:,:,3) = [imT(:,:,3) ones(size(imT,1),n)];
+            clear imT
+        else
+            im = [im ones(size(im,1),n)];
+        end
     end
     
     % Pad image to the bottom, if needed
     if (roi.rect(2)+roi.rect(4)+1)>=size(im,1)
+        
         n = ceil(roi.rect(2)+roi.rect(4)+2 - size(im,1));
-        im = [im; ones(n, size(im,2))];     
+        
+        if size(im,3)>1
+            imT = im;
+            clear im
+            im(:,:,1) = [imT(:,:,1); ones(n, size(imT,2))]; 
+            im(:,:,2) = [imT(:,:,2); ones(n, size(imT,2))]; 
+            im(:,:,3) = [imT(:,:,3); ones(n, size(imT,2))]; 
+            clear imT
+        else
+            im = [im; ones(n, size(im,2))];     
+        end
     end
     
    clear n
