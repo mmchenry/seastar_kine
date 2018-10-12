@@ -65,10 +65,10 @@ do.bodyRotation = 0;
 do.manTracking = 0;
 
 % Manual tracking of arm tips
-do.armTracking = 0;
+do.armTracking = 1;
 
 % Put together manual tracking, centroid, and rotation data
-do.bundleData = 0;
+do.bundleData = 1;
 
 % Make a movie of the data overlaid onto a video 
 do.makeDataMovie = 1;
@@ -500,7 +500,8 @@ if do.makeDataMovie
     % Output video path
     outVidPath   = [paths.vid filesep 'Data movies'];
     
-    imVis = 0;
+    % Whether to make the figure visible
+    imVis = 1;
     
     % Loop thru sequences
     for i = 1:length(cList.vidType)
