@@ -8,10 +8,10 @@ if ~isempty(dir(['/Users/mmchenry/Documents/Matlab code']))
     paths.data = '/Users/mmchenry/Documents/Projects/Andres sea stars/Kinematics';
     
 % Line to assign single vids    
-elseif ~isempty(dir(['C:\Program Files\MATLAB\R2016a']))
+elseif ~isempty(dir(['G:\My Drive\Andres sea stars\Kinematics']))
     
-    paths.vid = 'C:\Users\andres\Documents\SS Assign';
-    paths.data = 'C:\Users\andres\Documents\dataPath';
+    paths.vid = 'F:';
+    paths.data = 'G:\My Drive\Andres sea stars\Kinematics';
     
 elseif ~isempty(dir(['/Users/andrescarrillo/seastar_kine']))
     

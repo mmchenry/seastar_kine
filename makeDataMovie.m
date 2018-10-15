@@ -44,7 +44,11 @@ open(vOut)
 
 % Make figure
 set(0,'DefaultFigureWindowStyle','normal')
-f = figure('Visible',imVis);
+if imVis
+    f = figure('Visible','on');
+else
+    f = figure('Visible','off');
+end
 fPos = get(f,'Position');
 set(f,'Position',[fPos(1) fPos(2) 1020 1271])
 
