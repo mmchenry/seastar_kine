@@ -62,7 +62,7 @@ do.Centroids = 0;
 do.bodyRotation = 0;
 
 % Manual tracking of tube feet
-do.manTracking = 0;
+do.manTracking = 1;
 
 % Manual tracking of arm tips
 do.armTracking = 0;
@@ -71,7 +71,7 @@ do.armTracking = 0;
 do.bundleData = 0;
 
 % Make a movie of the data overlaid onto a video 
-do.makeDataMovie = 1;
+do.makeDataMovie = 0;
 
 
 %% General parameters
