@@ -65,10 +65,10 @@ do.bodyRotation = 0;
 do.manTracking = 1;
 
 % Manual tracking of arm tips
-do.armTracking = 1;
+do.armTracking = 0;
 
 % Put together manual tracking, centroid, and rotation data
-do.bundleData = 1;
+do.bundleData = 0;
 
 % Make a movie of the data overlaid onto a video 
 do.makeDataMovie = 0;

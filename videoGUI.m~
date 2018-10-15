@@ -1138,11 +1138,8 @@ function H = makeNewFoot(H,dataLen)
     % Set index for adding data
     if isempty(H)
         iAdd = 1;
-        
     elseif ~isfield(H,'ft')
-        H.ft(1).xBase = []; 
-        iAdd = 1;
-        
+        H.ft(1).
     else
         iAdd = length(H.ft) + 1;
     end
