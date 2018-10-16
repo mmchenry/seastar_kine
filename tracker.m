@@ -307,6 +307,8 @@ end
 
 %% Tracking object
 
+nFrames = 1;
+
 % Loop thru frames
 for i = 1:length(frames)
     
@@ -510,6 +512,14 @@ for i = 1:length(frames)
              % No keyframe
              Rotation.ref_frame(i,1) = 0;           
          end
+         
+         if nFrames >= saveInterval
+             save(savePath,'Rotation')
+             nFrames = 0;
+         end
+         
+         % Advance nFrames
+         nFrames = nFrames + 1;
     end
     
     % Update status
@@ -587,9 +597,6 @@ for i = 1:length(frames)
      % Clear for next iteration
      clear im_roi tform_roi imStable xC yC h imMask im_roi t_txt
 
-     if nFrames >= frameInterval
-        save(savePath,'Rotation')
-     end
 end
 
 
