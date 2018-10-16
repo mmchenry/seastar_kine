@@ -11,6 +11,13 @@ function anaMaster(orientation,SSnum,seqnum)
 camView = 'canon';
 
 
+% Initial duration for identifying a trajectory-based coordinate system (s)
+initialDur = 15;
+
+% Dock figure windows
+set(0,'DefaultFigureWindowStyle','docked')
+
+
 %% Manage paths
 
 paths = givePaths;
@@ -18,7 +25,7 @@ paths = givePaths;
 
 %% List of sequences to analyze
 
-% Vist of all video filese
+% Vist of all video files
 cList0 = catVidfiles(paths.vid,camView);
 
 % Define path relative to root
@@ -55,92 +62,69 @@ clear cList0
 
 %% Calculate local coordinates
 
-% Loop trhu sequences
+% Loop thru sequences
 for i = 1:length(cList)
     
     % Load bundled 2D data ('S')
     load([paths.data filesep cList.path{i} filesep ...
         cList.fName{i} filesep 'Bundled Data.mat']);  
+     
+    % Index of early points
+    iDur = S.t<=initialDur;
     
-    % Loop thru tube feet
-    for j = 1:length(S.ft)
-        
-        % Find indicies for contact and release
-        S.ft(j).iStart = find(~isnan(S.ft(j).xTip),1,'first');
-        S.ft(j).iEnd   = find(~isnan(S.ft(j).xTip),1,'last');
-        
-        % Loop thru frames to find local coordinates
-        for k = 1:length(S.xCntr)
-            
-            if isnan(S.ft(j).xTip(k))
-                
-                S.ft(j).xTipL(k,1)   = nan;
-                S.ft(j).yTipL(k,1)   = nan;
-                S.ft(j).xBaseL(k,1)  = nan;
-                S.ft(j).yBaseL(k,1)  = nan;
-                
-            else
-                
-                % Current origin
-                cOrigin = [S.xCntr(k); S.yCntr(k)];
-                
-                % Current tip point coordinates
-                tipG = [S.ft(j).xTip(k); S.ft(j).yTip(k)];
-                
-                % Current base point coordinates
-                baseG = [S.ft(j).xBase(k); S.ft(j).yBase(k)];
-                
-                % Local tip point coordinates
-                tipL = G2L(cOrigin,-S.ang(k)/180*pi,tipG);
-                
-                % Local base point coordinates
-                baseL = G2L(cOrigin,-S.ang(k)/180*pi,baseG);
-                
-                % Store results of local coordinates
-                S.ft(j).xTipL(k,1)   = tipL(1);
-                S.ft(j).yTipL(k,1)   = tipL(2);
-                S.ft(j).xBaseL(k,1)  = baseL(1);
-                S.ft(j).yBaseL(k,1)  = baseL(2);
-                
-                clear tipL tipG baseL cOrigin
-            end
-        end
-            
-        % If there's a base point
-        if sum(~isnan(S.ft(j).xBase))>0
-            
-            % Find local position of base
-            idx = find(~isnan(S.ft(j).xBaseL),1,'first');
-            baseL = [S.ft(j).xBaseL(idx); S.ft(j).yBaseL(idx)];
-            
-            % Step thru frames to transform into global FOR
-            for k = 1:length(S.xCntr)
-                
-                % Current origin
-                cOrigin = [S.xCntr(k); S.yCntr(k)];
-                
-                % If there is a tip point
-                if ~isnan(S.ft(j).xTip(k))
-                    
-                    % Calcuate the global position of the base
-                    baseG = G2L(cOrigin,-S.ang(k)/180*pi,baseL);
-                    
-                    % Overwrite the global position
-                    S.ft(j).xBase(k,1)   = baseG(1);
-                    S.ft(j).yBase(k,1)   = baseG(2);
-                end
-            end
-
-        % If no base point . . .
-        else
-            warning(['Foot ' num2str(j) ' in ' cList.path{i} filesep cList.fName{i} ...
-                ' does not have a base'])
-        end
-        
-        
-        %TODO: Identify on which arm the tube foot is based
+    % Linear fit to trajectory
+    cX = polyfit(S.t(iDur),S.xCntr(iDur),1);
+    cY = polyfit(S.t(iDur),S.yCntr(iDur),1);
+    
+    % Starting and end points
+    pStart = [polyval(cX,min(S.t(iDur))) polyval(cY,min(S.t(iDur)))]; 
+    pEnd   = [polyval(cX,max(S.t(iDur))) polyval(cY,max(S.t(iDur)))]; 
+    
+    % Cntr points in global FOR
+    CntrPnts = [S.xCntr' S.yCntr'];
+    
+    % Cntr points in tarjectory FOR
+    CntrPntsT = transCoord2d('xax G2L',pStart,pEnd,CntrPnts);
+    
+    
+    
+    % Visualize
+    if 0
+       figure;
+       
+       subplot(1,2,1)
+       h = scatter(S.xCntr(~iDur),S.yCntr(~iDur),'MarkerEdgeColor','none',...
+              'MarkerFaceColor','k','Sizedata',10);
+       hold on
+       scatter(S.xCntr(iDur),S.yCntr(iDur),'MarkerEdgeColor','r',...
+               'MarkerfaceColor','r','Sizedata',10)
+       plot([pStart(1) pEnd(1)],[pStart(2) pEnd(2)],'r-')
+       hold off
+       axis equal
+       
+       subplot(1,2,2)
+       h = scatter(CntrPntsT(~iDur,1),CntrPntsT(~iDur,2),'MarkerEdgeColor','none',...
+              'MarkerFaceColor','k','Sizedata',10);
+       hold on
+       scatter(CntrPntsT(iDur,1),CntrPntsT(iDur,2),'MarkerEdgeColor','r',...
+               'MarkerfaceColor','r','Sizedata',10);
+       axis equal
+       hold off
     end
+    
+    
+    ttt=3;
+     %baseL = transCoord2d('ang G2L',cOrigin,-S.ang(j)/180*pi,baseG);
 end
+
+
+%% Animate 
+
+
+
+
+
+
 
 
 %% Plot data

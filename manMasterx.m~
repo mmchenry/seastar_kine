@@ -175,29 +175,30 @@ if do.calibrate
         
         % If analysis requested and not done already, meets yes_ana
         % criteria and the clipinfo has already been determined
-        if isempty(dir([currDataPath filesep 'Canon calibration.mat']))
-            
-            % First image
-            im = getFrame(currVidPath,v,1,0,'gray');
-            
-            for j = 1:nRepeat
-                % Calibration length
-                pixLen = imInteract(im,'length',3);
+        if isempty(dir([currDataPath filesep camName '_calibrate.mat'])) 
+                            
+                % First image
+                im = getFrame(currVidPath,v,1,0,'gray');
                 
-                % Prompt for real length
-                answer = inputdlg({'Actual length (mm)'},'',1,{''});
+                for j = 1:nRepeat
+                    % Calibration length
+                    calLen = imInteract(im,'length',3);
+                    
+                    inputdlg('Actual length (mm)',
+                end
                 
-                % Log constant
-                calConst(j,1) = (str2num(answer{1})/1000)/pixLen;
+%                 % Store data
+%                 iC.x       = x;
+%                 iC.y       = y;
+%                 iC.tVal    = tVal;
+%                 iC.r       = r;
+%                 iC.useMean = 0;
+%                 
+%                 % Save data
+%                 save([currDataPath filesep 'Initial conditions'],'iC')
                 
-                % Store
-                cal_canon.const = mean(calConst);
-            end
+                clear im useMean im0Mean im0NoMean x y tVal r iC
             
-            % Save data
-            save([currDataPath filesep 'Canon calibration'],'cal_canon')
-            
-            clear im
         end
         clear v currDataPath currVidPath 
     end    

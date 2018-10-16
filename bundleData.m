@@ -1,4 +1,4 @@
-function S = bundleData(iC,Centroid,Rotation,H,A)
+function S = bundleData(iC,Centroid,Rotation,H,A,v)
 % Bundles together the various elements of the acquired data and reports on
 % its characteristics
 
@@ -7,7 +7,6 @@ function S = bundleData(iC,Centroid,Rotation,H,A)
 
 % Number of points to define the region of interest
 numroipts = 500;
-
 
 
 %% Initial variables
@@ -31,6 +30,7 @@ frames = frMin:frMax;
 
 % Report frame interval
 disp(['Start frame: ' num2str(frames(1)) '    End frame: ' num2str(frames(end))])
+
 
 
 %% Adjust H structure
@@ -228,7 +228,9 @@ for j = 1:length(H.ft)
 end
 
 
-%S.ft        = H.ft;
+%% Add time vector
+
+S.t = S.frames ./ v.FrameRate;
 
 
 %% Visual check on calculations
