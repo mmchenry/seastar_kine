@@ -74,7 +74,7 @@ do.bundleData = 0;
 do.makeDataMovie = 0;
 
 % Calibrate the video
-do.calibrate = 1;
+do.calibrate = 0;
 
 
 %% General parameters
@@ -105,6 +105,10 @@ camName = 'canon';
 
 % Vist of all video filese
 cList0 = catVidfiles(paths.vid,camName);
+
+if isempty(cList0)
+    error(['No video files in ' paths.vid]);
+end
 
 % Define path relative to root
 
