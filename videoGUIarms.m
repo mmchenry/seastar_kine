@@ -1,4 +1,4 @@
-function H = videoGUI(vid_path,v,frames,imInvert,acqMode,varargin)
+function A = videoGUI(vid_path,v,frames,imInvert,acqMode,varargin)
 % Interactive acquisition of coordinate points from a video 
 % 
 
@@ -88,10 +88,10 @@ disp(' ')
 % Wait for completion of interactive mode
 waitfor(hFig)
 
-% If current tube foot is incomplete . . .
+% If current arm is incomplete . . .
 if sum(~isnan(A.arm(end).x))==0 
 
-    % And still on the first tube foot . . .
+    % And still on the first arm . . .
     if length(A.arm)==1
         return
        

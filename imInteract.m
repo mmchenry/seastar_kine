@@ -47,6 +47,17 @@ elseif strcmp(action,'length')
     % Brighteness enhance
     bLevel = 0;
     
+elseif strcmp(action,'margins') 
+    
+    % Max number of points
+    n = 2;
+    
+    % Title text
+    t_txt = varargin{1};
+        
+    % Brighteness enhance
+    bLevel = 0;
+    
     
 elseif strcmp(action,'radius')
     
@@ -115,6 +126,7 @@ elseif strcmp(action,'hue & value')
 end
 
 
+
 %% Define actions 
 
 % Default interactive mode
@@ -139,6 +151,20 @@ if strcmp(action,'points')
     B{i}.info = 'Right click: delete last point';  
     
 elseif strcmp(action,'length')
+    % Left click
+    i = i + 1;
+    B{i}.key = 1;
+    B{i}.dostr = 'idx=min([n length(xPos)+1]);xPos(idx,1)=x; yPos(idx,1)=y;';
+    B{i}.info = 'Left click: select point';  
+
+    % Right click
+    i = i + 1;
+    B{i}.key = 3;
+    B{i}.dostr = ['if length(xPos)==1;xPos=[];yPos=[]; '...
+                  'else; xPos = xPos(1:end-1);yPos = yPos(1:end-1);end'];
+    B{i}.info = 'Right click: delete last point';  
+       
+elseif strcmp(action,'margins')
     % Left click
     i = i + 1;
     B{i}.key = 1;
@@ -306,6 +332,7 @@ end
 % Figure window
 if ~strcmp(action,'point advance') 
     f = figure;
+    
 end
 
 % Give instructions
@@ -313,7 +340,9 @@ giveInfo(B)
 
 % Plot image
 imshow(im,'InitialMagnification','fit');
-brighten(bLevel)
+if bLevel>0
+    brighten(bLevel)
+end
 hold on
 
 % Parameter defaults
@@ -416,6 +445,19 @@ while true
     elseif strcmp(action,'length') 
         
         h = plot(xPos,yPos,'g-o');
+        
+    % Show lines, 
+    elseif strcmp(action,'margins') 
+        if ~exist('h')
+            h = [];
+        end
+        % Plot each margin
+        for i = 1:length(xPos)
+            hT = line([xPos(i) xPos(i)],[1 size(im,1)],...
+                        'Color',[0 1 0 0.2],'LineWidth',3);
+            h = [h; hT];
+        end
+        title(t_txt)
         
     % Show circle, if needed
     elseif strcmp(action,'radius')
@@ -524,7 +566,8 @@ while true
     % Interacive mode 1 (response to single input)
     if iMode==1
         % Get input
-        [x,y,b] = ginput(1);
+        %[x,y,b] = ginput(1);
+        [x,y,b] = ginputc(1,'Color',[0 1 0]);
         
         % If return pressed
         if isempty(b) && ~strcmp(action,'point advance')  
@@ -549,7 +592,7 @@ while true
         break
     end
     
-    % Remove perimeter
+    % Remove graphic
     delete(h)
 end
 
@@ -604,6 +647,13 @@ elseif strcmp(action,'points') || strcmp(action,'point advance')
     
 elseif strcmp(action,'length') 
     varargout{1} = hypot(xPos(2)-xPos(1), yPos(2)-yPos(1));
+    
+elseif strcmp(action,'margins') 
+    if length(xPos)~=n
+        error('Incorrect number of margin lines')
+    else
+        varargout{1} = xPos;
+    end
     
 elseif strcmp(action,'rectangle')
     varargout{1} = [xPos; xPos(1)];

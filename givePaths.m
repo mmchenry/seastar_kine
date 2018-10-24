@@ -5,7 +5,14 @@ function paths = givePaths
 if ~isempty(dir(['/Users/mmchenry/Documents/Matlab code']))
     
     paths.vid = '/Users/mmchenry/Documents/Video/Sea stars';
+    %paths.vid = '/Volumes/shared/';
     paths.data = '/Users/mmchenry/Documents/Projects/Andres sea stars/Kinematics';
+    
+    
+elseif ~isempty(dir(['C:\Users\tpo\Documents']))
+    
+    paths.vid = 'C:\Users\tpo\Documents\Andres seastar video';
+    paths.data = 'G:\My Drive\Andres sea stars\Kinematics';
     
 % Line to assign single vids    
 elseif ~isempty(dir(['G:\My Drive\Andres sea stars\Kinematics']))

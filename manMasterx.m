@@ -74,7 +74,7 @@ do.bundleData = 0;
 do.makeDataMovie = 0;
 
 % Calibrate the video
-do.calibrate = 1;
+do.calibrate = 0;
 
 
 %% General parameters
@@ -173,9 +173,8 @@ if do.calibrate
         % Load video info (v)
         v = defineVidObject(currVidPath);
         
-        % If analysis requested and not done already, meets yes_ana
-        % criteria and the clipinfo has already been determined
-        if isempty(dir([currDataPath filesep 'Canon calibration.mat']))
+        % If analysis requested and not done already
+        if isempty(dir([currDataPath filesep 'Calibration.mat']))
             
             % First image
             im = getFrame(currVidPath,v,1,0,'gray');
@@ -195,7 +194,7 @@ if do.calibrate
             end
             
             % Save data
-            save([currDataPath filesep 'Canon calibration'],'cal_canon')
+            save([currDataPath filesep 'Calibration'],'cal_canon')
             
             clear im
         end
