@@ -106,6 +106,10 @@ camName = 'canon';
 % Vist of all video filese
 cList0 = catVidfiles(paths.vid,camName);
 
+if isempty(cList0)
+    error(['No video files in ' paths.vid]);
+end
+
 % Define path relative to root
 
 % Initialize index
