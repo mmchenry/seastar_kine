@@ -50,10 +50,10 @@ end
 %% Code execution
 
 % Copies over portions of movies as image sequences
-do.choose_dur = 0;
+do.choose_dur = 1;
 
 % Interactively select initial conditions
-do.initialConditions = 0;
+do.initialConditions = 1;
   
 % Whether to track the body centroid
 do.Centroids = 0;
@@ -65,7 +65,7 @@ do.bodyRotation = 0;
 do.manTracking = 1;
 
 % Manual tracking of arm tips
-do.armTracking = 0;
+do.armTracking = 1;
 
 % Put together manual tracking, centroid, and rotation data
 do.bundleData = 0;
@@ -74,7 +74,7 @@ do.bundleData = 0;
 do.makeDataMovie = 0;
 
 % Calibrate the video
-do.calibrate = 0;
+do.calibrate = 1;
 
 
 %% General parameters
@@ -182,10 +182,10 @@ if do.calibrate
             
             % First image
             im = getFrame(currVidPath,v,1,0,'gray');
-            
+  
             for j = 1:nRepeat
                 % Calibration length
-                pixLen = imInteract(im,'length',3);
+                pixLen = imInteract(imadjust(im),'length',3);
                 
                 % Prompt for real length
                 answer = inputdlg({'Actual length (mm)'},'',1,{''});
@@ -235,7 +235,7 @@ if do.initialConditions
                 disp('')
                 
                 % First image
-                im = getFrame(currVidPath,v,v.UserData.FirstFrame,imInvert,'gray');
+                im = getFrame(currVidPath,v,clipInfo.startFrame,imInvert,'gray');
                 
                 % Initial position
                 disp(' ')
@@ -412,6 +412,10 @@ if do.manTracking
             load(savePath,'-mat');
         end
         
+        disp(' ')
+        disp('MANUAL TUBE FOOT TRACKING ------------------------')
+        disp(' ')
+        
         % Get coordinates via interactive mode
         H = videoGUI(currVidPath,v,frames,0,'simple',iC.r,[0 1 0],H,savePath);
         
@@ -463,6 +467,10 @@ if do.armTracking
             % Load initial conditions (iC)
             load([currDataPath filesep 'Initial conditions'])
 
+            disp(' ')
+            disp('ARM TRACKING ------------------------')
+            disp(' ')
+            
             % Get coordinates via interactive mode
             A = videoGUIarms(currVidPath,v,frames,0,'simple',iC.r,[0 1 0],savePath,numArms);
             

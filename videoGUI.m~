@@ -1013,7 +1013,7 @@ function update_fig(hFig, hAxes)
     cFrame = H.frames(H.iFrame);
     
     % Get all data
-    [allBase,allTip,currBase,currTip] = getFootData(H);
+    [allBase,allTip,currBase,currTip] = getFootData(H,cFrame);
 
     % Read input video frame
     frame = getFrame(H.vid_path,H.v,cFrame,H.imInvert,'rgb');
