@@ -62,19 +62,19 @@ do.Centroids = 0;
 do.bodyRotation = 0;
 
 % Manual tracking of tube feet
-do.manTracking = 1;
+do.manTracking = 0;
 
 % Manual tracking of arm tips
-do.armTracking = 1;
+do.armTracking = 0;
 
 % Put together manual tracking, centroid, and rotation data
 do.bundleData = 0;
 
 % Make a movie of the data overlaid onto a video 
-do.makeDataMovie = 0;
+do.makeDataMovie = 1;
 
 % Calibrate the video
-do.calibrate = 1;
+do.calibrate = 0;
 
 
 %% General parameters
@@ -561,7 +561,8 @@ end
 if do.makeDataMovie
     
     % Output video path
-    outVidPath   = [paths.vid filesep 'Data movies'];
+    %outVidPath   = [paths.vid filesep 'Data movies'];
+    outVidPath   = [paths.data filesep 'Data movies'];
     
     % Whether to make the figure visible
     imVis = 1;
