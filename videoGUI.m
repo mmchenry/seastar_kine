@@ -562,53 +562,37 @@ function keyPress(fig, key, hFig, hAxes)
           answer = inputdlg({'Tube foot number (1-12)','Tube foot letter (A or B)'},...
                    'Data for tube foot just finished',1,{'',''});
           
-          if strcmp(answer{2},'A') || strcmp(answer{2},'a')
-              
-              H.ft(end).footLet = 'A';
-              
-          elseif strcmp(answer{2},'B') || strcmp(answer{2},'b')
-              
-              H.ft(end).footLet = 'B';
-              
-          end
-          
-          % Address for the tube foot
-          H.ft(end).footNum = str2num(answer{1});
-          
-          if isnan(H.ft(end).footLet) || (H.ft(end).footNum<1) || (H.ft(end).footNum>20)             
-              
-              warning('Do not recognize tube foot address -- try again')
-              
-          else
+           if ~isempty(answer)
+               if strcmp(answer{2},'A') || strcmp(answer{2},'a')
 
-              % If we have all three points . . .
-              if H.ft(end).choseContact==1 && H.ft(end).choseRelease==1 && ...
-                      sum(~isnan(H.ft(end).xBase))~=0
-                  
-                  
-                  
-                  % Save data (without 'v' field)
-                  v = H.v;
-                  H = rmfield(H,'v');
-                  save(H.savePath,'H')
-                  H.v = v;
-                  
-             
-                  % Make room for a new foot
-                  H = makeNewFoot(H,length(H.ft(end).xBase));
-                  
-              else
-                  warning(['Need to select contact, release, and base points ' ...
-                      'before starting a new foot']);
-              end
-              
-              % Store coordinate data
-              guidata(hAxes.axis1, H);
-              
-              % Update figure
-              update_fig(hFig, hAxes)
+                   H.ft(end).footLet = 'A';
 
-          end
+               elseif strcmp(answer{2},'B') || strcmp(answer{2},'b')
+
+                   H.ft(end).footLet = 'B';
+
+               end
+
+               % Address for the tube foot
+               H.ft(end).footNum = str2num(answer{1});
+
+               if isnan(H.ft(end).footLet) || (H.ft(end).footNum<1) || (H.ft(end).footNum>20)
+
+                   warning('Do not recognize tube foot address -- try again')
+
+               else
+
+                   % Save data, make space for new tube foot
+                   saveData(H);
+
+                   % Store coordinate data
+                   guidata(hAxes.axis1, H);
+
+                   % Update figure
+                   update_fig(hFig, hAxes)
+
+               end
+           end
          
      % The following involve changing frame number
      else
@@ -807,7 +791,17 @@ function butDown(fig, key, hFig, hAxes)
 %                          'Tip: release','Base','Tip: first contact');
        [iAns,OK] = listdlg('PromptString','What type of point ?', ...
                               'SelectionMode','Single','ListString',itemlist);
-           
+                  
+      % If current tube foot is complete . . .
+      if OK && iAns~=4 && H.ft(end).choseContact==1 && ...
+              H.ft(end).choseRelease==1 && ...
+              sum(~isnan(H.ft(end).xBase))~=0
+
+          % Make room for a new foot
+          H = makeNewFoot(H,length(H.ft(end).xBase));
+      end
+
+                          
        % Store base point
        if OK && iAns==3
            
@@ -948,10 +942,8 @@ function butDown(fig, key, hFig, hAxes)
                       end
                       
                       % Save data
-                      v = H.v;
-                      H = rmfield(H,'v');
-                      save(H.savePath,'H')
-                      H.v = v;
+                      saveData(H);
+
                   end
               end
 
@@ -1183,8 +1175,8 @@ function [allBase,allTip,currBase,currTip] = getFootData(H)
         if ~isnan(H.ft(i).xBase(H.iFrame))
             
             % Add coordinates
-            allBase.x   = [allBase.x; H.ft(i).xBase(cFrame)];
-            allBase.y   = [allBase.y; H.ft(i).yBase(cFrame)];
+            allBase.x   = [allBase.x; H.ft(i).xBase(H.iFrame)];
+            allBase.y   = [allBase.y; H.ft(i).yBase(H.iFrame)];
         end
         
         % If there is a coordinate for current frame . . .
@@ -1203,4 +1195,26 @@ function [allBase,allTip,currBase,currTip] = getFootData(H)
     % Current tip point
     currTip.x    = H.ft(end).xTip(H.iFrame);
     currTip.y    = H.ft(end).yTip(H.iFrame); 
+end
+
+function saveData(H)
+
+% If we have all three points . . .
+if H.ft(end).choseContact==1 && ...
+   H.ft(end).choseRelease==1 && ...
+   sum(~isnan(H.ft(end).xBase))~=0
+    
+    % Save data (without 'v' field)
+    v = H.v;
+    H = rmfield(H,'v');
+    
+    disp(['Saving to ' H.savePath])
+    save(H.savePath,'H')
+    %H.v = v;
+    
+else
+    warning(['Need to select contact, release, and base points ' ...
+        'to save and start a new foot']);
+end
+
 end

@@ -4,8 +4,8 @@ function paths = givePaths
 % Matt's laptop
 if ~isempty(dir(['/Users/mmchenry/Documents/Matlab code']))
     
-    paths.vid = '/Users/mmchenry/Documents/Video/Sea stars';
-    %paths.vid = '/Volumes/shared';
+    %paths.vid = '/Users/mmchenry/Documents/Video/Sea stars';
+    paths.vid = '/Volumes/shared';
     paths.data = '/Users/mmchenry/Documents/Projects/Andres sea stars/Kinematics';
     
 elseif ~isempty(dir(['C:\Users\tpo\Documents']))
