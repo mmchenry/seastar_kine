@@ -23,7 +23,7 @@ end
 
 % Find bounds of frame numbers
 frMin = max([H.frames(1)  S_t.frames(1)]);
-frMax = min([H.frames(end) S_t.frames(end)]);
+frMax = min([H.frames(end) length(H.ft(1).xBase) S_t.frames(end)]);
 
 % Definitive frame vector in common btwn Centroid and Rotation
 frames = frMin:frMax;
@@ -146,7 +146,7 @@ for j = 1:length(A.frames)
     % Index of current frame in S data
     iFrameS = find(S.frames==A.frames(j),1,'first');
     
-    if isempty(iFrameS)
+    if isempty(iFramesS)
         error('Frame numbers for arms does not fall in range of centroid data')
     end
     

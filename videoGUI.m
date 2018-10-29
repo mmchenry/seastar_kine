@@ -1,4 +1,4 @@
-function H = videoGUI(vid_path,v,frames,imInvert,acqMode,varargin)
+function videoGUI(vid_path,v,frames,imInvert,acqMode,varargin)
 % Interactive acquisition of coordinate points from a video 
 % 
 
@@ -227,6 +227,7 @@ end
         H.imInvert = imInvert;
         H.adInterval = 15;
         H.iMode = 'b';
+        H.iFoot = length(H.ft);
 
         % Store coordinate data
         guidata(hAxes.axis1, H);
@@ -887,7 +888,7 @@ function butDown(fig, key, hFig, hAxes)
               if length(H.ft(1).xTip)==length(H.frames)
                   iFrame = H.iFrame;
               else
-                  iFrame = H.frames(H.iFrame);
+                  error('field "frames" should be the same length as data in "ft"')
               end
 
               % Coordinate container
@@ -930,7 +931,7 @@ function butDown(fig, key, hFig, hAxes)
                   if strcmp(answer,'Delete point')
                       
                       if iMin==length(H.ft)
-                          H.ft = H.ft(end-1);
+                          H.ft = H.ft(1:(end-1));
                       elseif iMin==1
                           H = rmfield(H,'ft');
                       else

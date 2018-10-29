@@ -65,13 +65,13 @@ do.bodyRotation = 0;
 do.manTracking = 1;
 
 % Manual tracking of arm tips
-do.armTracking = 0;
+do.armTracking = 1;
 
 % Put together manual tracking, centroid, and rotation data
-do.bundleData = 0;
+do.bundleData = 1;
 
 % Make a movie of the data overlaid onto a video 
-do.makeDataMovie = 0;
+do.makeDataMovie = 1;
 
 % Calibrate the video
 do.calibrate = 0;
@@ -417,7 +417,7 @@ if do.manTracking
         disp(' ')
         
         % Get coordinates via interactive mode
-        H = videoGUI(currVidPath,v,frames,0,'simple',iC.r,[0 1 0],H,savePath);
+        videoGUI(currVidPath,v,frames,0,'simple',iC.r,[0 1 0],H,savePath);
         
         % Save data
 %         v = H.v;
@@ -565,7 +565,7 @@ if do.makeDataMovie
     outVidPath   = [paths.data filesep 'Data movies'];
     
     % Whether to make the figure visible
-    imVis = 1;
+    imVis = 0;
     
     % Loop thru sequences
     for i = 1:length(cList.vidType)
