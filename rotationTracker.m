@@ -221,11 +221,13 @@ for i = 1:length(frames)
         cX = Centroid.x(iFrame);
         cY = Centroid.y(iFrame);
         
-        % Make binary mask of tank region
-        bwMask = roipoly(im,xMask,yMask);
-        
-        % Eliminate outside of mask
-        im(~bwMask) = 255;
+        if ~isempty(xMask)
+            % Make binary mask of tank region
+            bwMask = roipoly(im,xMask,yMask);
+            
+            % Eliminate outside of mask
+            im(~bwMask) = 255;
+        end
 
         % Current roi
         roi = giveROI('define','circular',numroipts,r,cX,cY);
@@ -259,7 +261,7 @@ for i = 1:length(frames)
          % If after first frame . . .
          else
   
-             % Rotation reference image to last rotated angle
+             % Rotate reference image to last rotated angle
              im_roi0curr = giveROI('stabilized',im0,roi0,dSample,-Rotation.rot_ang(iFrame-1));
              
              % If masking . . .
@@ -280,7 +282,7 @@ for i = 1:length(frames)
              end
              
              % Angular rotation up to this point
-             Rotation.rot_ang(iFrame,1)  = Rotation.rot_ang(iFrame-1,1) + Drot_ang;
+             Rotation.rot_ang(iFrame,1)  = Rotation.rot_ang(iFrame-1,1) + Drot_ang
              
              % No keyframe
              Rotation.ref_frame(iFrame,1) = 0;           
@@ -291,7 +293,7 @@ for i = 1:length(frames)
     disp(['tracker (' method ') : done ' num2str(iFrame) ' of ' num2str(length(frames))])   
     
     % Visualize rotation, for debugging 
-    if 0
+    if 1
         
         %imStable = giveROI('stabilized',im,roi,dSample,tform);
         imStable = giveROI('stabilized',im,roi,dSample,Rotation.rot_ang(iFrame,1));
@@ -320,15 +322,15 @@ for i = 1:length(frames)
             %plot(roi.xPerimL,roi.yPerimL,'k-')
             line(roi.xPerimL,roi.yPerimL,'Color',[1 0 0 0.2],'LineWidth',3);
             hold off        
-            brighten(-0.7)
+            %brighten(-0.7)
             
             subplot(2,2,3)
-            imshowpair(im_roi,im_roi0)
+            imshowpair(im_roi,im_roi0,'falsecolor')
             title('Unrotated reference')
             
             subplot(2,2,4)
             %imshowpair(giveROI('stabilized',im,roi,dSample,tform),im_roi0)
-            imshowpair(im_roi,im_roi0curr)
+            imshowpair(im_roi,im_roi0curr,'falsecolor')
             title('Rotated reference')
             
 %             visTrack(im,Centroid.x(iFrame),Centroid.y(iFrame),r,theta,...

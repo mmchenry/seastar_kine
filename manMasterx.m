@@ -62,10 +62,10 @@ do.Centroids = 0;
 do.bodyRotation = 0;
 
 % Manual tracking of tube feet
-do.manTracking = 1;
+do.manTracking = 0;
 
 % Manual tracking of arm tips
-do.armTracking = 1;
+do.armTracking = 0;
 
 % Put together manual tracking, centroid, and rotation data
 do.bundleData = 1;
