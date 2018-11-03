@@ -4,10 +4,19 @@ function paths = givePaths
 % Matt's laptop
 if ~isempty(dir(['/Users/mmchenry/Documents/Matlab code']))
     
-    paths.vid = '/Users/mmchenry/Documents/Video/Sea stars';
-    %paths.vid = '/Volumes/shared';
-    %paths.data = '/Volumes/GoogleDrive/My Drive/Shared files/Projects/Andres sea stars/Kinematics';
-    paths.data = '/Users/mmchenry/Documents/Projects/Andres sea stars/Kinematics';
+    % Use flow, if connected
+    if ~isempty(dir('/Volumes/shared'))
+        paths.vid = '/Volumes/shared';
+    else
+        paths.vid = '/Users/mmchenry/Documents/Video/Sea stars';
+    end
+    
+    % Use Google Drive, if connected
+    if ~isempty(dir('/Volumes/GoogleDrive/My Drive'))
+        paths.data = '/Volumes/GoogleDrive/My Drive/Shared files/Projects/Andres sea stars/Kinematics';
+    else
+        paths.data = '/Users/mmchenry/Documents/Projects/Andres sea stars/Kinematics';
+    end
     
 elseif ~isempty(dir(['C:\Users\tpo\Documents']))
     

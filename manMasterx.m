@@ -71,7 +71,7 @@ do.armTracking = 0;
 do.bundleData = 1;
 
 % Make a movie of the data overlaid onto a video 
-do.makeDataMovie = 1;
+do.makeDataMovie = 0;
 
 % Calibrate the video
 do.calibrate = 0;
@@ -141,7 +141,12 @@ for k = 1:length(good)
    end
    
    if k==1
-       error('No matching videos found in list')
+       error(['No matching videos found in list -- cannot run any code that need video'])
+       
+%        cList.path{1}   = good.path;
+%        cList.fName{1}  = good.fName;
+       
+       
    elseif length(good)~=length(cList)
        warning('At lest one of the sequences not found in the video path');
 
@@ -507,10 +512,10 @@ end
 
 %% Bundle all data
 
-if do.bundleData
+if do.bundleData || do.makeDataMovie
     
     % Loop thru sequences
-    for i = 1:length(cList.vidType)
+    for i = 1:length(cList.fName)
         
         disp(['Bundling data for ' cList.path{i} filesep cList.fName{i}])
         

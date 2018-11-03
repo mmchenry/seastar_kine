@@ -1,4 +1,4 @@
-function visSingle(Orientation,SSnum,seqnum)
+function visSingle(Orientation,SSnum,seqnum,makeMovie)
 % Visualize the results of a single sequence
 % Orientation - indicates the wall orientation ('h','v','u')
 % SSnum       - number of seastar
@@ -8,6 +8,15 @@ function visSingle(Orientation,SSnum,seqnum)
 %% Deal with inputs
 
 if nargin >=3
+    
+    txt1 = ['0' num2str(SSnum)];
+    txt2 = ['0' num2str(seqnum)];
+    
+    % Movie name
+    movName = [Orientation 'SS' txt1(end-1:end) '_s' txt2(end-1:end) '_ana'];
+    
+    % Title name (for graphs)
+    tName = [Orientation ' SS' txt1(end-1:end) ' s' txt2(end-1:end)];
     
     if strcmp(Orientation,'h')
         Orientation = 'Horizontal';
@@ -33,12 +42,28 @@ if nargin >=3
     good.path  =  [Orientation filesep SSnum filesep 'canon']; 
     good.fName = ['s' seqnum];
     
-    clear Orientation SSnum seqnum
+    if nargin < 4
+        makeMovie = 0;
+    end
+    
+    
+    clear Orientation SSnum seqnum txt1 txt2
     
 else
     error('You need to request the sequence')
     
 end
+
+%% Code execution
+
+% Makes an animation of the data
+do.anaData = 0;
+
+% Draw trajectory
+do.drawTraj = 0;
+
+% Draw gait diagram
+do.gaitDiagram = 1;
 
 
 %% Parameters
@@ -64,49 +89,116 @@ clr{2} = [0 0.75  0.3];
 % Center point of body
 clr{3} = .3.*[1 1 1];
 
+if makeMovie
+    
+    mov_path = [paths.data filesep 'Data movies' filesep movName];
+    
+    vOut = VideoWriter([mov_path '.mp4'],'MPEG-4');
+    vOut.Quality = 50;
+    open(vOut)
+end
 
-%% Transfor in a trajectory coordinate system
+
+%% Load data
 
 % Load bundled 2D data ('S')
 load([paths.data filesep good.path filesep ...
       good.fName filesep 'Bundled Data.mat']);
 
-% Index of early points
-iDur = S.t<=initialDur;
 
-% Linear fit to trajectory
-cX = polyfit(S.t(iDur),S.xCntr(iDur),1);
-cY = polyfit(S.t(iDur),S.yCntr(iDur),1);
+%% Visualize trajectory
 
-% Starting and end points
-pStart = [polyval(cX,min(S.t(iDur))) polyval(cY,min(S.t(iDur)))];
-pEnd   = [polyval(cX,max(S.t(iDur))) polyval(cY,max(S.t(iDur)))];
-
-% Cntr points in global FOR
-CntrPnts = [S.xCntr' S.yCntr'];
-
-% Cntr points in tarjectory FOR
-CntrPntsT = transCoord2d('xax G2L',pStart,pEnd,CntrPnts);
-
-
-
-% Diameter of sea star
-aLen = max(hypot(S.armL.x,S.armL.y));
-
-% Limits of x-axis
-xL = 1.4*[min(CntrPntsT(:,1))-aLen max(CntrPntsT(:,1))+aLen];
-
-
-%% Visualize
-
-if 1
+if do.drawTraj
+    % Time interval for drawing body
+    tInt = 30;
+    
+    % Times for drawing body
+    %tDraw = S.t(1):tInt:S.t(end);
+    tDraw = [S.t(1) S.t(end)];
+    
     figure
     
+    for i = 1:length(tDraw)
+        
+        % Arm points in trajectory FOR
+        %armPntsT = transCoord2d('xax G2L',S.pStart,S.pEnd,[S.armT(i).x, S.armT(i).y]);
+        
+        % Time difference btwen current and all times
+        tDiff = abs(tDraw(i)-S.t);
+        
+        % Index is closest time to desired
+        idx = find(tDiff==min(tDiff),1,'first');
+        
+        % Points for whole body
+        starPtsT = makeStar(S.armT(idx).x, S.armT(idx).y, S.xCntrT(idx),S.yCntrT(idx));
+        
+        % Body at start
+        h = fill(starPtsT(:,1),starPtsT(:,2),clr{1},'FaceAlpha',0.3,...
+            'EdgeColor','none');
+        
+        hold on
+        
+        clear starPntsT idx tDiff
+    end
+    
+    % Plot center points
+    h = scatter(S.xCntrT,S.yCntrT,'SizeData',10,'MarkerEdgeColor','none', ...
+        'MarkerFaceColor',0.5.*[1 1 1]);
+    
+    line([min(S.xCntrT) max(S.xCntrT)],[0 0],'Color','k')
+    axis equal
+    set(gca,'YColor','none','XColor','none')
+    
+    clear tInt
+end
+
+%% Gait diagram
+
+% % Initialize index
+% j = 1;
+% 
+% % Loop thru feet
+% for i = 1:length(S.ft)
+%         
+%      % Index for values
+%      idx = ~isnan(S.ft(i).xBase) & ~isnan(S.ft(i).xTip);
+%      
+%      % If there are coodrinates . . .
+%      if sum(idx)>0
+% 
+%          % Get points for current foot in trajectory FOR
+%          xTip(:,j)       = S.ft(i).xTip;
+%          armNum(:,j)     = S.ft(i).armNum;
+%          ftNum(:,j)      = S.ft(i).footNum;
+%          
+%          j = j + 1;     
+%      end 
+% end
+
+
+
+% Make plot
+gaitPlot(S,tName)
+
+clear idx xTip armNum ftNum i j
+
+
+%% Data animation
+
+if do.anaData
+    figure
+    
+    
+    % Diameter of sea star
+    aLen = max(hypot(S.armL.x,S.armL.y));
+    
+    % Limits of x-axis
+    xL = 1.4*[min(S.xCntrT)-aLen max(S.xCntrT)+aLen];
     
     % Step thru time
     for i = 1:length(S.t)
         
-        h = scatter(CntrPntsT(:,1),CntrPntsT(:,2),'MarkerEdgeColor','none',...
+        h = scatter(S.xCntrT,S.yCntrT,'MarkerEdgeColor','none',...
             'MarkerFaceColor',clr{3},'Sizedata',10);
         a1 = gca;
         hold on
@@ -116,17 +208,17 @@ if 1
         armPntsT = transCoord2d('xax G2L',pStart,pEnd,[S.arm(i).x, S.arm(i).y]);
         
         % Points for whole body
-        starPtsT = makeStar(armPntsT(:,1), armPntsT(:,2), CntrPntsT(i,1), ...
-                            CntrPntsT(i,2),aLen);
+        starPtsT = makeStar(armPntsT(:,1), armPntsT(:,2), CntrPtsT(i,1), ...
+                            CntrPtsT(i,2));
         
-        % Cntr points in tarjectory FOR
-       % CntrPntsT = transCoord2d('xax G2L',pStart,pEnd,CntrPnts);
+        % Cntr points in trajectory FOR
+       % CntrPtsT = transCoord2d('xax G2L',pStart,pEnd,CntrPnts);
         
         h = fill(starPtsT(:,1),starPtsT(:,2),clr{1},'FaceAlpha',0.3,...
             'EdgeColor','none');
         
         % Center point
-        scatter(CntrPntsT(i,1),CntrPntsT(i,2),'MarkerEdgeColor','r',...
+        scatter(CntrPtsT(i,1),CntrPtsT(i,2),'MarkerEdgeColor','r',...
                'SizeData',50')
         
         % Step thru tube feet
@@ -174,15 +266,24 @@ if 1
         pause(0.01)
         
         
-        
-        
-        
+        if makeMovie
+            % Get image
+            imFrame = getframe(gcf);
+            
+            % Write frame
+            writeVideo(vOut,imFrame);
+        end
+
+    end
+    
+    if makeMovie
+       close(vOut) 
     end
     
 end
 
 
-function starPts = makeStar(xA,yA,xC,yC,aLen)
+function starPts = makeStar(xA,yA,xC,yC)
 % Create periperal shape of seastar body
 
 nArms = length(xA);
@@ -192,18 +293,18 @@ nArms = length(xA);
 
 nPts = 500;
 
-% Diameter of cental disc
-D = aLen*0.75;
-
 % Radial position of arms, sorted
 [Atheta,idx] = sort(wrapTo2Pi(atan2(yA-yC,xA-xC)));
 
 % Arm lengths
-ALen = hypot(xA(idx)-xC,yA(idx)-yC);
+ALen = mean(hypot(xA(idx)-xC,yA(idx)-yC));
+
+% Diameter of cental disc
+D = mean(ALen)*0.5;
 
 % Tack on starting arm
 Atheta = unwrap([Atheta; Atheta(1)]);
-ALen   = [ALen; ALen(1)];
+%ALen   = [ALen; ALen(1)];
 
 tVal0 = linspace(0,pi,round(nPts/nArms))';
 tVal1 = linspace(pi,2*pi,round(nPts/nArms))';
@@ -232,8 +333,8 @@ for i = 1:nArms
     tmp2 = max([Atheta(i+1),mean([Atheta(i) Atheta(i+1)])]); 
     theta1 = linspace(tmp1,tmp2,round(nPts/nArms))';
       
-    rVal0 = (ALen(i)-D).*(cos(tVal0)+1)/2+D;
-    rVal1 = (ALen(i+1)-D).*(cos(tVal1)+1)/2+D;
+    rVal0 = (ALen-D).*(cos(tVal0)+1)/2+D;
+    rVal1 = (ALen-D).*(cos(tVal1)+1)/2+D;
     
     [x0,y0] = pol2cart(theta0,rVal0);
     [x1,y1] = pol2cart(theta1,rVal1);
@@ -242,8 +343,10 @@ for i = 1:nArms
     yP = [yP; y0; y1];
     
     if 0
+        
        subplot(2,2,1)
        plot(tVal0,rVal0,'-',tVal1,rVal1,'-')
+       %plot(theta0,rVal0,'-',theta1,rVal1,'-')
        hold on
        
        subplot(2,2,3)
@@ -251,7 +354,7 @@ for i = 1:nArms
        hold on
        
        subplot(2,2,[2 4])
-       plot(xP,yP,'-')
+       plot(x0,y0,'-',x1,y1,'-')
        axis equal
        hold on
        
@@ -261,6 +364,230 @@ end
 
 starPts = [xP+xC yP+yC];
 
+
+function gaitPlot(S,ttext)
+
+% Number of arms
+numArms = 6;
+
+% Height of all bars for one arm
+hBar = 1;
+
+% Maximum foot number used
+maxFt = 6;
+
+% Color of the seastar body
+sClr = 0.8.*[1 1 1];
+
+% Make figure window
+f = figure('Units','normalized');
+
+% Transparency of bars
+fAlpha = 1;
+
+% Initialize index
+j = 1;
+
+% Loop thru feet
+for i = 1:length(S.ft)
+     % If there are coodrinates . . .
+     if sum(~isnan(S.ft(i).xBase))>0 && sum(~isnan(S.ft(i).xTip))>0
+
+         % Get points for current foot in trajectory FOR
+         xTip(:,j)       = S.ft(i).xTip;
+         armNum(:,j)     = S.ft(i).armNum;
+         ftNum(:,j)      = S.ft(i).footNum;
+         
+         % Advance index
+         j = j + 1;     
+     end 
+end
+
+% Width of body along x-axis
+normLen = range(S.armLT.x);
+
+% Mean x and y arm coordinates
+meanArmx = 0.8*hBar .* S.armLT.x./normLen;
+meanArmy = 0.8*hBar .* S.armLT.y./normLen;
+
+% Coordinate for seastar body
+starPts = makeStar(meanArmx, meanArmy, 0, 0);
+
+% Check on foot number
+if max(ftNum(:))>maxFt
+    error('actual foot number greater than max assumed');
+end
+
+% Pull default colormap
+cmap = colormap(f,'parula');
+cval = linspace(0,1.2,size(cmap,1));
+
+% Custom colormap by interpolation
+for i = 1:maxFt
+    cmap2(i,1) = interp1(cval,cmap(:,1),i./maxFt);
+    cmap2(i,2) = interp1(cval,cmap(:,2),i./maxFt);
+    cmap2(i,3) = interp1(cval,cmap(:,3),i./maxFt);
+end
+
+clear cmap cval
+
+% Make legend for tube foot colors
+if 0
+    
+    figure
+    subplot(4,5,1)
+    for i = 1:maxFt
+        sSize = 0.25;
+        
+        yV = [i-sSize i+sSize i+sSize i-sSize i-sSize];
+        xV = [-sSize -sSize sSize sSize -sSize];
+        
+        h = fill(xV, yV, cmap2(i,:));
+        set(h,'EdgeColor','none');
+        
+        h = text(1.1*sSize,i,num2str(i));
+        set(h,'FontSize',16,'HorizontalAlignment','left','VerticalAlignment','middle')
+        
+        hold on
+    end
+    set(gca,'XColor','none','YColor','none');
+    %axis equal
+    hold off
+    title('Tube foot number')
+    
+    clear sSize h xV yV
+    
+    
+end
+
+% Calculate speed
+spd = hypot(diff(smooth(S.xCntr)),diff(smooth(S.yCntr)))./diff(S.t)';
+spd = [spd(1); spd];
+
+% Calculate heading
+for i = 1:length(S.armT)
+    theta(i,1) = 180/pi*atan2(S.armT(i).y(1)-S.yCntrT(i),S.armT(i).x(1)-S.xCntrT(i));
+end
+
+% Plot speed and heading
+figure(f);
+subplot(4,5,2:5)
+[ax1,h(1),h(2)] = plotyy(S.t,spd,S.t,theta);
+ylabel(ax1(1),'Speed (pix/s)')
+ylabel(ax1(2),'Heading (deg)')
+%xlabel('Time s)');
+set(h(1),'Color','k','LineWidth',1.5)
+set(ax1(1),'YColor','k')
+set(h(2),'Color',0.7.*[1 1 1],'LineWidth',1.5)
+set(ax1,'TickDir','out')
+set(ax1(2),'YColor',0.5.*[1 1 1])
+title(ttext)
+
+% Get x-limits
+xL = xlim;
+
+% Create axes
+h1 = subplot(4,5,6:5:16);
+h2 = subplot(4,5,[7:10 12:15 17:20]);
+
+% Loop thru arms and plot seastar bodies
+for i = 1:numArms
+    axes(h1)
+    h = fill(starPts(:,1),starPts(:,2)+i-0.5,sClr,'EdgeColor','none');
+    axis equal
+    hold on
+    
+    h = line([0 meanArmx(i)],[i meanArmy(i)+i]-0.5,'Color',0.4.*[1 1 1],'LineWidth',2);
+
+end
+ylim([0 6])
+
+
+axes(h2)
+
+bClr = 0.95.*[1 1 1];
+
+arms = 1:2:6;
+
+% Loop thru every-other arm to create light bars in background
+for i = 1:length(arms)
+    
+    % Current arm number
+    n = arms(i);
+    
+    % Coords for bar
+    xVals = [xL(1) xL(2) xL(2) xL(1) xL(1)];
+    yVals = [n n n+hBar n+hBar n];
+
+    % Make bar
+    h = fill(xVals,yVals,bClr,'EdgeColor','none');
+    hold on
+end
+
+
+% Loop thru each footprint
+for i = 1:size(xTip,2)
+    
+    % Index for values
+    idx = ~isnan(xTip(:,i));
+    
+    if sum(idx)>0
+        % Check
+        if min(xTip(idx,i))~=max(xTip(idx,i))
+            error('Problem!');
+        end
+        
+        % Current arm number
+        n = armNum(i);
+        
+        % Current foot number
+        nFt = ftNum(i)-1;
+        
+        % Start and end times
+        tStart = S.t(find(~isnan(xTip(:,i)),1,'first'));
+        tEnd   = S.t(find(~isnan(xTip(:,i)),1,'last'));
+        
+        % Micro bar height
+        mhBar = hBar/maxFt;
+        
+        % Coords for bar
+        xVals = [tStart tEnd tEnd tStart tStart];
+        yVals = [n n n+mhBar n+mhBar n];
+        
+        % Offset by foot number
+        yVals = yVals + nFt.*mhBar;
+        
+        % Plot box
+        axes(h2)
+        h = fill(xVals,yVals,cmap2(nFt+1,:));
+        set(h,'FaceAlpha',fAlpha,'EdgeColor','none')
+        hold on
+    end
+end
+
+ylim([1 7])
+
+% Position of top graph
+pos3 = get(ax1(1),'Position');
+
+% Position of gait graph
+pos2 = get(h2,'Position');
+
+% Position of body graphs
+pos1 = get(h1,'Position');
+
+% Adjust position of gait graph
+% set(h2,'Position',[pos2(1)*0.8 pos2(2)*1.3 pos2(3) pos1(4)*.88],...
+%     'YColor','none','TickDir','out');
+ set(h2,'YColor','none','TickDir','out');
+
+% Adjust position of top graph
+set(h1,'XColor','none','YColor','none','Position',[pos1(1)*1.4 pos1(2:4)]);
+
+set(ax1,'XColor','none')
+
+% set(ax1,'Position',[pos2(1)*0.8 pos3(2) pos2(3) pos3(4)])
+xlabel('Time (s)')
 
 
 
