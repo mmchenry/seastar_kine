@@ -18,6 +18,13 @@ if ~isempty(dir(['/Users/mmchenry/Documents/Matlab code']))
         paths.data = '/Users/mmchenry/Documents/Projects/Andres sea stars/Kinematics';
     end
     
+%Amberle's Laptop
+    elseif ~isempty(dir(['C:\Users\biolo_000\Desktop\Sea Star Videos']))
+    
+    paths.vid = 'C:\Users\biolo_000\Desktop\Sea Star Videos';
+    paths.data = 'G:\My Drive\Kinematics';
+    
+    
 elseif ~isempty(dir(['C:\Users\tpo\Documents']))
     
     paths.vid = 'C:\Users\tpo\Documents\Andres seastar video';
