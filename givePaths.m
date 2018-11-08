@@ -16,7 +16,7 @@ if ~isempty(dir(['/Users/mmchenry/Documents/Matlab code']))
         paths.data = '/Volumes/GoogleDrive/My Drive/Shared files/Projects/Andres sea stars/Kinematics';
     else
         paths.data = '/Users/mmchenry/Documents/Projects/Andres sea stars/Kinematics';
-    end
+     end
     
 %Amberle's Laptop
     elseif ~isempty(dir(['C:\Users\biolo_000\Desktop\Sea Star Videos']))

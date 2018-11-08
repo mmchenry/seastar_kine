@@ -71,7 +71,7 @@ do.armTracking = 0;
 do.bundleData = 1;
 
 % Make a movie of the data overlaid onto a video 
-do.makeDataMovie = 0;
+do.makeDataMovie = 1;
 
 % Calibrate the video
 do.calibrate = 0;

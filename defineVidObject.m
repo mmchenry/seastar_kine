@@ -71,7 +71,7 @@ else
     
     % Store number of frames
     v.UserData.FirstFrame = 1;
-    v.UserData.LastFrame = floor(v.FrameRate*v.Duration);
+    v.UserData.LastFrame = floor(v.FrameRate*v.Duration) - 1;
 end
 
 

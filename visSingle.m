@@ -5,6 +5,35 @@ function visSingle(Orientation,SSnum,seqnum,makeMovie)
 % seqnum      - sequence number
 
 
+
+% Paths
+paths = givePaths;
+
+%Camera view (for 2D analysis)
+camView = 'canon';
+
+
+%% Batch mode
+
+if nargin==0
+    
+    % Catalog list
+    cList = catDatafiles(paths.data,camView,'Bundled Data');
+    
+    % Loop thru sequences
+    for i = 1:length(cList.fName)
+        
+        % Update status
+        disp(['Running visSingle on: ' cList.orient(i) ', ' ...
+               num2str(cList.indiv(i)) ', ' num2str(cList.seq(i))])
+        
+        % Run code
+        visSingle(cList.orient(i),cList.indiv(i),cList.seq(i),0);
+    end
+    
+    return
+end
+
 %% Deal with inputs
 
 if nargin >=3
@@ -57,22 +86,19 @@ end
 %% Code execution
 
 % Makes an animation of the data
-do.anaData = 0;
+do.aniData = 0;
 
 % Draw trajectory
-do.drawTraj = 0;
+do.drawTraj = 1;
 
 % Draw gait diagram
 do.gaitDiagram = 1;
 
+% Map of tube feet
+do.feetMap = 1;
+
 
 %% Parameters
-
-% Paths
-paths = givePaths;
-
-%Camera view (for 2D analysis)
-camView = 'canon';
 
 % Initial duration for identifying a trajectory-based coordinate system (s)
 initialDur = 15;
@@ -154,38 +180,25 @@ end
 
 %% Gait diagram
 
-% % Initialize index
-% j = 1;
-% 
-% % Loop thru feet
-% for i = 1:length(S.ft)
-%         
-%      % Index for values
-%      idx = ~isnan(S.ft(i).xBase) & ~isnan(S.ft(i).xTip);
-%      
-%      % If there are coodrinates . . .
-%      if sum(idx)>0
-% 
-%          % Get points for current foot in trajectory FOR
-%          xTip(:,j)       = S.ft(i).xTip;
-%          armNum(:,j)     = S.ft(i).armNum;
-%          ftNum(:,j)      = S.ft(i).footNum;
-%          
-%          j = j + 1;     
-%      end 
-% end
+if do.gaitDiagram
+    
+    % Make plot
+    gaitPlot(S,tName)
+    
+end
 
+%% Direction of tube feet
 
+if do.feetMap
+    
+    feetMap(S,tName);
+end
 
-% Make plot
-gaitPlot(S,tName)
-
-clear idx xTip armNum ftNum i j
 
 
 %% Data animation
 
-if do.anaData
+if do.aniData
     figure
     
     
@@ -455,9 +468,7 @@ if 0
     hold off
     title('Tube foot number')
     
-    clear sSize h xV yV
-    
-    
+    clear sSize h xV yV  
 end
 
 % Calculate speed
@@ -507,7 +518,7 @@ axes(h2)
 
 bClr = 0.95.*[1 1 1];
 
-arms = 1:2:6;
+arms = 2:2:6;
 
 % Loop thru every-other arm to create light bars in background
 for i = 1:length(arms)
@@ -588,6 +599,106 @@ set(ax1,'XColor','none')
 
 % set(ax1,'Position',[pos2(1)*0.8 pos3(2) pos2(3) pos3(4)])
 xlabel('Time (s)')
+
+
+
+function feetMap(S,ttext)
+
+maxFt = 6;
+
+% Color of the seastar body
+sClr = 0.8.*[1 1 1];
+
+% Radius and angular position of body centers
+rBodCntr =  1.1;
+%angBodCntr = [30:60:360]./180*pi;
+angBodCntr = S.armAngLT;
+
+% Body length/diameter
+bLen = mean([range(S.armLT.x) range(S.armLT.y)]);
+
+% Coordinate for seastar body
+starPts = makeStar(S.armLT.x./bLen, S.armLT.y./bLen, 0, 0);
+
+f = figure;
+
+% Pull default colormap
+cmap = colormap(f,'parula');
+cval = linspace(0,1.2,size(cmap,1));
+
+% Custom colormap by interpolation
+for i = 1:maxFt
+    cmap2(i,1) = interp1(cval,cmap(:,1),i./maxFt);
+    cmap2(i,2) = interp1(cval,cmap(:,2),i./maxFt);
+    cmap2(i,3) = interp1(cval,cmap(:,3),i./maxFt);
+end
+
+
+
+for i = 1:6
+    
+    % Offset of points
+    xOff = rBodCntr * cos(angBodCntr(i));
+    yOff = rBodCntr * sin(angBodCntr(i));
+    
+    % Draw body
+    h = fill(starPts(:,1)+xOff,starPts(:,2)+yOff,sClr,'EdgeColor','none');
+    axis equal
+    hold on
+    
+    for j = 1:length(S.ft)
+        
+        if i==S.ft(j).armNum
+            
+            k = S.ft(j).footNum;
+            
+            % Indices for start and end of contact
+            idx    = ~isnan(S.ft(j).xBase);
+            iStart = find(~isnan(S.ft(j).xBase),1,'first');
+            iEnd  = find(~isnan(S.ft(j).xBase),1,'last');
+            
+            % Tube foot motion
+%             xVals = S.ft(j).xTipLT([iStart iEnd]) ./ bLen + xOff;
+%             yVals = S.ft(j).yTipLT([iStart iEnd]) ./ bLen + yOff;
+            xVals = S.ft(j).xTipLT(idx) ./ bLen + xOff;
+            yVals = S.ft(j).yTipLT(idx) ./ bLen + yOff;
+            h = line(xVals,yVals,'Color',cmap2(k,:),'LineWidth',3);
+            
+            % Start point
+            xVals = S.ft(j).xTipLT([iStart]) ./ bLen + xOff;
+            yVals = S.ft(j).yTipLT([iStart]) ./ bLen + yOff;
+            h = scatter(xVals,yVals,'MarkerFaceColor',cmap2(k,:),...
+                        'MarkerEdgeColor','none','SizeData',50);
+            
+%             % Start line
+%             xVals = [S.ft(j).xTipLT(iStart) S.ft(j).xBaseLT(iStart)] ./ bLen + xOff;
+%             yVals = [S.ft(j).yTipLT(iStart) S.ft(j).yBaseLT(iStart)] ./ bLen + yOff;
+%             h = line(xVals,yVals,'Color','k','LineWidth',1);
+%             
+%             % End line
+%             xVals = [S.ft(j).xTipLT(iEnd) S.ft(j).xBaseLT(iEnd)] ./ bLen + xOff;
+%             yVals = [S.ft(j).yTipLT(iEnd) S.ft(j).yBaseLT(iEnd)] ./ bLen + yOff;
+%             h = line(xVals,yVals,'Color','k','LineWidth',1);
+        end
+        
+        
+       
+    end
+    
+    ttt=3; 
+end
+
+set(gca,'XColor','none','YColor','none')
+hold off
+title(ttext)
+
+
+
+
+
+
+
+
 
 
 
