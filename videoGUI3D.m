@@ -786,12 +786,12 @@ if strcmp(H.acqMode,'eyes')
     set(hAxes.axis1,'NextPlot','Add')
     
     % Arm coordinates
-    xArm_c = H.S.arm(cFrame_c).x;
-    yArm_c = H.S.arm(cFrame_c).y;
+    xArm_c = H.S.arm(H.iFrame).x;
+    yArm_c = H.S.arm(H.iFrame).y;
     
     % Center coordinate
-    xCntr_c = H.S.xCntr(cFrame_c);
-    yCntr_c = H.S.yCntr(cFrame_c);
+    xCntr_c = H.S.xCntr(H.iFrame);
+    yCntr_c = H.S.yCntr(H.iFrame);
     
     % Color map
     %cmap = colormap('lines');

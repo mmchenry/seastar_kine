@@ -294,6 +294,21 @@ nFrames = min([length(frames_s) length(frames_c)]);
 frames_s = frames_s(1:nFrames);
 frames_c = frames_c(1:nFrames);
 
+% Trim negative values
+if max(frames_c<0)
+    idx = frames_c>0;
+    frames_s = frames_s(idx);
+    frames_c = frames_c(idx);
+end
+
+% Trim negative values
+if max(frames_s<0)
+    idx = frames_s>0;
+    frames_s = frames_s(idx);
+    frames_c = frames_c(idx);
+end
+
+
 clear v_s v_c nFrames frame_delay
 
 
