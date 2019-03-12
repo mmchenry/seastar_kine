@@ -71,7 +71,7 @@ do.armTracking = 0;
 do.bundleData = 1;
 
 % Make a movie of the data overlaid onto a video 
-do.makeDataMovie = 1;
+do.makeDataMovie = 0;
 
 % Calibrate the video
 do.calibrate = 0;
@@ -141,7 +141,7 @@ for k = 1:length(good)
    end
    
    if k==1
-       error(['No matching videos found in list -- cannot run any code that need video'])
+       error(['No matching videos found in list -- cannot run any code that needs video'])
        
 %        cList.path{1}   = good.path;
 %        cList.fName{1}  = good.fName;

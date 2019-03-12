@@ -104,6 +104,9 @@ for i = 1:length(frames)
         hold on
         
          % Set position of both images
+        set(f,'Units','normalized')
+        set(a1,'Units','normalized')
+        %set(a1,'Position',[0 0.27 1 1])
         set(a1,'Position',[0 0.27 1 1])
         
         % Add frame number
@@ -112,7 +115,8 @@ for i = 1:length(frames)
                       'Color','k','FontSize',22,'FontWeight','bold','Parent',a2);
         
         %set(a2,'Position',[0.2 -.05 0.65 0.65])
-        set(a2,'Position',[0.25 0 0.5 0.5])
+        set(a2,'Units','normalized')
+        set(a2,'Position',[0.25 0 0.45 0.45])
         
         %axes(a2)
         

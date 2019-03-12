@@ -92,7 +92,7 @@ do.aniData = 0;
 do.drawTraj = 1;
 
 % Draw gait diagram
-do.gaitDiagram = 1;
+do.gaitDiagram = 0;
 
 % Map of tube feet
 do.feetMap = 1;
@@ -158,7 +158,7 @@ if do.drawTraj
         % Points for whole body
         starPtsT = makeStar(S.armT(idx).x, S.armT(idx).y, S.xCntrT(idx),S.yCntrT(idx));
         
-        % Body at start
+        % Draw body at interval
         h = fill(starPtsT(:,1),starPtsT(:,2),clr{1},'FaceAlpha',0.3,...
             'EdgeColor','none');
         
@@ -510,6 +510,7 @@ for i = 1:numArms
     
     h = line([0 meanArmx(i)],[i meanArmy(i)+i]-0.5,'Color',0.4.*[1 1 1],'LineWidth',2);
 
+    drawnow
 end
 ylim([0 6])
 

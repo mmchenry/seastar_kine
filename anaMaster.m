@@ -63,7 +63,7 @@ clear cList0
 %% Calculate local coordinates
 
 % Loop thru sequences
-for i = 1:length(cList)
+for i = 1:length(cList.age)
     
     % Load bundled 2D data ('S')
     load([paths.data filesep cList.path{i} filesep ...
@@ -88,7 +88,7 @@ for i = 1:length(cList)
     
     
     
-    % Visualize
+    % Visualize trajectory transformation
     if 0
        figure;
        
