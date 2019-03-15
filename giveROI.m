@@ -91,24 +91,47 @@ end
 
 if strcmp(action,'define')
     
-    % Angular coordinates for circular roi
-    roi.theta = linspace(0,2*pi,num_pts);
+    if strcmp(roi.shape,'circular')
+        % Angular coordinates for circular roi
+        roi.theta = linspace(0,2*pi,num_pts);
+        
+        % Circular coordinates for new roi in image FOR
+        roi.xPerimG  = round(floor(roi.r-1).*cos(roi.theta) + roi.xCntr);
+        roi.yPerimG  = round(floor(roi.r-1).*sin(roi.theta) + roi.yCntr);
+        
+        % Circular coordinates for new roi in roi FOR
+        roi.xPerimL    = round(floor(roi.r-1).*cos(roi.theta) + roi.r);
+        roi.yPerimL    = round(floor(roi.r-1).*sin(roi.theta) + roi.r);
+        
+        % Bounding rectange for the roi
+        roi.rect = [round(roi.xCntr-roi.r) round(roi.yCntr-roi.r) ceil(roi.r*2) ceil(roi.r*2)];
+        
+    elseif strcmp(roi.shape,'rectangular')
+        % No need for angular coordinates
+        roi.theta = nan;
+        
+        % Bounding rectange for the roi
+        roi.rect = [round(roi.xCntr-roi.r) round(roi.yCntr-roi.r) ...
+                    ceil(roi.r*2) ceil(roi.r*2)];
+        
+        % roi in image FOR
+        roi.xPerimG  = [roi.rect(1) roi.rect(1)+roi.rect(3) ...
+                        roi.rect(1)+roi.rect(3) roi.rect(1) roi.rect(1)];
+        roi.yPerimG  = [roi.rect(2) roi.rect(2) roi.rect(2)+roi.rect(4) ...
+                        roi.rect(2)+roi.rect(4) roi.rect(2)];
+                    
+        % roi in local FOR
+        roi.xPerimL    = [1 roi.rect(3) roi.rect(3) 1 1];
+        roi.yPerimL    = [1 1 roi.rect(4) roi.rect(4) 1];
+        
+    else
+        error(['Do not recognize ' roi.shape]);
+    end
     
-    % Circular coordinates for new roi in image FOR
-    roi.xPerimG  = round(floor(roi.r-1).*cos(roi.theta) + roi.xCntr);
-    roi.yPerimG  = round(floor(roi.r-1).*sin(roi.theta) + roi.yCntr);
-    
-    % Circular coordinates for new roi in roi FOR
-    roi.xPerimL    = round(floor(roi.r-1).*cos(roi.theta) + roi.r);
-    roi.yPerimL    = round(floor(roi.r-1).*sin(roi.theta) + roi.r);
-    
-    % Bounding rectange for the roi
-    roi.rect = [round(roi.xCntr-roi.r) round(roi.yCntr-roi.r) ceil(roi.r*2) ceil(roi.r*2)];
-
 else
     
     % Maximum size of an image dimension (for downsampling)
-    maxSize = 250;
+    maxSize = 350;
     
 end
 
@@ -172,7 +195,7 @@ if ~strcmp(action,'define')
             im(:,:,3) = [imT(:,:,3); ones(n, size(imT,2))]; 
             clear imT
         else
-            im = [im; ones(n, size(im,2))];     
+            im = [im; 255.*ones(n, size(im,2))];     
         end
     end
     
@@ -240,61 +263,70 @@ if ~strcmp(action,'define')
     
     if strcmp(action,'stabilized')
         
-        if length(tform)>1 && isfield(tform,'T') && isempty(tform.T)
-            error('You need to provide tform if you want imStable');
-        end
-        
-        % If tform exists, calculate angle . . .
-        if isprop(tform,'T')        
-            % Get angular rotation from tform
-            tformInv = invert(tform);
-            rot_ang  = atan2(tformInv.T(2,1),tformInv.T(1,1))*180/pi;
-            
-        % Rotation angle passed as tform . . .
-        elseif length(tform)==1
-            rot_ang = tform;
+        % Coordinate system for im_roi
+    R = imref2d(size(im_roi));
+    
+            imStable = imwarp(im_roi,tform,'OutputView',R,...
+                      'FillValues',255,'SmoothEdges',true);
 
-        end
+        % Deliver imStable
+        im_roi = imStable;
         
-        imStable = imrotate(im_roi,-rot_ang,'bilinear','crop');
+%         if length(tform)>1 && isfield(tform,'T') && isempty(tform.T)
+%             error('You need to provide tform if you want imStable');
+%         end
+%         
+%         % If tform exists, calculate angle . . .
+%         if isprop(tform,'T')        
+%             % Get angular rotation from tform
+%             tformInv = invert(tform);
+%             rot_ang  = atan2(tformInv.T(2,1),tformInv.T(1,1))*180/pi;
+%             
+%         % Rotation angle passed as tform . . .
+%         elseif length(tform)==1
+%             rot_ang = tform;
+% 
+%         end
+%         
+%         imStable = imrotate(im_roi,-rot_ang,'bilinear','crop');
+%         
+% %         % Coordinate system for im_roi
+% %         R = imref2d(size(im_roi));
+% %         
+% %         % Adjust WorldLimits to restrict transformation to just rotation
+% %         % around center
+% %         R.XWorldLimits = R.XWorldLimits-mean(R.XWorldLimits);
+% %         R.YWorldLimits = R.YWorldLimits-mean(R.YWorldLimits);
+% % %         R.XIntrinsicLimits = R.XWorldLimits;
+% % %         R.YIntrinsicLimits = R.YWorldLimits;
+% %         
+% %         
+% %         % Stablize image
+% %         imStable = imwarp(im_roi,R,tform,'OutputView',R,...
+% %             'FillValues',255,'SmoothEdges',true);
+% 
+%         if size(imStable,3)==3
+%             
+%             tmp1 = imStable(:,:,1);
+%             tmp1(~bw_roi_mask) = 255;
+%             
+%             tmp2 = imStable(:,:,2);
+%             tmp2(~bw_roi_mask) = 255;
+%             
+%             tmp3 = imStable(:,:,3);
+%             tmp3(~bw_roi_mask) = 255;
+%             
+%             imStable(:,:,1) = tmp1;
+%             imStable(:,:,2) = tmp2;
+%             imStable(:,:,3) = tmp3;
+%             
+%             clear tmp1 tmp2 tmp3
+%         else
+% 
+%         % White out beyond roi
+%         imStable(~bw_roi_mask) = 255;
         
-%         % Coordinate system for im_roi
-%         R = imref2d(size(im_roi));
-%         
-%         % Adjust WorldLimits to restrict transformation to just rotation
-%         % around center
-%         R.XWorldLimits = R.XWorldLimits-mean(R.XWorldLimits);
-%         R.YWorldLimits = R.YWorldLimits-mean(R.YWorldLimits);
-% %         R.XIntrinsicLimits = R.XWorldLimits;
-% %         R.YIntrinsicLimits = R.YWorldLimits;
-%         
-%         
-%         % Stablize image
-%         imStable = imwarp(im_roi,R,tform,'OutputView',R,...
-%             'FillValues',255,'SmoothEdges',true);
-
-        if size(imStable,3)==3
-            
-            tmp1 = imStable(:,:,1);
-            tmp1(~bw_roi_mask) = 255;
-            
-            tmp2 = imStable(:,:,2);
-            tmp2(~bw_roi_mask) = 255;
-            
-            tmp3 = imStable(:,:,3);
-            tmp3(~bw_roi_mask) = 255;
-            
-            imStable(:,:,1) = tmp1;
-            imStable(:,:,2) = tmp2;
-            imStable(:,:,3) = tmp3;
-            
-            clear tmp1 tmp2 tmp3
-        else
-
-        % White out beyond roi
-        imStable(~bw_roi_mask) = 255;
-        
-        end
+%       end
         
         % Deliver imStable
         im_roi = imStable;

@@ -144,6 +144,9 @@ if strcmp(coordType,'roi')
     elseif isfield(Rotation,'tform_roi')
         S.tform       = Rotation.tform_roi;
         
+    elseif isempty(Rotation)    
+        S.tform        = [];
+           
     elseif ~isempty(Rotation.ref_frame) && ...
             length(Rotation.ref_frame)~=length(Centroid.x)
         error('mismatch in length of Centroid and Rotation');

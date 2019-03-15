@@ -35,6 +35,12 @@ elseif strcmp(bMode,'coord')
     x = varargin{1};
     y = varargin{2};
     
+    if length(varargin)>2
+        dilateerode = varargin{3};
+    else
+        dilateerode = 1;
+    end
+    
 else
     error('bMode not recognized');
 end
@@ -45,8 +51,17 @@ end
 % Make binary
 bw = im2bw(im,tVal);
 
+% Invert
+bw = ~bw;
+
+if dilateerode
+    se = strel('disk',12);
+    bw = imdilate(bw,se);
+    bw = imerode(bw,se);
+end
+     
 % Fill holes
-bw = imfill(~bw,'holes');
+bw = imfill(bw,'holes');
 
 % Start with black image
 bwOut = bw.*0~=0;   

@@ -64,16 +64,15 @@ elseif strcmp(opType,'blobs L simple')
     
 elseif strcmp(opType,'Centroid tracking')
        
-    S       = varargin{1};
-   
-    frames = S.frames;    
-    numroipts = length(S.roi(1).theta);
+    %S       = varargin{1};
+    Body = varargin{1};
+    frames = Body.frames;
+    %frames = S.frames;    
+    numroipts = length(Body.roi(1).theta);
     
-    if nargin > 5
-        imVis = varargin{2};
-    else
-        imVis = 1;
-    end
+    imVis = varargin{2};
+    iC = varargin{3};
+
  
 elseif strcmp(opType,'Pred + prey')
     
@@ -100,10 +99,10 @@ elseif strcmp(opType,'Pred-prey cent track')
     
 elseif strcmp(opType,'Centroid & Rotation') || strcmp(opType,'no analysis')    
        
-    S = varargin{1}; 
-    frames = S.frames;    
-    numroipts = length(S.roi(1).xPerimL);    
-    if nargin > 5
+    Body = varargin{1}; 
+    frames = Body.frames;    
+    numroipts = length(Body.Rotation.roi(1).xPerimL);    
+    if nargin > 1
         imVis = varargin{2};
     else
         imVis = 1;
@@ -136,7 +135,7 @@ if ~strcmp(opType,'blobs G&L')
     
     % Loop thru data
     for i = 1:length(frames)
-        
+
         if strcmp(opType,'no analysis')
             im = getFrame(vid_path,v,frames(i),0,'color');
         else
@@ -152,7 +151,19 @@ if ~strcmp(opType,'blobs G&L')
         
         if strcmp(opType,'Centroid & Rotation')
             subplot(1,2,1)
-            
+
+            % Get current roi
+            roi = Body.Rotation.roi(i);
+
+        elseif strcmp(opType,'Centroid tracking')
+ 
+            %roi = Body.roi(i);
+            if i ==1
+                totArea = size(im,1)*size(im,2);
+                areaMin = totArea/10^4;
+                areaMax = totArea/10^2;
+            end
+
         elseif strcmp(opType,'Pred + prey')
             subplot(4,2,[1:4])
         end
@@ -193,13 +204,36 @@ if ~strcmp(opType,'blobs G&L')
             clear props bw areas xB yB
          
             
-        elseif strcmp(opType,'Centroid tracking') || strcmp(opType,'Centroid & Rotation')
+        elseif strcmp(opType,'Centroid tracking')
             
             % roi in global frame
-            xG = S.roi(i).xPerimG;
-            yG = S.roi(i).yPerimG;
-            xC = S.roi(i).xCntr;
-            yC = S.roi(i).yCntr;
+            xG = Body.roi(i).xPerimG;
+            yG = Body.roi(i).yPerimG;
+            xC = Body.roi(i).xCntr;
+            yC = Body.roi(i).yCntr;
+            
+            % Overlay blobs
+            %[props,bw,areas,xB,yB] = findBlobs(im,iC.tVal,'area',areaMin,areaMax);
+            [props,bw,areas,xB,yB] = findBlobs(im,iC.tVal,'coord',xC,yC);
+            
+            % Make a truecolor all-green image, make non-blobs invisible
+            green = cat(3, zeros(size(im)), ones(size(im)), zeros(size(im)));
+            h = imshow(green,'InitialMag','fit');
+            set(h, 'AlphaData', bw*0.3)
+            
+            % Plot tracking
+            h(1) = line(xG,yG,'Color','k','LineWidth',1);
+            h(2) = plot(xC,yC,'k+');
+            
+            clear xB yB areas bw props
+            
+        elseif strcmp(opType,'Centroid & Rotation')
+            
+            % roi in global frame
+            xG = Body.Rotation.roi(i).xPerimG;
+            yG = Body.Rotation.roi(i).yPerimG;
+            xC = Body.Rotation.roi(i).xCntr;
+            yC = Body.Rotation.roi(i).yCntr;
             
             % Plot tracking
             h(1) = line(xG,yG,'Color',[0 1 0 0.2],'LineWidth',3);
@@ -283,18 +317,57 @@ if ~strcmp(opType,'blobs G&L')
         end
         
         if strcmp(opType,'Centroid & Rotation')
-            dSample = 0;
             
-            if isfield(S,'ang')
-                [im_roi,bw_mask] = giveROI('stabilized',im,S.roi(i),...
-                    dSample,S.ang(i));
-            else
-                [im_roi,bw_mask] = giveROI('stabilized',im,S.roi(i),...
-                    dSample,S.tform(:,:,i));
-            end
+            % Offset border
+            offVal = 2;
+            
+            % roi in global frame
+            xG = roi.xPerimG;
+            yG = roi.yPerimG;
+            
+            % Body center
+            xC = Body.xCntr(i);
+            yC = Body.yCntr(i);
+            
+            % Other point (to show rotation)
+            xO = Body.xOther(i);
+            yO = Body.yOther(i);
+            
+            % Local FOR border
+            xL = [roi.xPerimL(1)+offVal roi.xPerimL(2)-offVal ...
+                roi.xPerimL(3)-offVal roi.xPerimL(4)+offVal ...
+                roi.xPerimL(5)+offVal];
+            yL = [roi.yPerimL(1)+offVal roi.yPerimL(2)+offVal ...
+                roi.yPerimL(3)-offVal roi.yPerimL(4)-offVal ...
+                roi.yPerimL(5)+offVal];
+            
+            % Stabilized image
+            imStable =  giveROI('stabilized',im,roi,0,Body.Rotation.tform(i));
+            
+            % Plot tracking
+            h(1) = line(xG,yG,'Color',[1 0 0 0.2],'LineWidth',3);
+            h(1) = line([xO xC],[yO yC],'Color',[1 0 0 0.2],'LineWidth',3);
+            h(2) = plot(xC,yC,'r+');
+            
+            % Plot roi
             subplot(1,2,2)
+            imshow(imStable,'InitialMag','fit')
+            hold on
+            line(xL,yL,'Color',[1 0 0 0.2],'LineWidth',4);
             
-            h = imshow(im_roi,'InitialMag','fit');
+            drawnow
+            pause(0.001)
+            
+            
+%             dSample = 0;
+%             
+% 
+%             [im_roi,bw_mask] = giveROI('stabilized',im,S.roi(i),...
+%                 dSample,S.tform(:,:,i));
+% 
+%             subplot(1,2,2)
+%             
+%             h = imshow(im_roi,'InitialMag','fit');
             
         end
  
@@ -307,7 +380,7 @@ if ~strcmp(opType,'blobs G&L')
 %             idx = idx + 1;
 %         end
 
-        imFrame = getframe(gcf);
+        imFrame = getframe(f);
         writeVideo(vOut,imFrame);
         
         if imVis

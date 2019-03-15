@@ -71,6 +71,8 @@ if strcmp(method,'threshold translation')
         yMask = varargin{6};
     end
     
+    erodedialate = 1;
+    
 elseif strcmp(method,'thresh trans advanced') || ...
         strcmp(method,'thresh trans advanced with mask')
     
@@ -334,7 +336,7 @@ for i = 1:length(frames)
     if strcmp(method,'threshold translation')
         
         % Find blob at cX,cY
-        [props,bwOut] = findBlobs(im,tVal,'coord',cX,cY);
+        [props,bwOut] = findBlobs(im,tVal,'coord',cX,cY,erodedialate);
 
         % Store results
         Centroid.x(i,1) = props.Centroid(1);
@@ -344,6 +346,25 @@ for i = 1:length(frames)
         % Update current coordinates
         cX = props.Centroid(1);
         cY = props.Centroid(2);
+        
+        if 1
+            imshow(im,'InitialMag','fit');
+            hold on
+            
+            % Make a truecolor all-green image, make non-blobs invisible
+            green = cat(3, zeros(size(im)), ones(size(im)), zeros(size(im)));
+            h = imshow(green,'InitialMag','fit');
+            set(h, 'AlphaData', bwOut*0.3)
+            
+            % Plot tracking
+            %h(1) = line(xG,yG,'Color','k','LineWidth',1);
+            h(2) = plot(Centroid.x(i,1),Centroid.y(i,1),'k+');
+            hold off
+            
+            clear xB yB areas bw props green h
+        end
+        
+        
         
         % Clear for next loop
         clear tmp_x tmp_y
