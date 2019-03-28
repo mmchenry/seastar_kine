@@ -17,6 +17,9 @@ if strcmp(bMode,'area')
     areaMin = varargin{1};
     areaMax = varargin{2};
 
+    dilateerode = 0;
+
+    
 elseif strcmp(bMode,'coord advanced')
     x        = varargin{1};
     y        = varargin{2};
