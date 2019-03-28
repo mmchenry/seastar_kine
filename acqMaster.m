@@ -10,7 +10,7 @@ do.MakeCentroidMovie = 0;
 do.MakeRotationMovies = 0;
 
 % Make movie to evaluate centroid and rotation tracking
-do.MakeFootMovie = 0;
+do.MakeFootMovie = 1;
 
 % Re-run the rotation anlysis from the beginning 
 reRunRotation = 0;
@@ -52,7 +52,7 @@ if ~isempty(dir(['/Users/mmchenry/Documents/Matlab code']))
     vidPath = '/Users/mmchenry/Documents/Video/Chip sea stars/prelim video';
     
     % Location of video frames
-    vidFramePath = '/Users/mmchenry/Documents/Video/Chip sea stars/prelim video/video frames';
+    %vidFramePath = '/Users/mmchenry/Documents/Video/Chip sea stars/prelim video/video frames';
     
     % Path to root of data
     dataPath = '/Users/mmchenry/Documents/Projects/Chip sea stars/prelim data';
@@ -263,6 +263,7 @@ if ~isfile([currDataPath filesep 'Body.mat'])
     
 else
     
+    % Load body kinematics (Body)
     load([currDataPath filesep 'Body.mat'])
     
 end
@@ -305,7 +306,7 @@ end
 dSample = 0;
 
 % Visualize steps
-visSteps = 0;
+visSteps = 1;
 
 % Number of frames to visualize
 numVis = 16;
@@ -392,14 +393,32 @@ if ~isfile([currDataPath filesep 'blobs.mat'])
       
 end
 
+
+% Produce data for motion images ------------------------------------------
+if ~isfile([currDataPath filesep 'motion image data.mat'])
+
+     % Load blob data (B)
+    load([currDataPath filesep 'blobs']) 
+    
+    % Produce image stack
+    imStack = motionImage(currVidPath,v,'mask static',Body.frames,B,Body.frames,imInvert);
+ 
+    % Save images to be analyzed
+    save([currDataPath filesep 'motion image data'],'-v7.3','imStack');
+end
+
+
 % Loop thru frames, track feet --------------------------------------------
-if 1 %~isfile([currDataPath filesep 'foot blobs.mat'])
+if ~isfile([currDataPath filesep 'foot blobs.mat'])
     
     % Load blob data (B)
     load([currDataPath filesep 'blobs'])  
     
+    % Load imStack
+    load([currDataPath filesep 'motion image data'])
+    
     B_ft = anaBlobs(currVidPath,v,'filter motion',B,strakDr_fr,Body,blobParam,...
-        visSteps,imInvert);
+        visSteps,imInvert,imStack);
     
     % Save blob data
     save([currDataPath filesep 'foot blobs'],'B_ft');
@@ -427,7 +446,7 @@ if do.MakeFootMovie
     imInvert = 0;
 
     % File name of movie to be created
-    fName = 'Foot tracking';
+    fName = 'Foot tracking, global';
     
     % Load video info (v)                added by CG
     v = defineVidObject(currVidPath);
@@ -437,8 +456,11 @@ if do.MakeFootMovie
     disp(' ')
     
     % Make movie
+%     aniData(currVidPath,v,currDataPath,fName,imInvert,...
+%         'Feet',Body,imVis,B_ft);
+
     aniData(currVidPath,v,currDataPath,fName,imInvert,...
-        'Feet',Body,imVis,B_ft);
+        'Global feet',Body,imVis,B_ft);
 end
 
 

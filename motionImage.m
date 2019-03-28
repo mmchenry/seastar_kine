@@ -321,16 +321,19 @@ elseif strcmp(imType,'im static')
 elseif strcmp(imType,'bw static') 
     
     % image of the pixels that are most static
-    imOut = imcomplement(uint8(sum(double(bwStack),3)./length(fr_num).*255));
+%     imOut = imcomplement(uint8(sum(double(bwStack),3)./length(fr_num).*255));
+imOut = bwStack;
     
 % Create image from motion score    
 elseif strcmp(imType,'mask static') 
     
+    imOut = bwStack;
+    
     % Get average image
-    imAvg = uint8(sum(double(bwStack),3)./length(fr_num));
+    %imAvg = uint8(sum(double(bwStack),3)./length(fr_num));
     
     % Boost contrast
-    imOut = imcomplement(imadjust(imAvg));    
+    %imOut = imcomplement(imadjust(imAvg));    
     
 end
 
