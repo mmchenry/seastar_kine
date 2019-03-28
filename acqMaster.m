@@ -7,10 +7,16 @@ function acqMaster
 do.MakeCentroidMovie = 0;
 
 % Make movie to evaluate centroid and rotation tracking
-do.MakeRotationMovies = 1;
+do.MakeRotationMovies = 0;
+
+% Make movie to evaluate centroid and rotation tracking
+do.MakeFootMovie = 0;
 
 % Re-run the rotation anlysis from the beginning 
 reRunRotation = 0;
+
+% Visualize frames to survey all steps of the analysis
+do.anaSurvey = 0;
 
 
 %% Verify deleting data
@@ -56,7 +62,6 @@ else
     error('Do not recognize computer')
     
 end
-
 
 
 %% Catalog sequence videos
@@ -156,16 +161,28 @@ if ~isfile([currDataPath filesep 'Centroid.mat'])
     % Frames
     frames = clipInfo.startFrame:clipInfo.endFrame;
     
+    % Number of frames to visualize with surveyData
+    numVis = 16;
+    
     % Region of interest for first frame
     roi0 = giveROI('define','circular',numroipts,iC.r,iC.x,iC.y);
     
     % Run tracker code for centroid
     Centroid = tracker(currVidPath,v,imInvert,'threshold translation',...
         roi0,iC.tVal,frames);
+
+   % Define roi for each frame
+    for i = 1:length(Centroid.x)
+       Centroid.roi(i) =  giveROI('define','circular',numroipts,...
+           iC.r,Centroid.x(i),Centroid.y(i));     
+    end
     
     % Save data
     save([currDataPath filesep 'Centroid'],'Centroid')
     
+    % Visualize a bunch of frames to check results
+    surveyData(currVidPath,v,imInvert,'Centroid tracking',Centroid,iC,numVis);
+     
     disp(' ')
     
     clear  roi0 frames Centroid
@@ -178,16 +195,18 @@ else
 end
 
 
+
 %% Generate centroid movie for review
 
 if do.MakeCentroidMovie && ...
    ~isfile([currDataPath filesep 'centroid movie.mat'])
     
+    % Visualize steps in analysis
     imVis = 1;
 
+    % Name of movie file
     movFile = 'Centroid tracking';
 
-    
     % Frames
     frames = clipInfo.startFrame:clipInfo.endFrame;
     
@@ -216,59 +235,46 @@ end
 
 %% Track rotation
     
-if ~isfile([currDataPath filesep 'Body.mat']) || (reRunRotation==1)
+if ~isfile([currDataPath filesep 'Body.mat'])
     
     % Visualize steps
     visSteps = 0;
     
     % Downsample frames for image registration (speed up processing)
     dSample = 1;
-    
 
-    % Load mean image data (imMean)
-    %load([currDataPath filesep 'meanImageData']);
-    
-    % Load video info (v)
-    v = defineVidObject(currVidPath);
+    % Numver of frames to visualize
+    numVis = 16;
     
     % Run tracker for predator
     trackRotation(currVidPath,v,currDataPath,'advanced',...
         dSample,visSteps,reRunRotation,imInvert);
     
+    % Load data ('Body')
+    load([currDataPath filesep 'Body.mat'])
+    
+    % Apply post-processing
+    Body = rotationPostProcess(Body);
+    
+    % Visualize a bunch of frames to check results
+    surveyData(currVidPath,v,imInvert,'Centroid & Rotation',Body,iC,numVis);
+    
     clear dSample visSteps 
+    
+else
+    
+    load([currDataPath filesep 'Body.mat'])
+    
 end
 
 
-%% Bundle Centroid and Rotation data
-
-% % If centroid data there and centroid data not yet approved
-% if ~isfile([currDataPath filesep 'Transformation.mat'])
-%     
-%     % Region of interest for first frame
-%     roi0 = giveROI('define','circular',numroipts,iC.r,iC.x,iC.y);
-%     
-%     % Load body data (Body)
-%     load([currDataPath filesep 'Body.mat'])
-%     
-%     % Create coordinate transformation structure
-%     S = defineSystem2d('roi',roi0,Body);
-%     
-%     % Save transformation data
-%     save([currDataPath filesep 'Transformation'],'S')
-%     
-%     clear roi0 currDataPath currVidPath Rotation S
-% end
-    
-
 %% Apply post-processing (Body data)
-
-load([currDataPath filesep 'Body.mat'])
 
 % Apply post-processing
 Body = rotationPostProcess(Body);
 
 % Save
-save([currDataPath filesep 'Body, post.mat'],'Body')
+%save([currDataPath filesep 'Body, post.mat'],'Body')
 
 
 %% Review rotation: make movies
@@ -279,9 +285,6 @@ if do.MakeRotationMovies
 
     % File name of movie to be created
     fName = 'Centroid and rotation';
-    
-    % Load video info (v)                added by CG
-    v = defineVidObject(currVidPath);
     
     disp(' ')
     disp(['Making Pred Rotation Movie: ' currVidPath])
@@ -298,14 +301,166 @@ end
 
 %% Track feet
 
+% Downsample
+dSample = 0;
 
-%TODO: Make mean image from local ROI
-%TODO: Subtract mean image from frames in global FOR
-%TODO: Create streak images and threshold static items in global FOR
+% Visualize steps
+visSteps = 0;
 
-%imMean = makeMeanImage(vid_path,newMean)
+% Number of frames to visualize
+numVis = 16;
+
+% Duration used for mean image (s)
+meanDur = 10;
+
+% Duration use for stream image (s)
+streakDur = 0.5;
+
+% Number of frames used for each mean image
+numMean = 10;
+
+% Parameters for blobs describing the tube feet
+blobParam.tVal = 0.3;
+blobParam.areaMin = 100;
+blobParam.areaMax = 2000; 
+blobParam.AR_max  = 6;
+
+% Mean image duration in frames
+meanDr_fr = round(meanDur * v.FrameRate);
+
+% Streak image duration in frames
+strakDr_fr = round(streakDur * v.FrameRate);
+
+% Set intervals for mean frames
+interval_fr = [min(Body.frames):meanDr_fr:max(Body.frames)]';
+
+% Extend duration of last interval
+interval_fr = [interval_fr(1:end-1); max(Body.frames)];
+
+%time = (Body.frames-Body.frame(1))./v.FrameRate;
+
+% Create mean images over regular interval of movie -----------
+if ~isfile([currDataPath filesep 'mean_roi.mat'])
+    
+    % Loop thru intervals
+    for i = 1:(length(interval_fr)-1)
+       
+        % Update status
+        disp(['INTERVAL ' num2str(i) ' of ' num2str(length(interval_fr)-1)])
+        
+        % Interval of mean image
+        roiM(i).frStart = interval_fr(i);
+        roiM(i).frEnd   = interval_fr(i+1);
+        
+        % Range of frames
+        dFrame = round(range([roiM(i).frStart  roiM(i).frEnd])./numMean);
+        
+        % Frame numbers
+        roiM(i).frames = [roiM(i).frStart:dFrame:roiM(i).frEnd]';
+        
+        % Calc mean image
+        [imMean,imStd] = motionImage(currVidPath,v,'mean roi','none',imInvert,...
+                        Body,dSample,roiM(i).frames);
+                    
+        % Store
+        roiM(i).im    = imMean;
+        roiM(i).imStd = imStd;
+        
+        clear imMean imStd                   
+    end
+
+    % Save data
+    save([currDataPath filesep 'mean_roi'],'roiM');
+    
+% Otherwise
+else
+    
+    % Load mean images (roiM)
+    load([currDataPath filesep 'mean_roi.mat'])
+end
 
 
+% Loop thru frames, create mask that excludes stationary objects ---------
+if ~isfile([currDataPath filesep 'blobs.mat'])
+        
+    % Run blob analysis
+    B = anaBlobs(currVidPath,v,'G&L props',Body,blobParam,imInvert,...
+        dSample,roiM,visSteps);
+    
+    % Save blob data
+    save([currDataPath filesep 'blobs'],'B');
+      
+end
+
+% Loop thru frames, track feet --------------------------------------------
+if 1 %~isfile([currDataPath filesep 'foot blobs.mat'])
+    
+    % Load blob data (B)
+    load([currDataPath filesep 'blobs'])  
+    
+    B_ft = anaBlobs(currVidPath,v,'filter motion',B,strakDr_fr,Body,blobParam,...
+        visSteps,imInvert);
+    
+    % Save blob data
+    save([currDataPath filesep 'foot blobs'],'B_ft');
+    
+    % Visualize a bunch of frames to check results
+    surveyData(currVidPath,v,0,'Feet',Body,B_ft,numVis);
+    
+else
+    
+    % Load data of feet (B_ft)
+    load([currDataPath filesep 'foot blobs'])
+    
+end
+
+clear dSample blobParam visSteps meanDr_fr interval_fr streakDur numMean numVis
+
+
+
+%% Make movie of feet
+
+if do.MakeFootMovie 
+    
+    imVis = 0;
+    
+    imInvert = 0;
+
+    % File name of movie to be created
+    fName = 'Foot tracking';
+    
+    % Load video info (v)                added by CG
+    v = defineVidObject(currVidPath);
+    
+    disp(' ')
+    disp(['Making Foot tracking Movie: ' fName])
+    disp(' ')
+    
+    % Make movie
+    aniData(currVidPath,v,currDataPath,fName,imInvert,...
+        'Feet',Body,imVis,B_ft);
+end
+
+
+%% Visualize frames from all steps of the analysis
+
+if do.anaSurvey
+    
+    % Number of frames to visualize
+    numVis = 16;
+    
+    % Centroid tracking
+    surveyData(currVidPath,v,imInvert,'Centroid tracking',Centroid,iC,numVis);
+    
+    % Rotation
+    surveyData(currVidPath,v,imInvert,'Centroid & Rotation',Body,iC,numVis);
+    
+    % Feet
+    surveyData(currVidPath,v,0,'Feet',Body,B_ft,numVis);
+    
+    clear numVis
+    
+end
 
 
 
@@ -335,6 +490,9 @@ for i = 1:length(Body.Rotation.tform)
     % Get corrected body center point in roi
     [xCntr,yCntr] = transformPointsForward(invert(tform),roi.r,roi.r);
     
+    % Get corrected origin of roi
+    [xOr,yOr] = transformPointsForward(invert(tform),0,0);
+    
     % Other referece point to look at rotation
     [xOther,yOther] = transformPointsForward(invert(tform),roi.r,2*roi.r);
     
@@ -346,6 +504,14 @@ for i = 1:length(Body.Rotation.tform)
     Body.yCntr(i,1)  = Body.y(i)-roi.r+yCntr;
     Body.xOther(i,1) = Body.x(i)-roi.r+xOther;
     Body.yOther(i,1) = Body.y(i)-roi.r+yOther;
+    
+    % Adjust roi coordinates
+    Body.Rotation.roi(i).rect(1) = Body.x(i)-roi.r+round(xOr);
+    Body.Rotation.roi(i).rect(2) = Body.y(i)-roi.r+round(yOr);
+    Body.Rotation.roi(i).xCntr   = Body.xCntr(i,1);
+    Body.Rotation.roi(i).yCntr   = Body.yCntr(i,1);
+    Body.Rotation.roi(i).xPerimG = Body.Rotation.roi(i).xPerimG + xOr;
+    Body.Rotation.roi(i).yPerimG = Body.Rotation.roi(i).yPerimG + yOr; 
     
     
 end

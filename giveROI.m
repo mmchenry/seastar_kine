@@ -1,4 +1,3 @@
-
 function varargout = giveROI(action,varargin)
 % Returns features for a region-of-interest (ROI)
 % giveROI(action)
@@ -76,11 +75,20 @@ elseif strcmp(action,'stabilized')
     dSample = varargin{3};
     tform   = varargin{4};
     
-    if nargin > 5
-        imMean  = varargin{5};
+    if length(varargin) > 4
+        if (length(varargin{5})>1)
+            imMean  = varargin{5};
+            fillColor = 255;
+        else
+            imMean    = [];
+            fillColor = varargin{5};
+        end
     else
-        imMean  = [];
+        imMean    = [];
+        fillColor = 255;
     end
+    
+    allowPad = 0;
     
 else
     error('Do not recognize action')
@@ -146,10 +154,10 @@ if ~strcmp(action,'define')
         im = [ones(size(im,1),n) im];
         roi.rect(1) = 1;
     end
-     
+
     % Pad image to the top, if needed
     if roi.rect(2)<1
-        n           = abs(roi.rect(2))+1;
+        n  = abs(roi.rect(2))+1;
         
         if size(im,3)>1
             imT = im;
@@ -164,7 +172,7 @@ if ~strcmp(action,'define')
         
         roi.rect(2) = 1;
     end
-        
+    
     % Pad image to the right, if needed
     if (roi.rect(1)+roi.rect(3)+1)>=size(im,2)
         
@@ -190,16 +198,17 @@ if ~strcmp(action,'define')
         if size(im,3)>1
             imT = im;
             clear im
-            im(:,:,1) = [imT(:,:,1); ones(n, size(imT,2))]; 
-            im(:,:,2) = [imT(:,:,2); ones(n, size(imT,2))]; 
-            im(:,:,3) = [imT(:,:,3); ones(n, size(imT,2))]; 
+            im(:,:,1) = [imT(:,:,1); ones(n, size(imT,2))];
+            im(:,:,2) = [imT(:,:,2); ones(n, size(imT,2))];
+            im(:,:,3) = [imT(:,:,3); ones(n, size(imT,2))];
             clear imT
         else
-            im = [im; 255.*ones(n, size(im,2))];     
+            im = [im; 255.*ones(n, size(im,2))];
         end
     end
     
-   clear n
+    clear n
+    
         
     % Binary mask in image im    
     bw_mask = roipoly(size(im,1),size(im,2),...
@@ -243,7 +252,7 @@ if ~strcmp(action,'define')
         
         clear tmp1 tmp2 tmp3
     else
-        im_roi(~bw_roi_mask) = 255;
+        im_roi(~bw_roi_mask) = fillColor;
     end
     
     % Reduce size (helps speed up image registration)
@@ -267,7 +276,7 @@ if ~strcmp(action,'define')
     R = imref2d(size(im_roi));
     
             imStable = imwarp(im_roi,tform,'OutputView',R,...
-                      'FillValues',255,'SmoothEdges',true);
+                      'FillValues',fillColor,'SmoothEdges',true);
 
         % Deliver imStable
         im_roi = imStable;

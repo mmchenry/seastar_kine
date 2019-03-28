@@ -31,6 +31,9 @@ elseif strcmp(bMode,'area and circ')
     areaMax = varargin{2};
     AR_max  = varargin{3};
     
+    dilateerode = 0;
+
+    
 elseif strcmp(bMode,'coord')
     x = varargin{1};
     y = varargin{2};
@@ -49,10 +52,17 @@ end
 %% Make binary image
 
 % Make binary
-bw = im2bw(im,tVal);
+%bw = im2bw(im,tVal);
+if ~islogical(im)
+    bw = imbinarize(im,tVal);
+else
+    bw = im;
+end
 
-% Invert
-bw = ~bw;
+if ~strcmp(bMode,'area and circ')
+    % Invert
+    bw = ~bw;
+end
 
 if dilateerode
     se = strel('disk',12);

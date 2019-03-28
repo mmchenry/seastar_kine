@@ -142,12 +142,12 @@ elseif strcmp(trans_type,'bw L2G')
     
     % Adjust WorldLimits to restrict transformation to just rotation
     % around center
-    R.XWorldLimits = R.XWorldLimits-mean(R.XWorldLimits);
-    R.YWorldLimits = R.YWorldLimits-mean(R.YWorldLimits);
+%     R.XWorldLimits = R.XWorldLimits-mean(R.XWorldLimits);
+%     R.YWorldLimits = R.YWorldLimits-mean(R.YWorldLimits);
     
     % Stablize image
     roiRot = imwarp(bw_roi,R,invert(tform),'OutputView',R,...
-         'FillValues',255,'SmoothEdges',true);
+         'FillValues',0,'SmoothEdges',true);
 %     
 %     % White out beyond roi
     roiRot(~bw_roi_mask) = 0;
@@ -155,7 +155,13 @@ elseif strcmp(trans_type,'bw L2G')
     % Black out region outside of roi
     imOut = logical(bw_G.*0);
     
+    if sum(bw_G(:))~=(size(roiRot,1)*size(roiRot,2))
+        error('Image dimensions do not match');
+    end
+    
+    % Add image
     imOut(bw_G) = roiRot;
+
     
     
 %     % Extract origin

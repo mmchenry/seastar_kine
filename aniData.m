@@ -97,6 +97,49 @@ elseif strcmp(opType,'Pred-prey cent track')
     numroipts = 400;
     frames = C_pd.frames;    
     
+elseif strcmp(opType,'Feet')
+    
+    Body     = varargin{1}; 
+    imVis    = varargin{2};
+    B_ft     = varargin{3};
+    
+    % Start index
+    j = 1;
+    
+    % Loop thru frames
+    for i = 1:length(B_ft)
+        
+       % If there is foot blob data . . .
+       if ~isempty(B_ft(i).frIdx)
+           
+           % Store frame number
+           frames(j,1) = B_ft(i).fr_num;
+           
+           % Index in the Body data
+           idx = find(Body.frames==frames(end),1,'first');
+           
+           % Store form blob data
+           propsG{j} = B_ft(i).propsG;
+           propsL{j} = B_ft(i).propsL;
+           
+           % Store from Body
+           roi(j,1)     = Body.Rotation.roi(idx);
+           xCntr(j,1)   = Body.xCntr(idx);
+           yCntr(j,1)   = Body.yCntr(idx);
+           tform(j,1)   = Body.Rotation.tform(idx);
+           
+           % Advance index
+           j = j + 1;
+       end
+       
+       
+    end
+      
+    numroipts = length(Body.Rotation.roi(1).xPerimL);    
+
+    % Clear 
+    clear Body j idx B_ft
+    
 elseif strcmp(opType,'Centroid & Rotation') || strcmp(opType,'no analysis')    
        
     Body = varargin{1}; 
@@ -116,8 +159,10 @@ end
 
 %% Initialize things
 
+set(0,'DefaultFigureWindowStyle','normal')
+
 % Make figure
-f = figure;
+f = figure('Position',[1 1 1150 1340]);
 
 if ~imVis
     set(f,'Visible','off')
@@ -154,7 +199,11 @@ if ~strcmp(opType,'blobs G&L')
 
             % Get current roi
             roi = Body.Rotation.roi(i);
-
+    
+        elseif strcmp(opType,'Feet')
+            
+            subplot(3,1,1)
+            
         elseif strcmp(opType,'Centroid tracking')
  
             %roi = Body.roi(i);
@@ -171,7 +220,7 @@ if ~strcmp(opType,'blobs G&L')
         % Display frame
         h = imshow(im,'InitialMag','fit');
         hold on
-        title(['Frame ' num2str(frames(i))]);
+        hTitle = title(['Frame ' num2str(frames(i))]);
         
         if strcmp(opType,'blobs G&L')
             
@@ -227,18 +276,7 @@ if ~strcmp(opType,'blobs G&L')
             
             clear xB yB areas bw props
             
-        elseif strcmp(opType,'Centroid & Rotation')
-            
-            % roi in global frame
-            xG = Body.Rotation.roi(i).xPerimG;
-            yG = Body.Rotation.roi(i).yPerimG;
-            xC = Body.Rotation.roi(i).xCntr;
-            yC = Body.Rotation.roi(i).yCntr;
-            
-            % Plot tracking
-            h(1) = line(xG,yG,'Color',[0 1 0 0.2],'LineWidth',3);
-            h(2) = plot(xC,yC,'g+');
-        
+
         elseif strcmp(opType,'Pred + prey')
             
             set(f,'WindowStyle','normal')
@@ -298,8 +336,7 @@ if ~strcmp(opType,'blobs G&L')
                         'Color',[pyClr 0.5],'LineWidth',2);
             hold off
             
-            
-            
+      
         elseif strcmp(opType,'Pred-prey cent track')
             
             % Current rois
@@ -314,9 +351,8 @@ if ~strcmp(opType,'blobs G&L')
             h(3) = plot(C_pd.x(i),C_pd.y(i),'r+');
             h(4) = plot(C_py.x(i),C_py.y(i),'b+');   
             
-        end
-        
-        if strcmp(opType,'Centroid & Rotation')
+            
+        elseif strcmp(opType,'Centroid & Rotation')
             
             % Offset border
             offVal = 2;
@@ -347,7 +383,7 @@ if ~strcmp(opType,'blobs G&L')
             % Plot tracking
             h(1) = line(xG,yG,'Color',[1 0 0 0.2],'LineWidth',3);
             h(1) = line([xO xC],[yO yC],'Color',[1 0 0 0.2],'LineWidth',3);
-            h(2) = plot(xC,yC,'r+');
+            %h(2) = plot(xC,yC,'r+');
             
             % Plot roi
             subplot(1,2,2)
@@ -359,16 +395,53 @@ if ~strcmp(opType,'blobs G&L')
             pause(0.001)
             
             
-%             dSample = 0;
-%             
-% 
-%             [im_roi,bw_mask] = giveROI('stabilized',im,S.roi(i),...
-%                 dSample,S.tform(:,:,i));
-% 
-%             subplot(1,2,2)
-%             
-%             h = imshow(im_roi,'InitialMag','fit');
+        elseif strcmp(opType,'Feet')
             
+            set(f,'Color',0.2.*[1 1 1])
+            set(hTitle,'Color',0.8.*[1 1 1]);
+            
+             % Offset border
+            offVal = 2;
+            
+            % roi in global frame
+            xG = roi(i).xPerimG;
+            yG = roi(i).yPerimG;
+            
+            % Body center
+            xC = xCntr(i);
+            yC = yCntr(i);
+            
+            % Local FOR border
+            xL = [roi(i).xPerimL(1)+offVal roi(i).xPerimL(2)-offVal ...
+                roi(i).xPerimL(3)-offVal roi(i).xPerimL(4)+offVal ...
+                roi(i).xPerimL(5)+offVal];
+            yL = [roi(i).yPerimL(1)+offVal roi(i).yPerimL(2)+offVal ...
+                roi(i).yPerimL(3)-offVal roi(i).yPerimL(4)-offVal ...
+                roi(i).yPerimL(5)+offVal];
+            
+            % Stabilized image
+            imStable =  giveROI('stabilized',im,roi(i),0,tform(i),0);
+            
+            % Plot tracking
+            h(1) = line(xG,yG,'Color',[1 1 0 0.5],'LineWidth',3);
+            
+            % Plot roi
+            subplot(3,1,2:3)
+            imshow(imStable,'InitialMag','fit')
+            hold on
+            line(xL,yL,'Color',[1 1 0 0.5],'LineWidth',6);
+            
+            % Plot centers of tube feet
+            for j = 1:length(propsL{i})
+                h = scatter(propsL{i}(j).Centroid(1),propsL{i}(j).Centroid(2),...
+                    'MarkerEdgeColor',[1 1 0],'SizeData',300,...
+                    'MarkerEdgeAlpha',0.5);
+            end
+            
+            drawnow
+            pause(0.001)
+            
+                       
         end
  
         
