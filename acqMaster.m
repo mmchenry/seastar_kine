@@ -306,7 +306,7 @@ end
 dSample = 0;
 
 % Visualize steps
-visSteps = 1;
+visSteps = 0;
 
 % Number of frames to visualize
 numVis = 16;
@@ -322,7 +322,7 @@ numMean = 10;
 
 % Parameters for blobs describing the tube feet
 blobParam.tVal = 0.3;
-blobParam.areaMin = 100;
+blobParam.areaMin = 50;
 blobParam.areaMax = 2000; 
 blobParam.AR_max  = 6;
 
@@ -395,13 +395,14 @@ end
 
 
 % Produce data for motion images ------------------------------------------
-if ~isfile([currDataPath filesep 'motion image data.mat'])
+if 1 %~isfile([currDataPath filesep 'motion image data.mat'])
 
      % Load blob data (B)
     load([currDataPath filesep 'blobs']) 
     
     % Produce image stack
-    imStack = motionImage(currVidPath,v,'mask static',Body.frames,B,Body.frames,imInvert);
+    imStack = motionImage(currVidPath,v,'mask static',Body,B, ...
+                   imInvert,iC.tVal);
  
     % Save images to be analyzed
     save([currDataPath filesep 'motion image data'],'-v7.3','imStack');
@@ -434,6 +435,10 @@ else
 end
 
 clear dSample blobParam visSteps meanDr_fr interval_fr streakDur numMean numVis
+
+
+%% Post-processing of foot data
+
 
 
 
@@ -478,7 +483,7 @@ if do.anaSurvey
     surveyData(currVidPath,v,imInvert,'Centroid & Rotation',Body,iC,numVis);
     
     % Feet
-    surveyData(currVidPath,v,0,'Feet',Body,B_ft,numVis);
+    surveyData(currVidPath,v,0,'Feet local',Body,B_ft,numVis);
     
     clear numVis
     

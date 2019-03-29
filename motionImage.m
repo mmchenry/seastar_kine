@@ -104,17 +104,21 @@ elseif strcmp(imType,'bw static')
     
 elseif strcmp(imType,'mask static') 
     
-    fr_num = varargin{1};
-    B      = varargin{2};
-    frames = varargin{3};
-    imInvert = varargin{4};
+    Body    = varargin{1};
+    B         = varargin{2};
+    imInvert  = varargin{3};
+    tVal      = varargin{4};
     imProcess = [];
     %imInvert = 0;
     
-    if length(fr_num)<2
-        error('fr_num must be a vector of at least 2 numbers')
-    end    
+    % Extract data from Body
+    fr_num  = Body.frames;
+    frames  = Body.frames;
     
+    % Get center points
+    xCntr = Body.xCntr;
+    yCntr = Body.yCntr;
+
 else
     error('Do not recognize imType');
 end
@@ -212,6 +216,19 @@ for i = 1:length(fr_num)
     if strcmp(imType,'bw static') || strcmp(imType,'mask static') 
         % Start with blank
         currIm  = logical(zeros(size(imCurr)));
+        
+        % Get binary of body
+        bwMask = ~imbinarize(imCurr,tVal);
+        
+        se = strel('disk',12);
+        bwMask = imdilate(bwMask,se);
+        bwMask = imerode(bwMask,se);
+        
+        % Fill holes
+        bwMask = imfill(bwMask,'holes');
+        
+        % Select body 
+        bwMask = bwselect(bwMask,xCntr(iFrame),yCntr(iFrame));
     end
 
     % Enhance contrast, if requested
@@ -255,9 +272,12 @@ for i = 1:length(fr_num)
             currIm(B(iFrame).propsG(k).PixelIdxList) = 1;            
         end
         
-        % Black out all non-foot pixels
+        % White out all non-foot pixels
         im_tmp = imCurr;
         im_tmp(~currIm) = 255;
+        
+        % White out non-body pixels
+        im_tmp(~bwMask) = 255;
 
         % Display current frame
         if 0

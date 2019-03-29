@@ -243,7 +243,8 @@ if strcmp(opType,'filter motion')
         imAvg = uint8(sum(double(bwStack),3)./length(winFrames));
         
         % Boost contrast
-        imB = imcomplement(imadjust(imAvg));
+        %imB = imcomplement(imadjust(imAvg));
+        imB = imcomplement((imAvg));
 
         % Get threshol value for feet
         tVal = 2*graythresh(imB);
@@ -288,7 +289,7 @@ if strcmp(opType,'filter motion')
             
             set(h, 'AlphaData', bw_im.*aLevel)
             title(['Frame ' num2str(cFrame)]); 
-            for j = 1:length(B(iFrame).propsL)
+            for j = 1:length(B(iFrame).propsG)
                scatter(B(iFrame).propsG(j).Centroid(1),...
                        B(iFrame).propsG(j).Centroid(2),'SizeData',200,...
                        'MarkerEdgeColor','b')

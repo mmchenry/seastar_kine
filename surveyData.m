@@ -159,6 +159,60 @@ elseif strcmp(opType,'Feet')
     
     % Figure color
     fColor = 0.2.*[1 1 1];
+    
+    
+elseif strcmp(opType,'Feet local')
+    
+    Body     = varargin{1}; 
+    B_ft     = varargin{2};
+    numVis   = varargin{3};
+    
+    % Start index
+    j = 1;
+    
+    % Loop thru frames
+    for i = 1:length(B_ft)
+        
+       % If there is foot blob data . . .
+       if ~isempty(B_ft(i).frIdx)
+           
+           % Store frame number
+           frames(j,1) = B_ft(i).fr_num;
+           
+           % Index in the Body data
+           idx = find(Body.frames==frames(end),1,'first');
+           
+           % Store from blob data
+           propsG{j} = B_ft(i).propsG;
+           propsL{j} = B_ft(i).propsL;
+           
+           % Store from Body
+           roi(j,1)     = Body.Rotation.roi(idx);
+           xCntr(j,1)   = Body.xCntr(idx);
+           yCntr(j,1)   = Body.yCntr(idx);
+           tform(j,1)   = Body.Rotation.tform(idx);
+           
+           % Advance index
+           j = j + 1;
+       end
+       
+       
+    end
+      
+    numroipts = length(Body.Rotation.roi(1).xPerimL);    
+
+    % Clear 
+    clear Body j idx B_ft
+    
+    % Number of rows and columns in each fig
+    nRow = 2;
+    nCol = 1;
+    
+    % Number of panels for each frame
+    pNumAdvance = 1;
+    
+    % Figure color
+    fColor = 0.2.*[1 1 1];
 
 end
 
@@ -232,10 +286,14 @@ if ~strcmp(opType,'blobs G&L')
             subplot(4,2,[1:4])
         end
         
-        % Display frame
-        h = imshow(im,'InitialMag','fit');
-        hold on
-        hTitle = title(['Frame ' num2str(anaFrames(i))]);
+        if ~strcmp(opType,'Feet local')
+            
+            % Display frame
+            h = imshow(im,'InitialMag','fit');
+            hold on
+            
+            hTitle = title(['Frame ' num2str(anaFrames(i))]);
+        end
         
         if strcmp(opType,'blobs G&L')
             
@@ -380,14 +438,56 @@ if ~strcmp(opType,'blobs G&L')
             
             drawnow
             pause(0.001)
+        
             
+        elseif strcmp(opType,'Feet local')
+
+             % Offset border
+            offVal = 2;
+            
+            % roi in global frame
+            xG = roi(iData).xPerimG;
+            yG = roi(iData).yPerimG;
+            
+            % Body center
+            xC = xCntr(iData);
+            yC = yCntr(iData);
+            
+            % Local FOR border
+            xL = [roi(iData).xPerimL(1)+offVal roi(iData).xPerimL(2)-offVal ...
+                roi(iData).xPerimL(3)-offVal roi(iData).xPerimL(4)+offVal ...
+                roi(iData).xPerimL(5)+offVal];
+            yL = [roi(iData).yPerimL(1)+offVal roi(iData).yPerimL(2)+offVal ...
+                roi(iData).yPerimL(3)-offVal roi(iData).yPerimL(4)-offVal ...
+                roi(iData).yPerimL(5)+offVal];
+            
+            % Stabilized image
+            imStable =  giveROI('stabilized',im,roi(iData),0,tform(iData),0);
+            
+            % Plot roi
+            imshow(imStable,'InitialMag','fit')
+            hold on
+            %line(xL,yL,'Color',[1 1 0 0.5],'LineWidth',6);
+            
+            % Plot centers of tube feet
+            for j = 1:length(propsL{iData})
+                h = scatter(propsL{iData}(j).Centroid(1),propsL{iData}(j).Centroid(2),...
+                    'MarkerEdgeColor',[1 1 0],'SizeData',300,...
+                    'MarkerEdgeAlpha',0.5);
+            end
+            
+            hTitle = title(['Frame ' num2str(anaFrames(i))]);
+            set(f,'Color',0.2.*[1 1 1])
+            set(hTitle,'Color',0.8.*[1 1 1]);
+            
+            drawnow
                        
         end
         
         hold off
         
         % If panel number equal to the total number . . .
-        if (pNum+pNumAdvance)>nCol*nRow
+        if ((pNum+pNumAdvance)>nCol*nRow) && (i<length(anaFrames))
             
             % New figure window
             f = figure('Color',fColor);
