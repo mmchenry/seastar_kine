@@ -117,8 +117,18 @@ if ~isfile([currDataPath filesep 'Initial conditions.mat']) && ...
     
     % Initial position
     disp(' ')
-    disp('Select animal to be tracked')
+    disp('Select center of mouth')
     [x,y] = imInteract(im,'points',1);
+    
+    % Arm tip position
+    disp(' ')
+    disp('Select arm tips, starting at 12:00 and going clockwise')
+    [xArms,yArms] = imInteract(im,'points',5);
+    
+    % Check
+    if length(xArms)~=5
+        error('You need to select 5 arms');
+    end
     
     % Threshold
     disp(' ')
@@ -129,10 +139,12 @@ if ~isfile([currDataPath filesep 'Initial conditions.mat']) && ...
     disp(' ')
     disp('Select roi radius')
     r = imInteract(im,'radius',x,y);
-    
+
     % Store data
     iC.x       = x;
     iC.y       = y;
+    iC.xArms   = xArms;
+    iC.yArms   = yArms;
     iC.tVal    = tVal;
     iC.r       = r;
     iC.useMean = 0;
@@ -193,7 +205,6 @@ else
     load([currDataPath filesep 'Centroid.mat'])
     
 end
-
 
 
 %% Generate centroid movie for review
@@ -381,12 +392,15 @@ else
 end
 
 
-% Loop thru frames, create mask that excludes stationary objects ---------
-if ~isfile([currDataPath filesep 'blobs.mat'])
+% Loop thru frames, create local mask that excludes stationary objects ---------
+if  ~isfile([currDataPath filesep 'blobs.mat'])
         
+    % Load initial conditions (iC)
+    load([currDataPath filesep 'Initial conditions'])
+    
     % Run blob analysis
     B = anaBlobs(currVidPath,v,'G&L props',Body,blobParam,imInvert,...
-        dSample,roiM,visSteps);
+        dSample,roiM,visSteps,iC);
     
     % Save blob data
     save([currDataPath filesep 'blobs'],'B');
@@ -395,14 +409,17 @@ end
 
 
 % Produce data for motion images ------------------------------------------
-if 1 %~isfile([currDataPath filesep 'motion image data.mat'])
+if ~isfile([currDataPath filesep 'motion image data.mat'])
 
      % Load blob data (B)
     load([currDataPath filesep 'blobs']) 
     
+    % Load initial conditions (iC)
+    load([currDataPath filesep 'Initial conditions'])
+    
     % Produce image stack
     imStack = motionImage(currVidPath,v,'mask static',Body,B, ...
-                   imInvert,iC.tVal);
+                   imInvert,iC);
  
     % Save images to be analyzed
     save([currDataPath filesep 'motion image data'],'-v7.3','imStack');
@@ -439,7 +456,52 @@ clear dSample blobParam visSteps meanDr_fr interval_fr streakDur numMean numVis
 
 %% Post-processing of foot data
 
+% Distance threshold for including feet
+dist_thresh = 30;
 
+% STEP 1: Arms number assignment ------------------------------------------
+if ~isfile([currDataPath filesep 'post- arms.mat'])
+    
+    % Update status
+    disp('postProcess: Finding arm numbers . . .')
+    
+    % Find arm numbers and matching global data
+    B2 = postProcess('find arms',Body,iC,B_ft);
+    
+    % Save data
+    save([currDataPath filesep 'post- arms'],'B2')
+    
+    % Visual check with a random frame
+    visArms(currVidPath,v,Body,B2,200)
+else
+    % Load B2
+    load([currDataPath filesep 'post- arms'])
+end
+
+% STEP 2: Reorganize data and match matching blobs over time --------------
+%A = postProcess('reorganize',Body,iC,B2,dist_thresh);
+
+
+
+
+ttt= 3;
+
+% while true
+%    
+%     
+% end
+
+
+% Radial postion of arms
+
+
+
+
+% % Loop thru arms
+% for i=1:length(Body.frames)
+%     
+%     ttt=3;
+% end
 
 
 %% Make movie of feet
@@ -490,7 +552,52 @@ if do.anaSurvey
 end
 
 
+function visArms(currVidPath,v,Body,B2,cFrame)
 
+% Colormap of line colors
+cmap(1,:) = [0         0.4470    0.7410];
+cmap(2,:) = [0.8500    0.3250    0.0980];
+cmap(3,:) = [0.9290    0.6940    0.1250];
+cmap(4,:) = [0.4940    0.1840    0.5560];
+cmap(5,:) = [0.4660    0.6740    0.1880];
+cmap(6,:) = [0.3010    0.7450    0.9330];
+cmap(7,:) = [0.6350    0.0780    0.1840];
+
+figure
+
+% Frame number and index
+iFrame = find(Body.frames==cFrame,1,'first');
+
+% Current whole frame
+im = getFrame(currVidPath,v,cFrame,0,'gray');
+
+imshow(im,'InitialMag','fit');
+hold on
+
+% Loop thru potential feet
+for i = 1:length(B2(iFrame).L)
+    
+    xC = B2(iFrame).G(i).Centroid(1);
+    yC = B2(iFrame).G(i).Centroid(2);
+    
+    aNum  = B2(iFrame).L(i).armNum;
+    
+    scatter(xC,yC,'SizeData',200,'MarkerEdgeColor',...
+        'w','MarkerEdgeAlpha',0.5);
+    hold on
+    
+    if ~isnan(aNum)
+        
+        scatter(B2(iFrame).G(i).Centroid(1),...
+            B2(iFrame).G(i).Centroid(2),...
+            'SizeData',200,'MarkerEdgeColor',...
+            cmap(aNum,:));
+        title(num2str(aNum))
+    end
+    ttt=3;
+end
+
+hold off
 
 
 function Body = rotationPostProcess(Body)

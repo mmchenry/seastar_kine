@@ -104,10 +104,10 @@ elseif strcmp(imType,'bw static')
     
 elseif strcmp(imType,'mask static') 
     
-    Body    = varargin{1};
+    Body      = varargin{1};
     B         = varargin{2};
     imInvert  = varargin{3};
-    tVal      = varargin{4};
+    iC        = varargin{4};
     imProcess = [];
     %imInvert = 0;
     
@@ -118,6 +118,11 @@ elseif strcmp(imType,'mask static')
     % Get center points
     xCntr = Body.xCntr;
     yCntr = Body.yCntr;
+    
+    % Threshold for body
+    tVal = iC.tVal;
+    
+    
 
 else
     error('Do not recognize imType');
@@ -216,19 +221,7 @@ for i = 1:length(fr_num)
     if strcmp(imType,'bw static') || strcmp(imType,'mask static') 
         % Start with blank
         currIm  = logical(zeros(size(imCurr)));
-        
-        % Get binary of body
-        bwMask = ~imbinarize(imCurr,tVal);
-        
-        se = strel('disk',12);
-        bwMask = imdilate(bwMask,se);
-        bwMask = imerode(bwMask,se);
-        
-        % Fill holes
-        bwMask = imfill(bwMask,'holes');
-        
-        % Select body 
-        bwMask = bwselect(bwMask,xCntr(iFrame),yCntr(iFrame));
+
     end
 
     % Enhance contrast, if requested
@@ -266,6 +259,19 @@ for i = 1:length(fr_num)
               
     elseif strcmp(imType,'mask static') 
         
+        % Get binary of body
+        bwMask = ~imbinarize(imCurr,tVal);
+        
+        se = strel('disk',12);
+        bwMask = imdilate(bwMask,se);
+        bwMask = imerode(bwMask,se);
+        
+        % Fill holes
+        bwMask = imfill(bwMask,'holes');
+        
+        % Select body 
+        bwMask = bwselect(bwMask,xCntr(iFrame),yCntr(iFrame));
+        
         % Loop thru blobs
         for k = 1:length(B(iFrame).propsG)        
             % Score pixels with blobs
@@ -279,6 +285,10 @@ for i = 1:length(fr_num)
         % White out non-body pixels
         im_tmp(~bwMask) = 255;
 
+        % Start with blank
+%         tmpIm  = logical(zeros(size(imCurr)));
+        
+        
         % Display current frame
         if 0
             aLevel = 0.2;

@@ -414,8 +414,8 @@ if ~strcmp(opType,'blobs G&L')
             % Plot centers of tube feet
             for j = 1:length(propsG{i})
                 h = scatter(propsG{i}(j).Centroid(1),propsG{i}(j).Centroid(2),...
-                    'MarkerEdgeColor',[1 1 0],'SizeData',300,...
-                    'MarkerEdgeAlpha',0.5);
+                    'MarkerEdgeColor',[1 1 0],'SizeData',200,...
+                    'MarkerEdgeAlpha',0.2);
             end
             
 
