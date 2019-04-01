@@ -4,10 +4,10 @@ function acqMaster
 %% Code execution
 
 % Create movies of the Centroid movies for review
-do.MakeCentroidMovie = 0;
+do.MakeCentroidMovie = 1;
 
 % Make movie to evaluate centroid and rotation tracking
-do.MakeRotationMovies = 0;
+do.MakeRotationMovies = 1;
 
 % Make movie to evaluate centroid and rotation tracking
 do.MakeFootMovie = 1;
@@ -57,6 +57,14 @@ if ~isempty(dir(['/Users/mmchenry/Documents/Matlab code']))
     % Path to root of data
     dataPath = '/Users/mmchenry/Documents/Projects/Chip sea stars/prelim data';
 
+elseif isfolder('C:\Users\tpo\Documents\seastar_kine')
+    
+    % Path to root dir of video (CSULB project, external drive)
+    vidPath = 'C:\Users\tpo\Documents\Video\Chip sea stars\prelim video';
+
+    % Path to root of data
+    dataPath = 'C:\Users\tpo\Documents\Chip sea star data\prelim data';
+    
 else
     
     error('Do not recognize computer')
@@ -68,7 +76,7 @@ end
 
 %cList = catVidfiles(vidPath);
 
-cList.fName = 'SS001_S001_T013';
+cList.fName = 'S004_S001_T007';
 cList.ext   = 'MOV';
 cList.movtype = 'mov';
 cList.path = '';
