@@ -1,16 +1,20 @@
-function acqMaster
+function acqMaster(fileName)
 % Acquisition of sea star kinematics
 
 %% Code execution
 
 % Create movies of the Centroid movies for review
-do.MakeCentroidMovie = 1;
+do.MakeCentroidMovie = 0;
 
 % Make movie to evaluate centroid and rotation tracking
-do.MakeRotationMovies = 1;
+do.MakeRotationMovies = 0;
 
 % Make movie to evaluate centroid and rotation tracking
-do.MakeFootMovie = 1;
+do.MakeFootMovie = 0;
+
+% Make movie to evaluate centroid and rotation tracking, after
+% post-processing
+do.MakeFootMoviePost = 1;
 
 % Re-run the rotation anlysis from the beginning 
 reRunRotation = 0;
@@ -76,7 +80,13 @@ end
 
 %cList = catVidfiles(vidPath);
 
-cList.fName = 'S004_S001_T007';
+%cList.fName = 'S004_S001_T007';
+if nargin<1
+    cList.fName = 'SS001_S001_T013';
+else
+    
+    cList.fName = fileName;
+end
 cList.ext   = 'MOV';
 cList.movtype = 'mov';
 cList.path = '';
@@ -462,56 +472,6 @@ end
 clear dSample blobParam visSteps meanDr_fr interval_fr streakDur numMean numVis
 
 
-%% Post-processing of foot data
-
-% Distance threshold for including feet
-dist_thresh = 30;
-
-% STEP 1: Arms number assignment ------------------------------------------
-if ~isfile([currDataPath filesep 'post- arms.mat'])
-    
-    % Update status
-    disp('postProcess: Finding arm numbers . . .')
-    
-    % Find arm numbers and matching global data
-    B2 = postProcess('find arms',Body,iC,B_ft);
-    
-    % Save data
-    save([currDataPath filesep 'post- arms'],'B2')
-    
-    % Visual check with a random frame
-    visArms(currVidPath,v,Body,B2,200)
-else
-    % Load B2
-    load([currDataPath filesep 'post- arms'])
-end
-
-% STEP 2: Reorganize data and match matching blobs over time --------------
-%A = postProcess('reorganize',Body,iC,B2,dist_thresh);
-
-
-
-
-ttt= 3;
-
-% while true
-%    
-%     
-% end
-
-
-% Radial postion of arms
-
-
-
-
-% % Loop thru arms
-% for i=1:length(Body.frames)
-%     
-%     ttt=3;
-% end
-
-
 %% Make movie of feet
 
 if do.MakeFootMovie 
@@ -539,6 +499,148 @@ if do.MakeFootMovie
 end
 
 
+%% Post-processing of foot data
+
+% Distance threshold for including feet
+dist_thresh = 50;
+
+% STEP 1: Arms number assignment ------------------------------------------
+if ~isfile([currDataPath filesep 'post- arms.mat'])
+    
+    % Update status
+    disp('postProcess: Finding arm numbers . . .')
+    
+    % Find arm numbers and matching global data
+    B2 = postProcess('find arms',Body,iC,B_ft);
+    
+    % Save data
+    save([currDataPath filesep 'post- arms'],'B2')
+    
+    % Visual check with a random frame
+    visArms(currVidPath,v,Body,B2,200)
+else
+    % Load B2
+    load([currDataPath filesep 'post- arms'])
+end
+
+% STEP 2: Connect blobs across frames --------------
+if ~isfile([currDataPath filesep 'post- foot data.mat'])
+    
+    % Update status
+    disp('postProcess: Connecting feet across frames . . .')
+    
+    % Package into F strcuture
+    F = postProcess('connect',Body,iC,B2,dist_thresh);
+    
+    % Save data
+    save([currDataPath filesep 'post- foot data'],'F')
+    
+else
+    % Load F structure
+    load([currDataPath filesep 'post- foot data'])
+end
+
+%TODO: Exclude mouth points, store arm number in F, figure out the black
+%color, remove point according to net displacement, expand region to
+%include foot (too many erroneous switches)
+
+
+%% Filter erroneous feet
+
+% Minimum number of frames to include
+minNum = 10;
+
+% Maximum displacement of foot allowed
+maxDisp = 200;
+
+% Get index of frames used
+for i = 1:length(B2)
+    if isempty(B2(i).frIdx)
+        iFrames(i) = 0==1;
+    else
+        iFrames(i) = 1==1;
+    end
+end
+
+% Frame numbers analyzed
+frames = Body.frames(iFrames);
+
+
+% Loop thru all feet 
+for i = 1:length(F)
+
+    cDisp = hypot(F(i).xG(end)-F(i).xG(1),F(i).yG(end)-F(i).yG(1));
+    
+    % If present for fewer than min number of frames, or large displacement
+    if (max(F(i).frames)<frames(end) && length(F(i).frames)<minNum) || ...
+       cDisp>maxDisp
+        
+        % Overwrite with nans
+        F(i).frames = nan;
+        F(i).xG     = nan;
+        F(i).yG     = nan;
+        F(i).xL     = nan;
+        F(i).yL     = nan;
+        
+    end
+end
+
+% Visualize result
+surveyData(currVidPath,v,0,'Individual feet',Body,B_ft,numVis);
+
+
+%% Make movie of individual feet, after post-processing
+
+if do.MakeFootMoviePost
+    
+    imVis = 0;
+    
+    imInvert = 0;
+
+    % File name of movie to be created
+    fName = 'Foot tracking, indivdual';
+    
+    % Load video info (v)                added by CG
+    v = defineVidObject(currVidPath);
+    
+    disp(' ')
+    disp(['Making Foot tracking Movie: ' fName])
+    disp(' ')
+
+    aniData(currVidPath,v,currDataPath,fName,imInvert,...
+        'Individual feet',Body,imVis,F,iFrames);
+end
+
+
+%TODO Visualize F on frames
+
+% STEP 3: 
+
+
+
+
+
+ttt= 3;
+
+% while true
+%    
+%     
+% end
+
+
+% Radial postion of arms
+
+
+
+
+% % Loop thru arms
+% for i=1:length(Body.frames)
+%     
+%     ttt=3;
+% end
+
+
+
 %% Visualize frames from all steps of the analysis
 
 if do.anaSurvey
@@ -558,6 +660,9 @@ if do.anaSurvey
     clear numVis
     
 end
+
+
+function visFeet(currVidPath,v,Body,F)
 
 
 function visArms(currVidPath,v,Body,B2,cFrame)

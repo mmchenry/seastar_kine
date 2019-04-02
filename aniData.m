@@ -171,6 +171,56 @@ elseif strcmp(opType,'Global feet')
     clear Body j idx B_ft
     
     
+elseif strcmp(opType,'Individual feet')
+    
+    Body     = varargin{1}; 
+    imVis    = varargin{2};
+    F        = varargin{3};
+    iFrames  = varargin{4};
+
+    frames   = Body.frames(iFrames)';
+    
+    
+    
+    for i = 1:length(frames)
+        
+        % Number of feet in frame
+        n = 0;
+        
+        % Loop thru feet
+        for j = 1:length(F)
+            
+            % Index fo current frame
+            iMatch = F(j).frames==frames(i);
+            
+            % Check for repeats
+            if sum(iMatch)>1
+                error('Multiple instances of same frame for a foot');
+            end
+            
+            % If there is a match, store coordinates
+            if max(iMatch)
+                % Advance index
+                n = n + 1;
+                
+                % Store coordinates and colors
+                x{i}(n,1)      = F(j).xG(iMatch);
+                y{i}(n,1)      = F(j).yG(iMatch);
+                clr{i}(n,:)    = F(j).clr(1,:);
+            end
+            
+        end
+        
+    end
+    
+    % Figure color and positon
+    fColor = 0.2.*[1 1 1];
+    fPos   = [ 1 530  2002  995];
+    
+    % Clear 
+    clear Body j idx B_ft
+    
+    
 elseif strcmp(opType,'Centroid & Rotation') || strcmp(opType,'no analysis')    
        
     Body = varargin{1}; 
@@ -410,18 +460,30 @@ if ~strcmp(opType,'blobs G&L')
             xG = roi(i).xPerimG;
             yG = roi(i).yPerimG;
             
-            
             % Plot centers of tube feet
             for j = 1:length(propsG{i})
                 h = scatter(propsG{i}(j).Centroid(1),propsG{i}(j).Centroid(2),...
                     'MarkerEdgeColor',[1 1 0],'SizeData',200,...
                     'MarkerEdgeAlpha',0.2);
             end
+    
+      
+        elseif strcmp(opType,'Individual feet')
             
-
-            drawnow
-            pause(0.001)                 
+            set(f,'Color',0.2.*[1 1 1])
+            set(hTitle,'Color',0.8.*[1 1 1]);
+            
+            for j = 1:length(x{i})
+                h = scatter(x{i}(j),y{i}(j),...
+                    'MarkerEdgeColor',clr{i}(j,:),'SizeData',200,...
+                    'MarkerEdgeAlpha',0.8);
+            end
+            
+            
         end
+        
+        drawnow
+        pause(0.001)  
  
 
         imFrame = getframe(f);
