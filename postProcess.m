@@ -144,7 +144,7 @@ if strcmp(pMode,'find arms')
                 for k = 1:5
                     
                     % If within range of radial positions, assign arm number
-                    if abs(angdiff(rC,rA(k)))<rPart
+                    if abs(angdiff2(rC,rA(k)))<rPart
                         
                         B(i).L(j).armNum = k;
                         B(i).G(j).armNum = k;
@@ -381,6 +381,17 @@ for i = 1:length(G)
     end
 end
 
+
+function  delta = angdiff2(alpha, beta)
+   validateattributes(alpha, {'numeric'}, {'vector', 'nonsparse'}, 1);
+   if nargin > 1 
+      validateattributes(beta, {'numeric'}, {'vector', 'nonsparse', 'size', size(alpha)}, 2);
+      alpha = beta - alpha;
+   else
+      alpha = diff(alpha);
+   end
+   delta = mod(alpha + pi, 2*pi) - pi;  %constrain to [-pi, pi[. will prefer -pi over +pi
+   delta(delta == -pi & alpha >= 0) = pi;         %so force -pi to +pi (only when the original angle was positive)
 
 
 function cmap = cmap_vals
