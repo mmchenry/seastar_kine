@@ -67,6 +67,12 @@ elseif strcmp(action,'unstabilized')
     else
         imMean  = [];
     end
+    
+    if mean(im(:))<256/2
+        fillColor = 0;
+    else
+        fillColor = 255;
+    end
         
 elseif strcmp(action,'stabilized')
     

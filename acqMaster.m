@@ -69,6 +69,7 @@ elseif isfolder('C:\Users\tpo\Documents\seastar_kine')
     % Path to root of data
     dataPath = 'C:\Users\tpo\Documents\Chip sea star data\prelim data';
     
+    
 else
     
     error('Do not recognize computer')
@@ -335,7 +336,7 @@ end
 dSample = 0;
 
 % Visualize steps
-visSteps = 1;
+visSteps = 0;
 
 % Number of frames to visualize
 numVis = 16;
@@ -586,7 +587,7 @@ for i = 1:length(F)
 end
 
 % Visualize result
-surveyData(currVidPath,v,0,'Individual feet',Body,B_ft,numVis);
+% surveyData(currVidPath,v,0,'Individual feet',Body,B_ft,numVis);
 
 
 %% Make movie of individual feet, after post-processing
