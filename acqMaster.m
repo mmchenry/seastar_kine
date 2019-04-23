@@ -9,18 +9,24 @@ do.MakeCentroidMovie = 0;
 % Make movie to evaluate centroid and rotation tracking
 do.MakeRotationMovies = 0;
 
-% Make movie to evaluate centroid and rotation tracking
+% Make movie of foot tracking
 do.MakeFootMovie = 0;
+
+% Make movie of foot tracking for a presentation
+do.MakeFootMoviePretty = 1;
 
 % Make movie to evaluate centroid and rotation tracking, after
 % post-processing
-do.MakeFootMoviePost = 1;
+do.MakeFootMoviePost = 0;
 
 % Re-run the rotation anlysis from the beginning 
 reRunRotation = 0;
 
 % Visualize frames to survey all steps of the analysis
 do.anaSurvey = 0;
+
+% Visualize steps of analysis executed
+visSteps = 0;
 
 
 %% Verify deleting data
@@ -82,7 +88,8 @@ end
 
 %cList.fName = 'S004_S001_T007';
 if nargin<1
-    cList.fName = 'SS001_S001_T013';
+    %cList.fName = 'SS001_S001_T013';
+    cList.fName = 'S005_S001_T011';
 else
     
     cList.fName = fileName;
@@ -229,9 +236,6 @@ end
 
 if do.MakeCentroidMovie && ...
    ~isfile([currDataPath filesep 'centroid movie.mat'])
-    
-    % Visualize steps in analysis
-    imVis = 1;
 
     % Name of movie file
     movFile = 'Centroid tracking';
@@ -256,18 +260,15 @@ if do.MakeCentroidMovie && ...
     
     % Make movie
     aniData(currVidPath,v,currDataPath,movFile,imInvert,...
-                'Centroid tracking',Centroid,imVis,iC);
+                'Centroid tracking',Centroid,visSteps,iC);
     
-    clear iC Centroid clipInfo S M mov roi0 frames imVis
+    clear iC Centroid clipInfo S M mov roi0 frames 
 end
 
 
 %% Track rotation
     
 if ~isfile([currDataPath filesep 'Body.mat'])
-    
-    % Visualize steps
-    visSteps = 0;
     
     % Downsample frames for image registration (speed up processing)
     dSample = 1;
@@ -288,7 +289,7 @@ if ~isfile([currDataPath filesep 'Body.mat'])
     % Visualize a bunch of frames to check results
     surveyData(currVidPath,v,imInvert,'Centroid & Rotation',Body,iC,numVis);
     
-    clear dSample visSteps 
+    clear dSample 
     
 else
     
@@ -301,17 +302,15 @@ end
 %% Apply post-processing (Body data)
 
 % Apply post-processing
-Body = rotationPostProcess(Body);
+Body = rotationPostProcess(Body,v,iC);
 
-% Save
-%save([currDataPath filesep 'Body, post.mat'],'Body')
+% Visualize a bunch of frames to check results
+%surveyData(currVidPath,v,imInvert,'Centroid & Rotation',Body,iC,16);
 
 
 %% Review rotation: make movies
 
 if do.MakeRotationMovies
-    
-    imVis = 1;
 
     % File name of movie to be created
     fName = 'Centroid and rotation';
@@ -322,7 +321,7 @@ if do.MakeRotationMovies
     
     % Make movie
     aniData(currVidPath,v,currDataPath,fName,imInvert,...
-        'Centroid & Rotation',Body,imVis);
+        'Centroid & Rotation',Body,visSteps);
     
     clear M mov Rotation S iC currDataPath currVidPath
     
@@ -333,9 +332,6 @@ end
 
 % Downsample
 dSample = 0;
-
-% Visualize steps
-visSteps = 1;
 
 % Number of frames to visualize
 numVis = 16;
@@ -421,7 +417,7 @@ if  ~isfile([currDataPath filesep 'blobs.mat'])
         dSample,roiM,visSteps,iC);
     
     % Save blob data
-    save([currDataPath filesep 'blobs'],'B');
+    save([currDataPath filesep 'blobs'],'-v7.3','B');
       
 end
 
@@ -457,7 +453,7 @@ if ~isfile([currDataPath filesep 'foot blobs.mat'])
         visSteps,imInvert,imStack);
     
     % Save blob data
-    save([currDataPath filesep 'foot blobs'],'B_ft');
+    save([currDataPath filesep 'foot blobs'],'-v7.3','B_ft');
     
     % Visualize a bunch of frames to check results
     surveyData(currVidPath,v,0,'Feet',Body,B_ft,numVis);
@@ -469,14 +465,12 @@ else
     
 end
 
-clear dSample blobParam visSteps meanDr_fr interval_fr streakDur numMean numVis
+clear dSample blobParam meanDr_fr interval_fr streakDur numMean numVis
 
 
 %% Make movie of feet
 
 if do.MakeFootMovie 
-    
-    imVis = 0;
     
     imInvert = 0;
 
@@ -495,14 +489,14 @@ if do.MakeFootMovie
 %         'Feet',Body,imVis,B_ft);
 
     aniData(currVidPath,v,currDataPath,fName,imInvert,...
-        'Global feet',Body,imVis,B_ft);
+        'Global feet',Body,visSteps,B_ft);
 end
 
 
 %% Post-processing of foot data
 
 % Distance threshold for including feet
-dist_thresh = 50;
+dist_thresh = 5;
 
 % STEP 1: Arms number assignment ------------------------------------------
 if ~isfile([currDataPath filesep 'post- arms.mat'])
@@ -514,7 +508,7 @@ if ~isfile([currDataPath filesep 'post- arms.mat'])
     B2 = postProcess('find arms',Body,iC,B_ft);
     
     % Save data
-    save([currDataPath filesep 'post- arms'],'B2')
+    save([currDataPath filesep 'post- arms'],'-v7.3','B2')
     
     % Visual check with a random frame
     visArms(currVidPath,v,Body,B2,200)
@@ -533,7 +527,7 @@ if ~isfile([currDataPath filesep 'post- foot data.mat'])
     F = postProcess('connect',Body,iC,B2,dist_thresh);
     
     % Save data
-    save([currDataPath filesep 'post- foot data'],'F')
+    save([currDataPath filesep 'post- foot data'],'-v7.3','F')
     
 else
     % Load F structure
@@ -545,8 +539,18 @@ end
 %include foot (too many erroneous switches)
 
 
-%% Filter erroneous feet
+%% Find arms in global FOR
 
+
+% Add arms in global FOR to Body 
+Body = postProcess('add arms',Body,iC,B2);
+
+% Save
+save([currDataPath filesep 'Body, post.mat'],'-v7.3','Body')
+
+
+%% Filter erroneous feet
+if 0
 % Minimum number of frames to include
 minNum = 10;
 
@@ -586,19 +590,27 @@ for i = 1:length(F)
 end
 
 % Visualize result
-surveyData(currVidPath,v,0,'Individual feet',Body,B_ft,numVis);
+%surveyData(currVidPath,v,0,'Individual feet',Body,B_ft,numVis);
+end
 
 
 %% Make movie of individual feet, after post-processing
 
 if do.MakeFootMoviePost
     
-    imVis = 0;
-    
     imInvert = 0;
+    
+    % Get index of frames used
+    for i = 1:length(B2)
+        if isempty(B2(i).frIdx)
+            iFrames(i) = 0==1;
+        else
+            iFrames(i) = 1==1;
+        end
+    end
 
     % File name of movie to be created
-    fName = 'Foot tracking, indivdual';
+    fName = 'Foot tracking, indivdual white';
     
     % Load video info (v)                added by CG
     v = defineVidObject(currVidPath);
@@ -608,37 +620,44 @@ if do.MakeFootMoviePost
     disp(' ')
 
     aniData(currVidPath,v,currDataPath,fName,imInvert,...
-        'Individual feet',Body,imVis,F,iFrames);
+        'Individual feet',Body,visSteps,F,iFrames);
 end
 
 
-%TODO Visualize F on frames
+%% Make movie of feet for presentation
 
-% STEP 3: 
+if do.MakeFootMoviePretty
+    
+    imInvert = 0;
 
+    % Get index of frames used
+    for i = 1:length(B2)
+        if isempty(B2(i).frIdx)
+            iFrames(i) = 0==1;
+        else
+            iFrames(i) = 1==1;
+        end
+    end
 
+    % Dump memory hogs 
+    clear B2 F roiM Centroid
+    
+    
+    load([currDataPath filesep 'post- foot refined']);
+    
+    % File name of movie to be created
+    fName = 'Foot tracking, pretty';
+    
+    % Load video info (v)                added by CG
+    v = defineVidObject(currVidPath);
+    
+    disp(' ')
+    disp(['Making Foot tracking Movie: ' fName])
+    disp(' ')
 
-
-
-ttt= 3;
-
-% while true
-%    
-%     
-% end
-
-
-% Radial postion of arms
-
-
-
-
-% % Loop thru arms
-% for i=1:length(Body.frames)
-%     
-%     ttt=3;
-% end
-
+    aniData(currVidPath,v,currDataPath,fName,imInvert,...
+        'Individual feet, pretty',Body,visSteps,F,iFrames);
+end
 
 
 %% Visualize frames from all steps of the analysis
@@ -713,7 +732,14 @@ end
 hold off
 
 
-function Body = rotationPostProcess(Body)
+function Body = rotationPostProcess(Body,v,iC)
+
+% Define time
+Body.t = Body.frames'./v.FrameRate;
+
+% Define local coordinates for arms 
+Body.xArmL = iC.xArms' - Body.x(1) + Body.Rotation.roi(1).r;
+Body.yArmL = iC.yArms' - Body.y(1) + Body.Rotation.roi(1).r;
 
 % Loop thru frames
 for i = 1:length(Body.Rotation.tform)
@@ -733,7 +759,7 @@ for i = 1:length(Body.Rotation.tform)
     
     % And inverse
     Body.Rotation.tformInv(i) = invert(tform);  
-    
+   
     % Get corrected body center point in roi
     [xCntr,yCntr] = transformPointsForward(invert(tform),roi.r,roi.r);
     
@@ -747,10 +773,12 @@ for i = 1:length(Body.Rotation.tform)
     Body.Rotation.rot_ang(i,1)  = atan2(tform.T(1,2),tform.T(1,1)) * 180/pi;
     
     % Corrected body center point in global FOR
-    Body.xCntr(i,1)  = Body.x(i)-roi.r+xCntr;
-    Body.yCntr(i,1)  = Body.y(i)-roi.r+yCntr;
-    Body.xOther(i,1) = Body.x(i)-roi.r+xOther;
-    Body.yOther(i,1) = Body.y(i)-roi.r+yOther;
+    Body.xCntr(i,1)  = Body.x(i)-roi.r + xCntr;
+    Body.yCntr(i,1)  = Body.y(i)-roi.r + yCntr;
+    Body.xOther(i,1) = Body.x(i)-roi.r + xOther;
+    Body.yOther(i,1) = Body.y(i)-roi.r + yOther;
+%     Body.xArmL(i,:)  = Body.x(i)-roi.r + xArm';
+%     Body.yArmL(i,:)  = Body.y(i)-roi.r + yArm';
     
     % Adjust roi coordinates
     Body.Rotation.roi(i).rect(1) = Body.x(i)-roi.r+round(xOr);

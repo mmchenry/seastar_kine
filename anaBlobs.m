@@ -73,6 +73,7 @@ end
 
 
 %% Loop thru frames ('G&L props')
+% Create local mask that excludes stationary objects 
 
 if strcmp(opType,'G&L props')
     

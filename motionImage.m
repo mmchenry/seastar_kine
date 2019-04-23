@@ -237,6 +237,12 @@ for i = 1:length(fr_num)
         % Add current to total
         %imSum  = imSum + double(imCurr);    
         imStack(:,:,i) = double(imCurr);   
+        
+        if 0
+            imshow(imCurr)
+            title(['Frame ' num2str(cFrame)])
+            pause(1)
+        end
            
         
     elseif strcmp(imType,'mean color')

@@ -107,6 +107,10 @@ elseif strcmp(opType,'Feet')
            yCntr(j,1)   = Body.yCntr(idx);
            tform(j,1)   = Body.Rotation.tform(idx);
            
+           % Arm coordinates
+           xArm(j,:)   = Body.xArmG(idx,:);
+           yArm(j,:)   = Body.yArmG(idx,:);
+           
            % Advance index
            j = j + 1;
        end
@@ -154,6 +158,10 @@ elseif strcmp(opType,'Global feet')
            yCntr(j,1)   = Body.yCntr(idx);
            tform(j,1)   = Body.Rotation.tform(idx);
            
+           % Arm coordinates
+           xArm(j,:)   = Body.xArmG(idx,:);
+           yArm(j,:)   = Body.yArmG(idx,:);
+           
            % Advance index
            j = j + 1;
        end
@@ -178,21 +186,31 @@ elseif strcmp(opType,'Individual feet')
     F        = varargin{3};
     iFrames  = varargin{4};
 
+    % Frame numebrs to analyze
     frames   = Body.frames(iFrames)';
-    
-    
     
     for i = 1:length(frames)
         
         % Number of feet in frame
         n = 0;
         
+        % Index for body data
+        iMatchBody = Body.frames==frames(i);
+        
+        % Arm coordinates
+        xArm(i,:)   = Body.xArmG(iMatchBody,:);
+        yArm(i,:)   = Body.yArmG(iMatchBody,:);
+        
+        % Body center
+        xCntr(i,:)   = Body.xCntr(iMatchBody);
+        yCntr(i,:)   = Body.yCntr(iMatchBody);
+        
         % Loop thru feet
         for j = 1:length(F)
             
-            % Index fo current frame
+            % Index fo current frame to F data
             iMatch = F(j).frames==frames(i);
-            
+ 
             % Check for repeats
             if sum(iMatch)>1
                 error('Multiple instances of same frame for a foot');
@@ -207,6 +225,7 @@ elseif strcmp(opType,'Individual feet')
                 x{i}(n,1)      = F(j).xG(iMatch);
                 y{i}(n,1)      = F(j).yG(iMatch);
                 clr{i}(n,:)    = F(j).clr(1,:);
+
             end
             
         end
@@ -219,6 +238,67 @@ elseif strcmp(opType,'Individual feet')
     
     % Clear 
     clear Body j idx B_ft
+    
+    
+elseif strcmp(opType,'Individual feet, pretty')
+    
+    Body     = varargin{1}; 
+    imVis    = varargin{2};
+    F        = varargin{3};
+    iFrames  = varargin{4};
+
+    % Frame numebrs to analyze
+    frames   = Body.frames(iFrames)';
+    
+    for i = 1:length(frames)
+        
+        % Number of feet in frame
+        n = 0;
+        
+        % Index for body data
+        iMatchBody = Body.frames==frames(i);
+        
+        % Arm coordinates
+        xArm(i,:)   = Body.xArmG(iMatchBody,:);
+        yArm(i,:)   = Body.yArmG(iMatchBody,:);
+        
+        % Body center
+        xCntr(i,:)   = Body.xCntr(iMatchBody);
+        yCntr(i,:)   = Body.yCntr(iMatchBody);
+        
+        % Loop thru feet
+        for j = 1:length(F)
+            
+            % Index fo current frame to F data
+            iMatch = F(j).frames==frames(i);
+ 
+            % Check for repeats
+            if sum(iMatch)>1
+                error('Multiple instances of same frame for a foot');
+            end
+            
+            % If there is a match, store coordinates
+            if max(iMatch)
+                % Advance index
+                n = n + 1;
+                
+                % Store coordinates and colors
+                x{i}(n,1)      = F(j).xG(iMatch);
+                y{i}(n,1)      = F(j).yG(iMatch);
+                clr{i}(n,:)    = F(j).clr(1,:);
+
+            end
+            
+        end
+        
+    end
+    
+    % Figure color and positon
+    fColor = 0.2.*[1 1 1];
+    fPos   = [ 1 530  2002  995];
+    
+    % Clear 
+    clear Body j idx B_ft   
     
     
 elseif strcmp(opType,'Centroid & Rotation') || strcmp(opType,'no analysis')    
@@ -265,8 +345,17 @@ if ~strcmp(opType,'blobs G&L')
     % Loop thru data
     for i = 1:length(frames)
 
-        if strcmp(opType,'no analysis')
+        if strcmp(opType,'no analysis') 
             im = getFrame(vid_path,v,frames(i),0,'color');
+            
+        elseif strcmp(opType,'Individual feet, pretty')
+            
+            im = getFrame(vid_path,v,frames(i),0,'color');
+            
+            im(:,:,1) = adapthisteq(im(:,:,1));
+            im(:,:,2) = adapthisteq(im(:,:,2));
+            im(:,:,3) = adapthisteq(im(:,:,3));
+            
         else
             % Current whole frame
             im = getFrame(vid_path,v,frames(i),imInvert,'gray');
@@ -474,12 +563,45 @@ if ~strcmp(opType,'blobs G&L')
             set(hTitle,'Color',0.8.*[1 1 1]);
             
             for j = 1:length(x{i})
-                h = scatter(x{i}(j),y{i}(j),...
-                    'MarkerEdgeColor',clr{i}(j,:),'SizeData',200,...
+%                 h = scatter(x{i}(j),y{i}(j),...
+%                     'MarkerEdgeColor',clr{i}(j,:),'SizeData',200,...
+%                     'MarkerEdgeAlpha',0.8);
+h = scatter(x{i}(j),y{i}(j),...
+                    'MarkerEdgeColor','y','SizeData',300,...
+                    'MarkerEdgeAlpha',0.3);
+            end
+            
+            h = scatter(xArm(i,:),yArm(i,:),...
+                    'MarkerEdgeColor','r','MarkerFaceColor','r',...
+                    'SizeData',20,'MarkerEdgeAlpha',0.8);
+           h = scatter(xCntr(i,:),yCntr(i,:),...
+                    'MarkerEdgeColor','r','MarkerFaceColor','r',...
+                    'SizeData',20,'MarkerEdgeAlpha',0.8);
+                ttt = 3;
+                
+                
+        elseif strcmp(opType,'Individual feet, pretty')
+
+            set(f,'Color',0.2.*[1 1 1])
+            set(hTitle,'Color',0.8.*[1 1 1]);
+            
+            for j = 1:length(x{i})
+%                 h = scatter(x{i}(j),y{i}(j),...
+%                     'MarkerEdgeColor',clr{i}(j,:),'SizeData',200,...
+%                     'MarkerEdgeAlpha',0.8);
+h = scatter(x{i}(j),y{i}(j),...
+                    'MarkerEdgeColor','y','SizeData',300,...
                     'MarkerEdgeAlpha',0.8);
             end
             
-            
+            h = scatter(xArm(i,:),yArm(i,:),...
+                    'MarkerEdgeColor','r','MarkerFaceColor','r',...
+                    'SizeData',20,'MarkerEdgeAlpha',0.8);
+           h = scatter(xCntr(i,:),yCntr(i,:),...
+                    'MarkerEdgeColor','r','MarkerFaceColor','r',...
+                    'SizeData',20,'MarkerEdgeAlpha',0.8);
+                ttt = 3;
+                
         end
         
         drawnow
