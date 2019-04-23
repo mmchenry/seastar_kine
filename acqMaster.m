@@ -93,6 +93,7 @@ elseif isfolder('C:\Users\tpo\Documents\seastar_kine')
     % Path to root of data
     dataPath = 'C:\Users\tpo\Documents\Chip sea star data\prelim data';
     
+    
 else
     
     error('Do not recognize computer')
@@ -520,6 +521,9 @@ if ~isfile([currDataPath filesep 'post- foot data.mat'])
     clear Body B2 F
     
 end
+
+% Visualize result
+% surveyData(currVidPath,v,0,'Individual feet',Body,B_ft,numVis);
 
 
 %% Make movie of individual feet, after post-processing

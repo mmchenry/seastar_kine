@@ -229,8 +229,8 @@ if strcmp(opType,'filter motion')
         iFrame = find(frames==cFrame,1,'first');
 
         % Window of frames to analyze
-        startFrame    = max([1 cFrame-halfIntvl]);
-        endFrame      = min([max(frames) cFrame+halfIntvl]);       
+        startFrame    = max([1 iFrame-halfIntvl]);
+        endFrame      = min([length(frames) iFrame+halfIntvl]);       
         winFrames     = startFrame:endFrame;
         
 %         % Produce image that highlights static elements
