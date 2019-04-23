@@ -10,10 +10,10 @@ do.MakeCentroidMovie = 0;
 do.MakeRotationMovies = 0;
 
 % Make movie of foot tracking
-do.MakeFootMovie = 0;
+do.MakeFootMovie = 1;
 
 % Make movie of foot tracking for a presentation
-do.MakeFootMoviePretty = 1;
+do.MakeFootMoviePretty = 0;
 
 % Make movie to evaluate centroid and rotation tracking, after
 % post-processing
@@ -52,6 +52,24 @@ numroipts = 200;
 
 % Runs code on a single sequence, defined by seq_path
 run_single = 1;
+
+% Number of frames to visualize with surveyData
+numVis = 16;
+
+% Duration used for mean image (s)
+meanDur = 10;
+
+% Duration use for stream image (s)
+streakDur = 0.5;
+
+% Number of frames used for each mean image
+numMean = 10;
+
+% Parameters for blobs describing the tube feet
+blobParam.tVal    = 0.3;
+blobParam.areaMin = 50;
+blobParam.areaMax = 2000; 
+blobParam.AR_max  = 6;
 
 
 %% Manage paths (need to modify for new PC)
@@ -198,9 +216,6 @@ if ~isfile([currDataPath filesep 'Centroid.mat'])
     % Frames
     frames = clipInfo.startFrame:clipInfo.endFrame;
     
-    % Number of frames to visualize with surveyData
-    numVis = 16;
-    
     % Region of interest for first frame
     roi0 = giveROI('define','circular',numroipts,iC.r,iC.x,iC.y);
     
@@ -286,6 +301,12 @@ if ~isfile([currDataPath filesep 'Body.mat'])
     % Apply post-processing
     Body = rotationPostProcess(Body);
     
+    % Add arms and trajectory coordinate systems to body
+    Body = postProcess('Traj body system',Body);
+    
+    % Save with post-processing
+    save([currDataPath filesep 'Body.mat'],'Body')
+    
     % Visualize a bunch of frames to check results
     surveyData(currVidPath,v,imInvert,'Centroid & Rotation',Body,iC,numVis);
     
@@ -299,19 +320,9 @@ else
 end
 
 
-%% Apply post-processing (Body data)
-
-% Apply post-processing
-Body = rotationPostProcess(Body,v,iC);
-
-% Visualize a bunch of frames to check results
-%surveyData(currVidPath,v,imInvert,'Centroid & Rotation',Body,iC,16);
-
-
 %% Review rotation: make movies
 
 if do.MakeRotationMovies
-
     % File name of movie to be created
     fName = 'Centroid and rotation';
     
@@ -323,33 +334,14 @@ if do.MakeRotationMovies
     aniData(currVidPath,v,currDataPath,fName,imInvert,...
         'Centroid & Rotation',Body,visSteps);
     
-    clear M mov Rotation S iC currDataPath currVidPath
-    
+    clear M mov Rotation S iC currDataPath currVidPath   
 end
 
 
-%% Track feet
+%% Foot tracking step 1: Create series of mean images in local FOR
 
 % Downsample
 dSample = 0;
-
-% Number of frames to visualize
-numVis = 16;
-
-% Duration used for mean image (s)
-meanDur = 10;
-
-% Duration use for stream image (s)
-streakDur = 0.5;
-
-% Number of frames used for each mean image
-numMean = 10;
-
-% Parameters for blobs describing the tube feet
-blobParam.tVal = 0.3;
-blobParam.areaMin = 50;
-blobParam.areaMax = 2000; 
-blobParam.AR_max  = 6;
 
 % Mean image duration in frames
 meanDr_fr = round(meanDur * v.FrameRate);
@@ -362,8 +354,6 @@ interval_fr = [min(Body.frames):meanDr_fr:max(Body.frames)]';
 
 % Extend duration of last interval
 interval_fr = [interval_fr(1:end-1); max(Body.frames)];
-
-%time = (Body.frames-Body.frame(1))./v.FrameRate;
 
 % Create mean images over regular interval of movie -----------
 if ~isfile([currDataPath filesep 'mean_roi.mat'])
@@ -398,6 +388,8 @@ if ~isfile([currDataPath filesep 'mean_roi.mat'])
     % Save data
     save([currDataPath filesep 'mean_roi'],'roiM');
     
+    clear dSample blobParam meanDr_fr interval_fr streakDur numMean numVis
+    
 % Otherwise
 else
     
@@ -406,7 +398,9 @@ else
 end
 
 
-% Loop thru frames, create local mask that excludes stationary objects ---------
+%% Foot tracking step 2: mask for feet applied to global FOR
+% Creates local mask that excludes stationary objects 
+
 if  ~isfile([currDataPath filesep 'blobs.mat'])
         
     % Load initial conditions (iC)
@@ -421,8 +415,7 @@ if  ~isfile([currDataPath filesep 'blobs.mat'])
       
 end
 
-
-% Produce data for motion images ------------------------------------------
+% Produce data for motion images im imStack
 if ~isfile([currDataPath filesep 'motion image data.mat'])
 
      % Load blob data (B)
@@ -437,8 +430,12 @@ if ~isfile([currDataPath filesep 'motion image data.mat'])
  
     % Save images to be analyzed
     save([currDataPath filesep 'motion image data'],'-v7.3','imStack');
+    
+    clear imStack B
 end
 
+
+%% Foot tracking step 3: Track feet
 
 % Loop thru frames, track feet --------------------------------------------
 if ~isfile([currDataPath filesep 'foot blobs.mat'])
@@ -449,57 +446,31 @@ if ~isfile([currDataPath filesep 'foot blobs.mat'])
     % Load imStack
     load([currDataPath filesep 'motion image data'])
     
+    % Store linked feet in B_ft
     B_ft = anaBlobs(currVidPath,v,'filter motion',B,strakDr_fr,Body,blobParam,...
         visSteps,imInvert,imStack);
     
-    % Save blob data
+    % Save data
     save([currDataPath filesep 'foot blobs'],'-v7.3','B_ft');
     
     % Visualize a bunch of frames to check results
     surveyData(currVidPath,v,0,'Feet',Body,B_ft,numVis);
     
-else
-    
-    % Load data of feet (B_ft)
-    load([currDataPath filesep 'foot blobs'])
-    
-end
-
-clear dSample blobParam meanDr_fr interval_fr streakDur numMean numVis
-
-
-%% Make movie of feet
-
-if do.MakeFootMovie 
-    
-    imInvert = 0;
-
-    % File name of movie to be created
-    fName = 'Foot tracking, global';
-    
-    % Load video info (v)                added by CG
-    v = defineVidObject(currVidPath);
-    
-    disp(' ')
-    disp(['Making Foot tracking Movie: ' fName])
-    disp(' ')
-    
-    % Make movie
-%     aniData(currVidPath,v,currDataPath,fName,imInvert,...
-%         'Feet',Body,imVis,B_ft);
-
-    aniData(currVidPath,v,currDataPath,fName,imInvert,...
-        'Global feet',Body,visSteps,B_ft);
+    clear B B_ft imStack
+       
 end
 
 
-%% Post-processing of foot data
+%% Foot tracking step 4: Post-processing
 
 % Distance threshold for including feet
 dist_thresh = 5;
 
-% STEP 1: Arms number assignment ------------------------------------------
+% Arm number assignment ------------------------------------------
 if ~isfile([currDataPath filesep 'post- arms.mat'])
+    
+    % Load data of feet (B_ft)
+    load([currDataPath filesep 'foot blobs'])
     
     % Update status
     disp('postProcess: Finding arm numbers . . .')
@@ -510,87 +481,44 @@ if ~isfile([currDataPath filesep 'post- arms.mat'])
     % Save data
     save([currDataPath filesep 'post- arms'],'-v7.3','B2')
     
+    % Add arms in global FOR to Body
+    Body = postProcess('add arms',Body,iC,B2);
+    
+    % Save
+    save([currDataPath filesep 'Body, post.mat'],'-v7.3','Body')
+    
     % Visual check with a random frame
     visArms(currVidPath,v,Body,B2,200)
-else
-    % Load B2
-    load([currDataPath filesep 'post- arms'])
+    
+    clear B2 B_ft
 end
 
-% STEP 2: Connect blobs across frames --------------
+% Connect blobs across frames --------------
 if ~isfile([currDataPath filesep 'post- foot data.mat'])
+    
+    % Load B2
+    load([currDataPath filesep 'post- arms'])
+    
+    % Load Body
+    load([currDataPath filesep 'Body, post.mat'])
     
     % Update status
     disp('postProcess: Connecting feet across frames . . .')
     
-    % Package into F strcuture
+    % Package into F structure
     F = postProcess('connect',Body,iC,B2,dist_thresh);
     
+    % Add arm and trajectory coordinate systems to feet
+    F = postProcess('Traj foot system',Body,F);
+    
+    % Remove erroneous feet
+    F = postProcess('Remove bad feet',Body,F);
+
     % Save data
-    save([currDataPath filesep 'post- foot data'],'-v7.3','F')
+    save([currDataPath filesep 'post- foot refined'],'F')
     
-else
-    % Load F structure
-    load([currDataPath filesep 'post- foot data'])
-end
-
-%TODO: Exclude mouth points, store arm number in F, figure out the black
-%color, remove point according to net displacement, expand region to
-%include foot (too many erroneous switches)
-
-
-%% Find arms in global FOR
-
-
-% Add arms in global FOR to Body 
-Body = postProcess('add arms',Body,iC,B2);
-
-% Save
-save([currDataPath filesep 'Body, post.mat'],'-v7.3','Body')
-
-
-%% Filter erroneous feet
-if 0
-% Minimum number of frames to include
-minNum = 10;
-
-% Maximum displacement of foot allowed
-maxDisp = 200;
-
-% Get index of frames used
-for i = 1:length(B2)
-    if isempty(B2(i).frIdx)
-        iFrames(i) = 0==1;
-    else
-        iFrames(i) = 1==1;
-    end
-end
-
-% Frame numbers analyzed
-frames = Body.frames(iFrames);
-
-
-% Loop thru all feet 
-for i = 1:length(F)
-
-    cDisp = hypot(F(i).xG(end)-F(i).xG(1),F(i).yG(end)-F(i).yG(1));
+    clear Body B2 F
     
-    % If present for fewer than min number of frames, or large displacement
-    if (max(F(i).frames)<frames(end) && length(F(i).frames)<minNum) || ...
-       cDisp>maxDisp
-        
-        % Overwrite with nans
-        F(i).frames = nan;
-        F(i).xG     = nan;
-        F(i).yG     = nan;
-        F(i).xL     = nan;
-        F(i).yL     = nan;
-        
-    end
-end
-
-% Visualize result
-%surveyData(currVidPath,v,0,'Individual feet',Body,B_ft,numVis);
 end
 
 
@@ -598,7 +526,17 @@ end
 
 if do.MakeFootMoviePost
     
+    % Turn of image inversion
     imInvert = 0;
+    
+    % Load B2
+    load([currDataPath filesep 'post- arms'])
+    
+    % Load Body
+    load([currDataPath filesep 'Body, post.mat'])
+    
+    % Load F
+    load([currDataPath filesep 'post- foot refined'])
     
     % Get index of frames used
     for i = 1:length(B2)
@@ -608,6 +546,8 @@ if do.MakeFootMoviePost
             iFrames(i) = 1==1;
         end
     end
+    
+    clear B2
 
     % File name of movie to be created
     fName = 'Foot tracking, indivdual white';
@@ -621,6 +561,11 @@ if do.MakeFootMoviePost
 
     aniData(currVidPath,v,currDataPath,fName,imInvert,...
         'Individual feet',Body,visSteps,F,iFrames);
+%     aniData(currVidPath,v,currDataPath,fName,imInvert,...
+%         'Global feet',Body,visSteps,B_ft);
+
+    clear Body B2 F
+
 end
 
 
@@ -628,6 +573,7 @@ end
 
 if do.MakeFootMoviePretty
     
+    % Turn of image inversion
     imInvert = 0;
 
     % Get index of frames used
@@ -638,11 +584,8 @@ if do.MakeFootMoviePretty
             iFrames(i) = 1==1;
         end
     end
-
-    % Dump memory hogs 
-    clear B2 F roiM Centroid
     
-    
+    % Load F data
     load([currDataPath filesep 'post- foot refined']);
     
     % File name of movie to be created
@@ -651,10 +594,12 @@ if do.MakeFootMoviePretty
     % Load video info (v)                added by CG
     v = defineVidObject(currVidPath);
     
+    % Update status
     disp(' ')
     disp(['Making Foot tracking Movie: ' fName])
     disp(' ')
 
+    % Create animation
     aniData(currVidPath,v,currDataPath,fName,imInvert,...
         'Individual feet, pretty',Body,visSteps,F,iFrames);
 end
@@ -681,7 +626,8 @@ if do.anaSurvey
 end
 
 
-function visFeet(currVidPath,v,Body,F)
+
+
 
 
 function visArms(currVidPath,v,Body,B2,cFrame)

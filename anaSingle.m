@@ -95,22 +95,8 @@ load([currDataPath filesep 'Initial conditions'])
 load([currDataPath filesep 'Body, post.mat'])
 
 % Load F structure
-load([currDataPath filesep 'post- foot data'])
-
-
-%% Post-processing of data
-
-% Add arms and trajectory coordinate systems to body
-Body = postProcess('Traj body system',Body);
-
-% Add arm and trajectory coordinate systems to feet
-F = postProcess('Traj foot system',Body,F);
-
-% Remove erroneous feet
-F = postProcess('Remove bad feet',Body,F);
-
-% Save feet data to visualize separately 
-save([currDataPath filesep 'post- foot refined'],'F')
+%load([currDataPath filesep 'post- foot data'])
+load([currDataPath filesep 'post- foot refined'])
 
 
 %% Visualize trajectory
