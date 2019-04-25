@@ -452,7 +452,7 @@ if strcmp(pMode,'Traj body system')
     CntrPtsT = transCoord2d('xax G2L',pStart,pEnd,[Body.xCntr Body.yCntr]);
     
     % Loop trhu arm points, define in T system
-    for i = 1:size(Body.xArmG,2)
+    for i = 1:size(Body.xArmL,2)
         
         % Arm points in trajectory FOR
         ArmPtsT = transCoord2d('xax G2L',pStart,pEnd,[Body.xArmG(:,i) Body.yArmG(:,i)]);

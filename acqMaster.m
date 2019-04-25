@@ -300,10 +300,7 @@ if ~isfile([currDataPath filesep 'Body.mat'])
     load([currDataPath filesep 'Body.mat'])
     
     % Apply post-processing
-    Body = rotationPostProcess(Body);
-    
-    % Add arms and trajectory coordinate systems to body
-    Body = postProcess('Traj body system',Body);
+    Body = rotationPostProcess(Body,v,iC);
     
     % Save with post-processing
     save([currDataPath filesep 'Body.mat'],'Body')
@@ -484,6 +481,9 @@ if ~isfile([currDataPath filesep 'post- arms.mat'])
     
     % Add arms in global FOR to Body
     Body = postProcess('add arms',Body,iC,B2);
+    
+    % Add arms and trajectory coordinate systems to body
+    Body = postProcess('Traj body system',Body);
     
     % Save
     save([currDataPath filesep 'Body, post.mat'],'-v7.3','Body')
