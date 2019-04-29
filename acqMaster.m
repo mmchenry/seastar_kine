@@ -13,11 +13,11 @@ do.MakeRotationMovies = 0;
 do.MakeFootMovie = 1;
 
 % Make movie of foot tracking for a presentation
-do.MakeFootMoviePretty = 0;
+do.MakeFootMoviePretty = 1;
 
 % Make movie to evaluate centroid and rotation tracking, after
 % post-processing
-do.MakeFootMoviePost = 0;
+do.MakeFootMoviePost = 1;
 
 % Re-run the rotation anlysis from the beginning 
 reRunRotation = 0;
@@ -26,7 +26,7 @@ reRunRotation = 0;
 do.anaSurvey = 0;
 
 % Visualize steps of analysis executed
-visSteps = 0;
+visSteps = 1;
 
 
 %% Verify deleting data
@@ -386,7 +386,7 @@ if ~isfile([currDataPath filesep 'mean_roi.mat'])
     % Save data
     save([currDataPath filesep 'mean_roi'],'roiM');
     
-    clear dSample blobParam meanDr_fr interval_fr streakDur numMean numVis
+    clear dSample meanDr_fr interval_fr streakDur numMean numVis
     
 % Otherwise
 else

@@ -163,7 +163,11 @@ if ~strcmp(action,'define')
 
     % Pad image to the top, if needed
     if roi.rect(2)<1
-        n  = abs(roi.rect(2))+1;
+        
+        % Let user know about the padding
+        warning('Padding image at the top')
+        
+        n  = ceil(roi.rect(2))+1;
         
         if size(im,3)>1
             imT = im;
@@ -182,6 +186,9 @@ if ~strcmp(action,'define')
     % Pad image to the right, if needed
     if (roi.rect(1)+roi.rect(3)+1)>=size(im,2)
         
+        % Let user know about the padding
+        warning('Padding image at the right')
+        
         n = ceil(roi.rect(1)+roi.rect(3)+2 - size(im,2));
         
         if size(im,3)>1
@@ -198,6 +205,9 @@ if ~strcmp(action,'define')
     
     % Pad image to the bottom, if needed
     if (roi.rect(2)+roi.rect(4)+1)>=size(im,1)
+        
+        % Let user know about the padding
+        warning('Padding image at the bottom')
         
         n = ceil(roi.rect(2)+roi.rect(4)+2 - size(im,1));
         
