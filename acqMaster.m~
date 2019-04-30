@@ -587,18 +587,16 @@ end
 %% Make movie of feet for presentation
 
 if do.MakeFootMoviePretty
-
+    
+    
+    
     % Turn of image inversion
     imInvert = 0;
 
-    % Load iFrames
-    load([currDataPath filesep 'Frames used'])
+    %
     
     % Load F data
     load([currDataPath filesep 'post- foot refined']);
-    
-    % Load Body
-    load([currDataPath filesep 'Body, post.mat'])
     
     % File name of movie to be created
     fName = 'Foot tracking, pretty';
