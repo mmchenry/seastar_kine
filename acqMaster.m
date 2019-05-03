@@ -96,7 +96,7 @@ elseif isfolder('C:\Users\tpo\Documents\seastar_kine')
 elseif isfolder('/Users/tpo/Documents/seastar_kine')
     
     % Path to root dir of video (CSULB project, external drive)
-    vidPath = '/Users/tpo/Documents/Video/Chip sea star/prelim video';
+    vidPath = '/Users/tpo/Documents/Video/Chip sea stars/prelim video';
 
     % Path to root of data
     dataPath = '/Users/tpo/Documents/Chip sea star data/prelim data';
@@ -115,7 +115,7 @@ end
 %cList.fName = 'S004_S001_T007';
 if nargin<1
     %cList.fName = 'SS001_S001_T013';
-    cList.fName = 'S005_S001_T011';
+    cList.fName = 'S002_S001_T003';
 else
     
     cList.fName = fileName;
@@ -407,7 +407,10 @@ end
 % Creates local mask that excludes stationary objects 
 
 if  ~isfile([currDataPath filesep 'blobs.mat'])
-        
+      
+    % Downsample
+    dSample = 0;
+
     % Load initial conditions (iC)
     load([currDataPath filesep 'Initial conditions'])
     
