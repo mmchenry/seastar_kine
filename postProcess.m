@@ -309,6 +309,15 @@ if strcmp(pMode,'connect')
             break
         end
     end
+    
+    % Find ending frame
+    for i = 1:length(B_ft)
+        if (i>iStart) && max(isnan(B_ft(i).cOffset))
+            break
+        else
+            iEnd = i;
+        end
+    end
 
     
     % Current frame's global properties
@@ -324,7 +333,7 @@ if strcmp(pMode,'connect')
 %     currG = nextG;
   
     % Loop thru time
-    for i = iStart:(length(B_ft)-1)       
+    for i = iStart:(iEnd-1)       
         
         % Next frame's global properties
         nextG = B_ft(i+1).G;
@@ -362,6 +371,10 @@ if strcmp(pMode,'connect')
     
     while iStart<(length(B_ft)-1)
         
+        if ~isfield(B_ft(i).G(j),'Centroid')
+            break
+        end
+        
         % Store away coordinates and frame number
         F(iFoot).frames(iFrame,1) = B_ft(i).fr_num;
         F(iFoot).xG(iFrame,1)     = B_ft(i).G(j).Centroid(1);
@@ -375,7 +388,7 @@ if strcmp(pMode,'connect')
         B_ft(i).G(j).used = 1;
         
         % If index for next exists . . .
-        if ~isnan(B_ft(i).G(j).iNext)
+        if isfield(B_ft(i).G(j),'iNext') && ~isnan(B_ft(i).G(j).iNext)
             % Advance index for frame on A
             iFrame = iFrame + 1;
             
@@ -415,7 +428,7 @@ if strcmp(pMode,'connect')
                 end
                 
                 % If there is an unused foot, break
-                if isfoot
+                if isfoot || (i>iEnd-1)
                     break
                     
                 % If no match starting at iStart
