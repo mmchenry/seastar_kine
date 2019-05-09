@@ -17,7 +17,7 @@ do.MakeFootMoviePretty = 1;
 
 % Make movie to evaluate centroid and rotation tracking, after
 % post-processing
-do.MakeFootMoviePost = 0;
+do.MakeFootMoviePost = 1;
 
 % Re-run the rotation anlysis from the beginning 
 reRunRotation = 0;
@@ -295,9 +295,6 @@ if ~isfile([currDataPath filesep 'Body.mat'])
     
     % Downsample frames for image registration (speed up processing)
     dSample = 1;
-
-    % Numver of frames to visualize
-    numVis = 16;
     
     % Run tracker for predator
     trackRotation(currVidPath,v,currDataPath,'advanced',...
@@ -393,7 +390,7 @@ if ~isfile([currDataPath filesep 'mean_roi.mat'])
     % Save data
     save([currDataPath filesep 'mean_roi'],'roiM');
     
-    clear dSample meanDr_fr interval_fr streakDur numMean numVis
+    clear dSample meanDr_fr interval_fr streakDur numMean
     
 % Otherwise
 else
@@ -635,8 +632,6 @@ if do.anaSurvey
     
     % Feet
     surveyData(currVidPath,v,0,'Feet local',Body,B_ft,numVis);
-    
-    clear numVis
     
 end
 

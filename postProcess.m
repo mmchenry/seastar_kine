@@ -141,50 +141,57 @@ if strcmp(pMode,'find arms')
                 % Store local values
                 %B_ft(i).propsL(j).coordL = [xOr yOr];
                 
-                % Indicies for finding match to global
-                iMatch  = 0;
-                minDist = inf;
-                
-                % Loop thru global points
-                for k = 1:length(B_ft(i).propsG)
+                if ~isempty(B_ft(i).propsG)
+                    % Indicies for finding match to global
+                    iMatch  = 0;
+                    minDist = inf;
                     
-                    % Current distance
-                    cDist = hypot(B_ft(i).propsG(k).Centroid(1)-xOr, ...
-                                  B_ft(i).propsG(k).Centroid(2)-yOr);
-                    
-                    % Store index, if closer than previous
-                    if cDist<minDist
-                        % Update min distance
-                        minDist = cDist;
-                        
-                        % Store index
-                        iMatch = k;
-                    end
-                end                
-                
-                % Check by visualizing
-                if 0
+                    % Loop thru global points
                     for k = 1:length(B_ft(i).propsG)
-                        plot(B_ft(i).propsG(k).Centroid(1), ...
-                             B_ft(i).propsG(k).Centroid(2),'ok');
-                        hold on;
+                        
+                        % Current distance
+                        cDist = hypot(B_ft(i).propsG(k).Centroid(1)-xOr, ...
+                            B_ft(i).propsG(k).Centroid(2)-yOr);
+                        
+                        % Store index, if closer than previous
+                        if cDist<minDist
+                            % Update min distance
+                            minDist = cDist;
+                            
+                            % Store index
+                            iMatch = k;
+                        end
                     end
-                    plot(B_ft(i).propsG(iMatch).Centroid(1), ...
-                         B_ft(i).propsG(iMatch).Centroid(2),'r+');
-                    plot(xOr,yOr,'ro');
-                    axis equal; hold off
+                    
+                    % Check by visualizing
+                    if 0
+                        for k = 1:length(B_ft(i).propsG)
+                            plot(B_ft(i).propsG(k).Centroid(1), ...
+                                B_ft(i).propsG(k).Centroid(2),'ok');
+                            hold on;
+                        end
+                        plot(B_ft(i).propsG(iMatch).Centroid(1), ...
+                            B_ft(i).propsG(iMatch).Centroid(2),'r+');
+                        plot(xOr,yOr,'ro');
+                        axis equal; hold off
+                    end
+                    
+                    % Store global data that matches local data
+                    for fn = fieldnames(B_ft(i).propsG(iMatch))'
+                        B(i).G(j,1).(fn{1}) = B_ft(i).propsG(iMatch).(fn{1});
+                    end
+                    
+                    % Matching coordinate
+                    xMatch = B_ft(i).propsG(iMatch).Centroid(1);
+                    yMatch = B_ft(i).propsG(iMatch).Centroid(2);
+                    
+                    cOffset(j,:) = [xOr-xMatch yOr-yMatch];
+                    
+                else
+                    
+                    cOffset(j,:) = [nan nan];
+                    
                 end
-                
-                % Store global data that matches local data
-                for fn = fieldnames(B_ft(i).propsG(iMatch))'
-                    B(i).G(j,1).(fn{1}) = B_ft(i).propsG(iMatch).(fn{1});
-                end
-                
-                % Matching coordinate
-                xMatch = B_ft(i).propsG(iMatch).Centroid(1);
-                yMatch = B_ft(i).propsG(iMatch).Centroid(2);
-                
-                cOffset(j,:) = [xOr-xMatch yOr-yMatch];
                 
                 % Store matching index from global coordinates
 %                 B_ft(i).propsL(j).iG = iMatch;
@@ -205,7 +212,15 @@ if strcmp(pMode,'find arms')
                 end
             end
             
-            B(i).cOffset = mean(cOffset);
+            if exist('cOffset','var')
+                B(i).cOffset = nanmean(cOffset,1);
+            else
+                B(i).cOffset = [nan nan];
+            end
+            
+            if length(B(i).cOffset)==1
+                error('cOffset is too short');
+            end
             
             clear cOffset
         end
