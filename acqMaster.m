@@ -307,10 +307,11 @@ if ~isfile([currDataPath filesep 'Body.mat'])
     load([currDataPath filesep 'Body.mat'])
     
     % Apply post-processing
-    Body = rotationPostProcess(Body,v,iC);
+    %Body = rotationPostProcess(Body,v,iC);
+    Body = postProcess('post rotation',Body,v,iC);
     
     % Save with post-processing
-    save([currDataPath filesep 'Body.mat'],'Body')
+    save([currDataPath filesep 'Body.mat'],'-v7.3','Body')
     
     % Visualize a bunch of frames to check results
     surveyData(currVidPath,v,imInvert,'Centroid & Rotation',Body,iC,numVis);
@@ -406,7 +407,7 @@ end
 %% Foot tracking step 2: mask for feet applied to global FOR
 % Creates local mask that excludes stationary objects 
 
-if  ~isfile([currDataPath filesep 'blobs.mat'])
+if ~isfile([currDataPath filesep 'blobs.mat'])
       
     % Downsample
     dSample = 0;
@@ -475,7 +476,7 @@ end
 dist_thresh = 5;
 
 % Arm number assignment ------------------------------------------
-if ~isfile([currDataPath filesep 'post- arms.mat'])
+if 1 %~isfile([currDataPath filesep 'post- arms.mat'])
     
     % Load data of feet (B_ft)
     load([currDataPath filesep 'foot blobs'])
@@ -494,7 +495,7 @@ if ~isfile([currDataPath filesep 'post- arms.mat'])
     
     % Add arms and trajectory coordinate systems to body
     Body = postProcess('Traj body system',Body);
-    
+
     % Save
     save([currDataPath filesep 'Body, post.mat'],'-v7.3','Body')
     
@@ -505,7 +506,7 @@ if ~isfile([currDataPath filesep 'post- arms.mat'])
 end
 
 % Connect blobs across frames --------------
-if ~isfile([currDataPath filesep 'post- foot refined.mat'])
+if 1 %~isfile([currDataPath filesep 'post- foot refined.mat'])
     
     % Load B2
     load([currDataPath filesep 'post- arms'])
@@ -693,64 +694,64 @@ end
 hold off
 
 
-function Body = rotationPostProcess(Body,v,iC)
-
-% Define time
-Body.t = Body.frames'./v.FrameRate;
-
-% Define local coordinates for arms 
-Body.xArmL = iC.xArms' - Body.x(1) + Body.Rotation.roi(1).r;
-Body.yArmL = iC.yArms' - Body.y(1) + Body.Rotation.roi(1).r;
-
-% Loop thru frames
-for i = 1:length(Body.Rotation.tform)
-    
-    % Scaling factor for downsampling
-    Body.Rotation.roi(i).imFactor = 300./Body.Rotation.roi(i).rect(3);
-    
-    % Compensate tform for downsampling
-    Body.Rotation.tform(i).T(3,1:2) = Body.Rotation.tform(i).T(3,1:2) ./ ...
-                                      Body.Rotation.roi(i).imFactor;
-    
-    % Current region of interest
-    roi = Body.Rotation.roi(i);
-    
-    % Current tform
-    tform = Body.Rotation.tform(i);
-    
-    % And inverse
-    Body.Rotation.tformInv(i) = invert(tform);  
-   
-    % Get corrected body center point in roi
-    [xCntr,yCntr] = transformPointsForward(invert(tform),roi.r,roi.r);
-    
-    % Get corrected origin of roi
-    [xOr,yOr] = transformPointsForward(invert(tform),0,0);
-    
-    % Other referece point to look at rotation
-    [xOther,yOther] = transformPointsForward(invert(tform),roi.r,2*roi.r);
-    
-    % Angular rotation up to this point
-    Body.Rotation.rot_ang(i,1)  = atan2(tform.T(1,2),tform.T(1,1)) * 180/pi;
-    
-    % Corrected body center point in global FOR
-    Body.xCntr(i,1)  = Body.x(i)-roi.r + xCntr;
-    Body.yCntr(i,1)  = Body.y(i)-roi.r + yCntr;
-    Body.xOther(i,1) = Body.x(i)-roi.r + xOther;
-    Body.yOther(i,1) = Body.y(i)-roi.r + yOther;
-%     Body.xArmL(i,:)  = Body.x(i)-roi.r + xArm';
-%     Body.yArmL(i,:)  = Body.y(i)-roi.r + yArm';
-    
-    % Adjust roi coordinates
-    Body.Rotation.roi(i).rect(1) = Body.x(i)-roi.r+round(xOr);
-    Body.Rotation.roi(i).rect(2) = Body.y(i)-roi.r+round(yOr);
-    Body.Rotation.roi(i).xCntr   = Body.xCntr(i,1);
-    Body.Rotation.roi(i).yCntr   = Body.yCntr(i,1);
-    Body.Rotation.roi(i).xPerimG = Body.Rotation.roi(i).xPerimG + xOr;
-    Body.Rotation.roi(i).yPerimG = Body.Rotation.roi(i).yPerimG + yOr; 
-    
-    
-end
+% function Body = rotationPostProcess(Body,v,iC)
+% 
+% % Define time
+% Body.t = Body.frames'./v.FrameRate;
+% 
+% % Define local coordinates for arms 
+% Body.xArmL = iC.xArms' - Body.x(1) + Body.Rotation.roi(1).r;
+% Body.yArmL = iC.yArms' - Body.y(1) + Body.Rotation.roi(1).r;
+% 
+% % Loop thru frames
+% for i = 1:length(Body.Rotation.tform)
+%     
+%     % Scaling factor for downsampling
+%     Body.Rotation.roi(i).imFactor = 300./Body.Rotation.roi(i).rect(3);
+%     
+%     % Compensate tform for downsampling
+%     Body.Rotation.tform(i).T(3,1:2) = Body.Rotation.tform(i).T(3,1:2) ./ ...
+%                                       Body.Rotation.roi(i).imFactor;
+%     
+%     % Current region of interest
+%     roi = Body.Rotation.roi(i);
+%     
+%     % Current tform
+%     tform = Body.Rotation.tform(i);
+%     
+%     % And inverse
+%     Body.Rotation.tformInv(i) = invert(tform);  
+%    
+%     % Get corrected body center point in roi
+%     [xCntr,yCntr] = transformPointsForward(invert(tform),roi.r,roi.r);
+%     
+%     % Get corrected origin of roi
+%     [xOr,yOr] = transformPointsForward(invert(tform),0,0);
+%     
+%     % Other referece point to look at rotation
+%     [xOther,yOther] = transformPointsForward(invert(tform),roi.r,2*roi.r);
+%     
+%     % Angular rotation up to this point
+%     Body.Rotation.rot_ang(i,1)  = atan2(tform.T(1,2),tform.T(1,1)) * 180/pi;
+%     
+%     % Corrected body center point in global FOR
+%     Body.xCntr(i,1)  = Body.x(i)-roi.r + xCntr;
+%     Body.yCntr(i,1)  = Body.y(i)-roi.r + yCntr;
+%     Body.xOther(i,1) = Body.x(i)-roi.r + xOther;
+%     Body.yOther(i,1) = Body.y(i)-roi.r + yOther;
+% %     Body.xArmL(i,:)  = Body.x(i)-roi.r + xArm';
+% %     Body.yArmL(i,:)  = Body.y(i)-roi.r + yArm';
+%     
+%     % Adjust roi coordinates
+%     Body.Rotation.roi(i).rect(1) = Body.x(i)-roi.r+round(xOr);
+%     Body.Rotation.roi(i).rect(2) = Body.y(i)-roi.r+round(yOr);
+%     Body.Rotation.roi(i).xCntr   = Body.xCntr(i,1);
+%     Body.Rotation.roi(i).yCntr   = Body.yCntr(i,1);
+%     Body.Rotation.roi(i).xPerimG = Body.Rotation.roi(i).xPerimG + xOr;
+%     Body.Rotation.roi(i).yPerimG = Body.Rotation.roi(i).yPerimG + yOr; 
+%     
+%     
+% end
 
 
 ttt = 3;

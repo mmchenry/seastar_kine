@@ -5,7 +5,14 @@ function varargout = postProcess(pMode,varargin)
 %% Process inputs
 
 % Set mode-specific parameters
-if strcmp(pMode,'find arms')
+if strcmp(pMode,'post rotation')
+    
+    Body = varargin{1};
+    v    = varargin{2};
+    iC   = varargin{3};
+    
+
+elseif strcmp(pMode,'find arms')
     
     Body = varargin{1};
     iC   = varargin{2};
@@ -80,6 +87,73 @@ rPart = pi/5;
 
 % Colormap values
 cmap = cmap_vals;
+
+
+%% Post-processing after rotataion tracking 
+
+% function Body = rotationPostProcess(Body,v,iC)
+
+if strcmp(pMode,'post rotation')
+    
+    % Define time
+    Body.t = Body.frames'./v.FrameRate;
+    
+    % Define local coordinates for arms
+    Body.xArmL = iC.xArms' - Body.x(1) + Body.Rotation.roi(1).r;
+    Body.yArmL = iC.yArms' - Body.y(1) + Body.Rotation.roi(1).r;
+    
+    % Loop thru frames
+    for i = 1:length(Body.Rotation.tform)
+        
+        % Scaling factor for downsampling
+        Body.Rotation.roi(i).imFactor = 300./Body.Rotation.roi(i).rect(3);
+        
+        % Compensate tform for downsampling
+        Body.Rotation.tform(i).T(3,1:2) = Body.Rotation.tform(i).T(3,1:2) ./ ...
+            Body.Rotation.roi(i).imFactor;
+        
+        % Current region of interest
+        roi = Body.Rotation.roi(i);
+        
+        % Current tform
+        tform = Body.Rotation.tform(i);
+        
+        % And inverse
+        Body.Rotation.tformInv(i) = invert(tform);
+        
+        % Get corrected body center point in roi
+        [xCntr,yCntr] = transformPointsForward(invert(tform),roi.r,roi.r);
+        
+        % Get corrected origin of roi
+        [xOr,yOr] = transformPointsForward(invert(tform),0,0);
+        
+        % Other referece point to look at rotation
+        [xOther,yOther] = transformPointsForward(invert(tform),roi.r,2*roi.r);
+        
+        % Angular rotation up to this point
+        Body.Rotation.rot_ang(i,1)  = atan2(tform.T(1,2),tform.T(1,1)) * 180/pi;
+        
+        % Corrected body center point in global FOR
+        Body.xCntr(i,1)  = Body.x(i)-roi.r + xCntr;
+        Body.yCntr(i,1)  = Body.y(i)-roi.r + yCntr;
+        Body.xOther(i,1) = Body.x(i)-roi.r + xOther;
+        Body.yOther(i,1) = Body.y(i)-roi.r + yOther;
+        %     Body.xArmL(i,:)  = Body.x(i)-roi.r + xArm';
+        %     Body.yArmL(i,:)  = Body.y(i)-roi.r + yArm';
+        
+        % Adjust roi coordinates
+        Body.Rotation.roi(i).rect(1) = Body.x(i)-roi.r+round(xOr);
+        Body.Rotation.roi(i).rect(2) = Body.y(i)-roi.r+round(yOr);
+        Body.Rotation.roi(i).xCntr   = Body.xCntr(i,1);
+        Body.Rotation.roi(i).yCntr   = Body.yCntr(i,1);
+        Body.Rotation.roi(i).xPerimG = Body.Rotation.roi(i).xPerimG + xOr;
+        Body.Rotation.roi(i).yPerimG = Body.Rotation.roi(i).yPerimG + yOr;
+        
+    end
+    
+    % Define output
+    varargout{1} = Body;
+end
 
 
 %%  Find arm address and index for global points

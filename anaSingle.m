@@ -59,12 +59,21 @@ end
 
 %% Catalog sequence videos
 
-%cList = catVidfiles(vidPath);
-
-%cList.fName = 'S004_S001_T007';
+% Go into batch mode, if no filename given
 if nargin<1
-    %cList.fName = 'SS001_S001_T013';
-    cList.fName = 'S005_S001_T011';
+    
+    % Get list of sequences
+    cList = dir([dataPath filesep 'S0*']);
+    
+    % Loop thru cList, running anaSingle
+    for i = 1:length(cList)
+        disp(['Batchmode: running ' cList(i).name]); disp(' ')
+        anaSingle(cList(i).name)
+    end
+    
+    % Stop code
+    return
+    
 else  
     cList.fName = fileName;
 end
@@ -75,15 +84,15 @@ cList.path = '';
 
 % Paths for current sequence
 currDataPath = [dataPath filesep cList.path filesep cList.fName];
-currVidPath  = [vidPath filesep cList.path filesep cList.fName '.' cList.ext];
+%currVidPath  = [vidPath filesep cList.path filesep cList.fName '.' cList.ext];
 
-% Check video path 
-if ~isfile(currVidPath)
-    error(['Video file does not exist at ' currVidPath]);
-end
-
-% Load video info (v)
-v = defineVidObject(currVidPath);
+% % Check video path 
+% if ~isfile(currVidPath)
+%     error(['Video file does not exist at ' currVidPath]);
+% end
+% 
+% % Load video info (v)
+% v = defineVidObject(currVidPath);
 
 
 %% Load data for sequence
@@ -97,6 +106,140 @@ load([currDataPath filesep 'Body, post.mat'])
 % Load F structure
 %load([currDataPath filesep 'post- foot data'])
 load([currDataPath filesep 'post- foot refined'])
+
+
+%% Sequence-specific information
+
+if strcmp(cList.fName,'S005_S001_T011')
+    
+    P.indivNum = 6;
+    
+    % Start and end of bouncing gait (s)
+    P.tBounceStart = 22;
+    P.tBounceEnd   = 32;
+    
+     % Start and end of non-bouncing walking (s)
+    P.tWalkStart = 0;
+    P.tWalkEnd   = 10;
+    
+    % Body mass (kg)
+    P.mass = 10.27e-3;
+    
+    % Calibration constant (m/pix)
+    P.cal = 5.3238e-05;
+    
+    % Total number of tube feet
+    P.numFeet = 20*5;
+    
+elseif strcmp(cList.fName,'S008_S001_T019')
+    
+    P.indivNum = 7;
+    
+    % Start and end of bouncing gait (s)
+    P.tBounceStart = 22;
+    P.tBounceEnd   = 65;
+    
+     % Start and end of non-bouncing walking (s)
+    P.tWalkStart = 0;
+    P.tWalkEnd   = 12;
+    
+    % Body mass (kg)
+    P.mass = 12.98e-3;
+    
+    % Calibration constant (m/pix)
+    P.cal = 5.3238e-05;
+    
+    % Total number of tube feet
+    P.numFeet = 20*5;
+    
+    
+elseif strcmp(cList.fName,'S008_S001_T020')
+    
+    P.indivNum = 7;
+    
+    % Start and end of bouncing gait (s)
+    P.tBounceStart = 20;
+    P.tBounceEnd   = 58;
+    
+     % Start and end of non-bouncing walking (s)
+    P.tWalkStart = 0;
+    P.tWalkEnd   = 12;
+    
+    % Body mass (kg)
+    P.mass = 12.98e-3;
+    
+    % Calibration constant (m/pix)
+    P.cal = 5.3238e-05;
+    
+    % Total number of tube feet
+    P.numFeet = 20*5; 
+    
+elseif strcmp(cList.fName,'S008_S001_T037')
+    
+    P.indivNum = 1;
+    
+    % Start and end of bouncing gait (s)
+    P.tBounceStart = 40;
+    P.tBounceEnd   = 55;
+    
+     % Start and end of non-bouncing walking (s)
+    P.tWalkStart = 0;
+    P.tWalkEnd   = 15;
+    
+    % Body mass (kg)
+    P.mass = 15.32e-3;
+    
+    % Calibration constant (m/pix)
+    P.cal = 5.3238e-05;
+    
+    % Total number of tube feet
+    P.numFeet = 20*5; 
+    
+    
+elseif strcmp(cList.fName,'S007_S001_T051')
+    
+    P.indivNum = 5;
+    
+    % Start and end of bouncing gait (s)
+    P.tBounceStart = 12;
+    P.tBounceEnd   = 40;
+    
+     % Start and end of non-bouncing walking (s)
+    P.tWalkStart = 0;
+    P.tWalkEnd   = 7;
+    
+    % Body mass (kg)
+    P.mass = 16.32e-3;
+    
+    % Calibration constant (m/pix)
+    P.cal = 5.3238e-05;
+    
+    % Total number of tube feet
+    P.numFeet = 20*5; 
+    
+    
+elseif strcmp(cList.fName,'S006_S001_T015')
+    
+    P.indivNum = 3;
+    
+    % Start and end of bouncing gait (s)
+    P.tBounceStart = 15;
+    P.tBounceEnd   = 25;
+    
+     % Start and end of non-bouncing walking (s)
+    P.tWalkStart = nan;
+    P.tWalkEnd   = nan;
+    
+    % Body mass (kg)
+    P.mass = 13.8e-3;
+    
+    % Calibration constant (m/pix)
+    P.cal = 5.3238e-05;
+    
+    % Total number of tube feet
+    P.numFeet = 20*5; 
+
+end
 
 
 %% Visualize trajectory
@@ -345,7 +488,6 @@ if do.footContactMovie
 end
 
 
-
 %% Plot 
 
 if do.drawAllT
@@ -506,9 +648,186 @@ if do.gaitDiagram
     
     %gaitPlot(Body,F,'????')
     
-    gaitAngPlot(Body,F,'????',numPairs)
+    gaitAngPlot(Body,F,cList.fName,numPairs)
     
 end
+
+
+%% Analyze metrics of walking and bouncing
+
+% Min number of feet to include in polar order parameter
+minFeet = 3;
+
+% Frame rate
+frRate = 1./mean(diff(Body.t));
+
+% Extract stats on each contact phase
+fS = contactStats(F,frRate);
+
+% Polar-order parameter
+[OP,nFt] = polarParam(Body,F,fS,frRate,minFeet);
+
+% Indicies for walking and bouncing from Body data
+iBodWalk   = Body.t>=P.tWalkStart & Body.t<=P.tWalkEnd;
+iBodBounce = Body.t>=P.tBounceStart & Body.t<=P.tBounceEnd;
+
+% Speed measurement
+spd = P.cal.*hypot(diff(smooth(Body.xCntr)),...
+                   diff(smooth(Body.yCntr)))...
+                ./diff(Body.t);
+spd = [spd(1); spd];
+
+% Displacement 
+
+% Store speed
+D.meanSpeed.w  = nanmean(spd(iBodWalk));
+D.meanSpeed.b  = nanmean(spd(iBodBounce));
+D.maxSpeed.w   = nanmax(spd(iBodWalk));
+D.maxSpeed.b   = nanmax(spd(iBodBounce));
+
+% Store polar parameter
+D.meanOP.w     = nanmean(OP(iBodWalk));
+D.meanOP.b     = nanmean(OP(iBodBounce));
+
+% Store proportion of feet in contact at each time
+D.nFt.w       = mean(nFt(iBodWalk))   / P.numFeet;
+D.nFt.b       = mean(nFt(iBodBounce)) / P.numFeet;
+
+clear iBodWalk iBodBounce OP
+
+% Indicies in foot data for walking and bouncing
+iWalk   = fS.tEnd>=P.tWalkStart   & fS.tEnd<=P.tWalkEnd;
+iBounce = fS.tEnd>=P.tBounceStart & fS.tEnd<=P.tBounceEnd;
+
+% Store durations
+D.meanDur.w = nanmean((fS.tEnd(iWalk)   - fS.tStart(iWalk)));
+D.meanDur.b = nanmean((fS.tEnd(iBounce) - fS.tStart(iBounce)));
+
+% Save data
+save([currDataPath filesep 'summary stats'],'D');
+
+
+
+
+
+
+function fS = contactStats(F,frRate)
+% Extract stats on each contact phase
+
+% Starting time of the video
+%tMin = F(1).frames(1)./frRate;
+
+j = 1;
+
+% Loop thru feet, saving properties
+for i = 1:length(F)
+    
+     % If there are coodrinates (excluding feet that start at first frame)
+     if max(~isnan(F(i).armNum)) %&& F(i).frames(1)>F(1).frames(1)
+
+         % Mean position along arm
+         fS.armPos(j,1) = mean(F(i).xA);
+        
+         % Arm number
+         fS.armNum(j,1)     = F(i).armNum(1);
+         
+         % Index of current foot
+         fS.ftIdx(j,1) = i;
+         
+         % Start frame
+         fS.frStart(j,1) = F(i).frames(1);
+         
+         % End frame
+         fS.frEnd(j,1) = F(i).frames(end);   
+         
+         % Range of angular diaplacement
+         fS.minAng(j,1) = min(F(i).ftAng);
+         fS.maxAng(j,1) = max(F(i).ftAng);
+         
+         % Body displacement
+         fS.displ(j,1) = range(F(i).xT);
+         
+         % Advance index
+         j = j + 1;     
+     end 
+end
+
+% Start and end times
+fS.tStart  = fS.frStart./frRate;
+fS.tEnd    = fS.frEnd./frRate;
+
+% Calc normalized foot angle
+for i = 1:length(fS.armNum)
+    fS.angNorm{i} = (F(fS.ftIdx(i)).ftAng-fS.minAng(i))./(fS.maxAng(i)-fS.minAng(i));
+end
+
+
+function [OP,nFt] = polarParam(Body,F,fS,frRate,minFeet)
+
+
+% Width of body along x-axis
+normLen = 1*range(Body.xArmTL(1,:));
+
+% Loop thru time values
+for i = 1:length(Body.t)
+
+    % Current frame
+    cFrame = Body.frames(i);
+    
+    % Current time
+    cTime = Body.t(i);
+    
+    % Indicies of foot data include current frame
+    iFeet = cFrame>=fS.frStart & cFrame<=fS.frEnd;
+    
+    % Indicies from F structure
+    iF = fS.ftIdx(iFeet);  
+    
+    % initialize order parameter to zero 
+    z = 0;  
+    
+    % Number of feet in contact
+    nFt(i,1) = length(iF);
+    
+    % If enough feet in contact
+    if ~isempty(iF) && length(iF)>minFeet
+        
+        % Loop thru each matching foot
+        for j = 1:length(iF)
+            
+            % Time values for current foot
+            tVal = F(iF(j)).frames./frRate;
+            
+%             cFtAng(j,1) = 2*pi*interp1(tVal,cAngVal,cTime);
+            
+            % Current normalized power stroke
+            cAngVal = 2.*pi.*(F(iF(j)).ftAng-min(F(iF(j)).ftAng))./...
+                      range(F(iF(j)).ftAng);
+            
+            % Find current angle for this foot
+            cFtAng(j,1) = interp1(tVal,cAngVal,cTime);
+            
+            % Add to order parameter
+            z = z + exp(1i*cFtAng(j));
+            
+            cDispl(j,1) = 1;
+            
+        end    
+        
+        % Normalize x by number of feet
+        z = z/length(iF);
+        
+        % compute absolute value which is the polar order parameter
+        OP(i,1) = abs(z); 
+        
+    else
+        OP(i,1) = nan;
+    end
+    
+    clear iF iFeet cIdx cFrame cDispl
+end
+
+
 
 
 

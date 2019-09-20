@@ -49,6 +49,8 @@ if ~isempty(dir(['/Users/mmchenry/Documents/Matlab code']))
     
     % Path to root of data
     dataPath = '/Users/mmchenry/Documents/Projects/Seastars/CSULB data';
+    
+    
   % remember to undo %%  to run all vids
  elseif ~isempty(dir(['C:\Program Files\MATLAB\R2016a']))
     
