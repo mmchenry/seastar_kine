@@ -215,50 +215,57 @@ if strcmp(pMode,'find arms')
                 % Store local values
                 %B_ft(i).propsL(j).coordL = [xOr yOr];
                 
-                % Indicies for finding match to global
-                iMatch  = 0;
-                minDist = inf;
-                
-                % Loop thru global points
-                for k = 1:length(B_ft(i).propsG)
+                if ~isempty(B_ft(i).propsG)
+                    % Indicies for finding match to global
+                    iMatch  = 0;
+                    minDist = inf;
                     
-                    % Current distance
-                    cDist = hypot(B_ft(i).propsG(k).Centroid(1)-xOr, ...
-                                  B_ft(i).propsG(k).Centroid(2)-yOr);
-                    
-                    % Store index, if closer than previous
-                    if cDist<minDist
-                        % Update min distance
-                        minDist = cDist;
-                        
-                        % Store index
-                        iMatch = k;
-                    end
-                end                
-                
-                % Check by visualizing
-                if 0
+                    % Loop thru global points
                     for k = 1:length(B_ft(i).propsG)
-                        plot(B_ft(i).propsG(k).Centroid(1), ...
-                             B_ft(i).propsG(k).Centroid(2),'ok');
-                        hold on;
+                        
+                        % Current distance
+                        cDist = hypot(B_ft(i).propsG(k).Centroid(1)-xOr, ...
+                            B_ft(i).propsG(k).Centroid(2)-yOr);
+                        
+                        % Store index, if closer than previous
+                        if cDist<minDist
+                            % Update min distance
+                            minDist = cDist;
+                            
+                            % Store index
+                            iMatch = k;
+                        end
                     end
-                    plot(B_ft(i).propsG(iMatch).Centroid(1), ...
-                         B_ft(i).propsG(iMatch).Centroid(2),'r+');
-                    plot(xOr,yOr,'ro');
-                    axis equal; hold off
+                    
+                    % Check by visualizing
+                    if 0
+                        for k = 1:length(B_ft(i).propsG)
+                            plot(B_ft(i).propsG(k).Centroid(1), ...
+                                B_ft(i).propsG(k).Centroid(2),'ok');
+                            hold on;
+                        end
+                        plot(B_ft(i).propsG(iMatch).Centroid(1), ...
+                            B_ft(i).propsG(iMatch).Centroid(2),'r+');
+                        plot(xOr,yOr,'ro');
+                        axis equal; hold off
+                    end
+                    
+                    % Store global data that matches local data
+                    for fn = fieldnames(B_ft(i).propsG(iMatch))'
+                        B(i).G(j,1).(fn{1}) = B_ft(i).propsG(iMatch).(fn{1});
+                    end
+                    
+                    % Matching coordinate
+                    xMatch = B_ft(i).propsG(iMatch).Centroid(1);
+                    yMatch = B_ft(i).propsG(iMatch).Centroid(2);
+                    
+                    cOffset(j,:) = [xOr-xMatch yOr-yMatch];
+                    
+                else
+                    
+                    cOffset(j,:) = [nan nan];
+                    
                 end
-                
-                % Store global data that matches local data
-                for fn = fieldnames(B_ft(i).propsG(iMatch))'
-                    B(i).G(j,1).(fn{1}) = B_ft(i).propsG(iMatch).(fn{1});
-                end
-                
-                % Matching coordinate
-                xMatch = B_ft(i).propsG(iMatch).Centroid(1);
-                yMatch = B_ft(i).propsG(iMatch).Centroid(2);
-                
-                cOffset(j,:) = [xOr-xMatch yOr-yMatch];
                 
                 % Store matching index from global coordinates
 %                 B_ft(i).propsL(j).iG = iMatch;
@@ -279,7 +286,15 @@ if strcmp(pMode,'find arms')
                 end
             end
             
-            B(i).cOffset = mean(cOffset);
+            if exist('cOffset','var')
+                B(i).cOffset = nanmean(cOffset,1);
+            else
+                B(i).cOffset = [nan nan];
+            end
+            
+            if length(B(i).cOffset)==1
+                error('cOffset is too short');
+            end
             
             clear cOffset
         end
@@ -368,6 +383,15 @@ if strcmp(pMode,'connect')
             break
         end
     end
+    
+    % Find ending frame
+    for i = 1:length(B_ft)
+        if (i>iStart) && max(isnan(B_ft(i).cOffset))
+            break
+        else
+            iEnd = i;
+        end
+    end
 
     
     % Current frame's global properties
@@ -383,7 +407,7 @@ if strcmp(pMode,'connect')
 %     currG = nextG;
   
     % Loop thru time
-    for i = iStart:(length(B_ft)-1)       
+    for i = iStart:(iEnd-1)       
         
         % Next frame's global properties
         nextG = B_ft(i+1).G;
@@ -421,6 +445,10 @@ if strcmp(pMode,'connect')
     
     while iStart<(length(B_ft)-1)
         
+        if ~isfield(B_ft(i).G(j),'Centroid')
+            break
+        end
+        
         % Store away coordinates and frame number
         F(iFoot).frames(iFrame,1) = B_ft(i).fr_num;
         F(iFoot).xG(iFrame,1)     = B_ft(i).G(j).Centroid(1);
@@ -434,7 +462,7 @@ if strcmp(pMode,'connect')
         B_ft(i).G(j).used = 1;
         
         % If index for next exists . . .
-        if ~isnan(B_ft(i).G(j).iNext)
+        if isfield(B_ft(i).G(j),'iNext') && ~isnan(B_ft(i).G(j).iNext)
             % Advance index for frame on A
             iFrame = iFrame + 1;
             
@@ -474,7 +502,7 @@ if strcmp(pMode,'connect')
                 end
                 
                 % If there is an unused foot, break
-                if isfoot
+                if isfoot || (i>iEnd-1)
                     break
                     
                 % If no match starting at iStart
