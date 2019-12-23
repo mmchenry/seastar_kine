@@ -10,20 +10,20 @@ do.MakeCentroidMovie = 0;
 do.MakeRotationMovies = 0;
 
 % Make movie of foot tracking
-do.MakeFootMovie = 0;
+do.MakeFootMovie = 1;
 
 % Make movie of foot tracking for a presentation
-do.MakeFootMoviePretty = 1;
+do.MakeFootMoviePretty = 0;
 
 % Make movie to evaluate centroid and rotation tracking, after
 % post-processing
-do.MakeFootMoviePost = 1;
+do.MakeFootMoviePost = 0;
 
 % Re-run the rotation anlysis from the beginning 
 reRunRotation = 0;
 
 % Visualize frames to survey all steps of the analysis
-do.anaSurvey = 0;
+do.anaSurvey = 1;
 
 % Visualize steps of analysis executed
 visSteps = 0;
@@ -93,13 +93,13 @@ elseif isfolder('C:\Users\tpo\Documents\seastar_kine')
     % Path to root of data
     dataPath = 'C:\Users\tpo\Documents\Chip sea star data\prelim data';
 
-elseif isfolder('/Users/tpo/Documents/seastar_kine')
+elseif isfolder('C:\Users\McHenryLab\Documents\GitHub\seastar_kine')
     
     % Path to root dir of video (CSULB project, external drive)
-    vidPath = '/Users/tpo/Documents/Video/Chip sea stars/prelim video';
+    vidPath = 'C:\Users\McHenryLab\Documents\Seastar\SICB2020\floats\videos';
 
     % Path to root of data
-    dataPath = '/Users/tpo/Documents/Chip sea star data/prelim data';
+    dataPath = 'C:\Users\McHenryLab\Documents\Seastar\SICB2020\floats\data';
 
 else
     
@@ -115,7 +115,7 @@ end
 %cList.fName = 'S004_S001_T007';
 if nargin<1
     %cList.fName = 'SS001_S001_T013';
-    cList.fName = 'S002_S001_T003';
+    cList.fName = 'STUDIO0_S009_S001_T020';
 else
     
     cList.fName = fileName;
@@ -319,6 +319,14 @@ else
     % Load body kinematics (Body)
     load([currDataPath filesep 'Body.mat'])
     
+    % Make sure post-processing done
+    if ~isfield(Body,'xCntr')
+        % Apply post-processing
+        Body = rotationPostProcess(Body,v,iC);
+        
+        % Save with post-processing
+        save([currDataPath filesep 'Body.mat'],'Body')
+    end
 end
 
 
@@ -456,7 +464,7 @@ if ~isfile([currDataPath filesep 'foot blobs.mat'])
         visSteps,imInvert,imStack);
     
     % Save data
-    save([currDataPath filesep 'foot blobs'],'-v7.3','B_ft');
+    save([currDataPath filesep 'foot blobs'],'-v7.3','B_ft')
     
     % Visualize a bunch of frames to check results
     surveyData(currVidPath,v,0,'Feet',Body,B_ft,numVis);
