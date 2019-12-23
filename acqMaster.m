@@ -10,7 +10,7 @@ do.MakeCentroidMovie = 0;
 do.MakeRotationMovies = 0;
 
 % Make movie of foot tracking
-do.MakeFootMovie = 1;
+do.MakeFootMovie = 0;
 
 % Make movie of foot tracking for a presentation
 do.MakeFootMoviePretty = 0;
@@ -23,7 +23,7 @@ do.MakeFootMoviePost = 0;
 reRunRotation = 0;
 
 % Visualize frames to survey all steps of the analysis
-do.anaSurvey = 1;
+do.anaSurvey = 0;
 
 % Visualize steps of analysis executed
 visSteps = 0;
@@ -540,6 +540,23 @@ end
 % Visualize result
 % surveyData(currVidPath,v,0,'Individual feet',Body,B_ft,numVis);
 
+%% Define frames used
+
+% Load B2
+load([currDataPath filesep 'post- arms'])
+
+% Get index of frames used
+for i = 1:length(B2)
+    if isempty(B2(i).frIdx)
+        iFrames(i) = 0==1;
+    else
+        iFrames(i) = 1==1;
+    end
+end
+
+% Save data
+save([currDataPath filesep 'Frames used'],'iFrames')
+
 
 %% Make movie of individual feet, after post-processing
 
@@ -587,7 +604,7 @@ if do.MakeFootMoviePost
 %         'Global feet',Body,visSteps,B_ft);
 
     
-    clear Body B2 F
+    clear B2 F
 
 end
 
@@ -628,6 +645,16 @@ end
 %% Visualize frames from all steps of the analysis
 
 if do.anaSurvey
+    
+    if ~exist('Body','var')
+         % Load Body
+         load([currDataPath filesep 'Body, post.mat'])
+    end
+    
+    if ~exist('B_ft','var')
+        % Load data of feet (B_ft)
+        load([currDataPath filesep 'foot blobs'])
+    end
     
     % Number of frames to visualize
     numVis = 16;
