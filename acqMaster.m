@@ -13,11 +13,11 @@ do.MakeRotationMovies = 0;
 do.MakeFootMovie = 0;
 
 % Make movie of foot tracking for a presentation
-do.MakeFootMoviePretty = 1;
+do.MakeFootMoviePretty = 0;
 
 % Make movie to evaluate centroid and rotation tracking, after
 % post-processing
-do.MakeFootMoviePost = 1;
+do.MakeFootMoviePost = 0;
 
 % Re-run the rotation anlysis from the beginning 
 reRunRotation = 0;
@@ -93,13 +93,13 @@ elseif isfolder('C:\Users\tpo\Documents\seastar_kine')
     % Path to root of data
     dataPath = 'C:\Users\tpo\Documents\Chip sea star data\prelim data';
 
-elseif isfolder('/Users/tpo/Documents/seastar_kine')
+elseif isfolder('C:\Users\McHenryLab\Documents\GitHub\seastar_kine')
     
     % Path to root dir of video (CSULB project, external drive)
-    vidPath = '/Users/tpo/Documents/Video/Chip sea stars/prelim video';
+    vidPath = 'C:\Users\McHenryLab\Documents\Seastar\SICB2020\floats\videos';
 
     % Path to root of data
-    dataPath = '/Users/tpo/Documents/Chip sea star data/prelim data';
+    dataPath = 'C:\Users\McHenryLab\Documents\Seastar\SICB2020\floats\data';
 
 else
     
@@ -115,7 +115,7 @@ end
 %cList.fName = 'S004_S001_T007';
 if nargin<1
     %cList.fName = 'SS001_S001_T013';
-    cList.fName = 'S002_S001_T003';
+    cList.fName = 'STUDIO0_S009_S001_T020';
 else
     
     cList.fName = fileName;
@@ -320,6 +320,14 @@ else
     % Load body kinematics (Body)
     load([currDataPath filesep 'Body.mat'])
     
+    % Make sure post-processing done
+    if ~isfield(Body,'xCntr')
+        % Apply post-processing
+        Body = rotationPostProcess(Body,v,iC);
+        
+        % Save with post-processing
+        save([currDataPath filesep 'Body.mat'],'Body')
+    end
 end
 
 
@@ -457,7 +465,7 @@ if ~isfile([currDataPath filesep 'foot blobs.mat'])
         visSteps,imInvert,imStack);
     
     % Save data
-    save([currDataPath filesep 'foot blobs'],'-v7.3','B_ft');
+    save([currDataPath filesep 'foot blobs'],'-v7.3','B_ft')
     
     % Visualize a bunch of frames to check results
     surveyData(currVidPath,v,0,'Feet',Body,B_ft,numVis);
@@ -533,6 +541,23 @@ end
 % Visualize result
 % surveyData(currVidPath,v,0,'Individual feet',Body,B_ft,numVis);
 
+%% Define frames used
+
+% Load B2
+load([currDataPath filesep 'post- arms'])
+
+% Get index of frames used
+for i = 1:length(B2)
+    if isempty(B2(i).frIdx)
+        iFrames(i) = 0==1;
+    else
+        iFrames(i) = 1==1;
+    end
+end
+
+% Save data
+save([currDataPath filesep 'Frames used'],'iFrames')
+
 
 %% Make movie of individual feet, after post-processing
 
@@ -580,7 +605,7 @@ if do.MakeFootMoviePost
 %         'Global feet',Body,visSteps,B_ft);
 
     
-    clear Body B2 F
+    clear B2 F
 
 end
 
@@ -621,6 +646,16 @@ end
 %% Visualize frames from all steps of the analysis
 
 if do.anaSurvey
+    
+    if ~exist('Body','var')
+         % Load Body
+         load([currDataPath filesep 'Body, post.mat'])
+    end
+    
+    if ~exist('B_ft','var')
+        % Load data of feet (B_ft)
+        load([currDataPath filesep 'foot blobs'])
+    end
     
     % Number of frames to visualize
     numVis = 16;

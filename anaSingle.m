@@ -15,7 +15,7 @@ do.drawAllT = 0;
 do.rosePlot = 0;
 
 % Gait diagram
-do.gaitDiagram = 0;
+do.gaitDiagram = 1;
 
 % Create animation of foot contacts
 do.footContactMovie = 0;

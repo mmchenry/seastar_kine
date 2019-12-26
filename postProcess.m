@@ -386,7 +386,9 @@ if strcmp(pMode,'connect')
     
     % Find ending frame
     for i = 1:length(B_ft)
-        if (i>iStart) && max(isnan(B_ft(i).cOffset))
+        if (i>iStart) && ~isempty(isnan(B_ft(i).cOffset)) && max(isnan(B_ft(i).cOffset))
+            break
+        elseif (i>iStart) && isempty(isnan(B_ft(i).cOffset))
             break
         else
             iEnd = i;
