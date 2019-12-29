@@ -13,7 +13,7 @@ do.MakeRotationMovies = 0;
 do.MakeFootMovie = 0;
 
 % Make movie of foot tracking for a presentation
-do.MakeFootMoviePretty = 0;
+do.MakeFootMoviePretty = 1;
 
 % Make movie to evaluate centroid and rotation tracking, after
 % post-processing
@@ -74,48 +74,19 @@ blobParam.AR_max  = 6;
 
 %% Manage paths (need to modify for new PC)
    
-if ~isempty(dir(['/Users/mmchenry/Documents/Matlab code']))
+paths = givePaths;
 
-    % Path to root dir of video (CSULB project, external drive)
-    vidPath = '/Users/mmchenry/Documents/Video/Chip sea stars/prelim video';
-    
-    % Location of video frames
-    %vidFramePath = '/Users/mmchenry/Documents/Video/Chip sea stars/prelim video/video frames';
-    
-    % Path to root of data
-    dataPath = '/Users/mmchenry/Documents/Projects/Chip sea stars/prelim data';
-
-elseif isfolder('C:\Users\tpo\Documents\seastar_kine')
-    
-    % Path to root dir of video (CSULB project, external drive)
-    vidPath = 'C:\Users\tpo\Documents\Video\Chip sea stars\prelim video';
-
-    % Path to root of data
-    dataPath = 'C:\Users\tpo\Documents\Chip sea star data\prelim data';
-
-elseif isfolder('C:\Users\McHenryLab\Documents\GitHub\seastar_kine')
-    
-    % Path to root dir of video (CSULB project, external drive)
-    vidPath = 'C:\Users\McHenryLab\Documents\Seastar\SICB2020\floats\videos';
-
-    % Path to root of data
-    dataPath = 'C:\Users\McHenryLab\Documents\Seastar\SICB2020\floats\data';
-
-else
-    
-    error('Do not recognize computer')
-    
-end
 
 
 %% Catalog sequence videos
 
-%cList = catVidfiles(vidPath);
+%cList = catVidfiles(paths.vid);
 
 %cList.fName = 'S004_S001_T007';
 if nargin<1
     %cList.fName = 'SS001_S001_T013';
-    cList.fName = 'STUDIO0_S009_S001_T020';
+    %cList.fName = 'STUDIO0_S009_S001_T020';
+    cList.fName = ['weights' filesep 'STUDIO0_S009_S001_T009'];
 else
     
     cList.fName = fileName;
@@ -125,8 +96,8 @@ cList.movtype = 'mov';
 cList.path = '';
 
 % Paths for current sequence
-currDataPath = [dataPath filesep cList.path filesep cList.fName];
-currVidPath  = [vidPath filesep cList.path filesep cList.fName '.' cList.ext];
+currDataPath = [paths.data filesep cList.path filesep cList.fName];
+currVidPath  = [paths.vid filesep cList.path filesep cList.fName '.' cList.ext];
 
 % Check video path 
 if ~isfile(currVidPath)
@@ -200,10 +171,28 @@ if ~isfile([currDataPath filesep 'Initial conditions.mat']) && ...
     iC.r       = r;
     iC.useMean = 0;
     
+    
+    % First image
+    im = getFrame(currVidPath,v,v.UserData.FirstFrame,imInvert,'gray');
+    
+    % Binary
+    bw = ~imbinarize(im,iC.tVal);
+    bw = imfill(bw,'holes');
+    bw = bwselect(bw,iC.x,iC.y);
+    
+    % Survey blobs
+    props = regionprops(bw,'Area');
+    
+    if length(props)>1
+        error('Too many blobs')
+    else
+        iC.area = props.Area;
+    end
+    
     % Save data
     save([currDataPath filesep 'Initial conditions'],'iC')
     
-    clear im useMean im0Mean im0NoMean x y tVal r iC
+    clear im useMean im0Mean im0NoMean x y tVal r
     disp(' ')
     
 else
@@ -228,8 +217,8 @@ if ~isfile([currDataPath filesep 'Centroid.mat'])
     roi0 = giveROI('define','circular',numroipts,iC.r,iC.x,iC.y);
     
     % Run tracker code for centroid
-    Centroid = tracker(currVidPath,v,imInvert,'threshold translation',...
-        roi0,iC.tVal,frames);
+    Centroid = trackCenter(currVidPath,v,imInvert,'threshold translation',...
+        roi0,iC,frames);
 
    % Define roi for each frame
     for i = 1:length(Centroid.x)
@@ -366,8 +355,16 @@ interval_fr = [min(Body.frames):meanDr_fr:max(Body.frames)]';
 % Extend duration of last interval
 interval_fr = [interval_fr(1:end-1); max(Body.frames)];
 
+% Path for mean images
+mPath = [currDataPath filesep 'mean_images'];
+
 % Create mean images over regular interval of movie -----------
-if ~isfile([currDataPath filesep 'mean_roi.mat'])
+if ~isfolder([currDataPath filesep 'mean_images'])
+    
+    % Make directory
+    if ~isfolder(mPath)
+        mkdir(mPath);
+    end
     
     % Loop thru intervals
     for i = 1:(length(interval_fr)-1)
@@ -376,99 +373,109 @@ if ~isfile([currDataPath filesep 'mean_roi.mat'])
         disp(['INTERVAL ' num2str(i) ' of ' num2str(length(interval_fr)-1)])
         
         % Interval of mean image
-        roiM(i).frStart = interval_fr(i);
-        roiM(i).frEnd   = interval_fr(i+1);
+        roiM.frStart = interval_fr(i);
+        roiM.frEnd   = interval_fr(i+1);
         
         % Range of frames
-        dFrame = round(range([roiM(i).frStart  roiM(i).frEnd])./numMean);
+        dFrame = round(range([roiM.frStart  roiM.frEnd])./numMean);
         
         % Frame numbers
-        roiM(i).frames = [roiM(i).frStart:dFrame:roiM(i).frEnd]';
+        roiM.frames = [roiM.frStart:dFrame:roiM.frEnd]';
         
         % Calc mean image
         [imMean,imStd] = motionImage(currVidPath,v,'mean roi','none',imInvert,...
-                        Body,dSample,roiM(i).frames);
+                        Body,dSample,roiM.frames);
                     
         % Store
-        roiM(i).im    = imMean;
-        roiM(i).imStd = imStd;
+        roiM.im    = imMean;
+        roiM.imStd = imStd;
         
-        clear imMean imStd                   
+        % Strings for starting and ending frames
+        frStartStr = ['00000' num2str(roiM.frStart)];
+        frStartStr = frStartStr(end-5:end);
+        frEndStr   = ['00000' num2str(roiM.frEnd)];
+        frEndStr   = frEndStr(end-5:end);
+        
+        % Current filename
+        fName = ['mean_image_' frStartStr '_' frEndStr];
+        
+        % Save data
+        save([mPath filesep fName],'roiM');
+        
+        clear imMean imStd fName frStartStr frEndStr roiM                   
     end
 
-    % Save data
-    save([currDataPath filesep 'mean_roi'],'roiM');
+    clear dSample meanDr_fr interval_fr streakDur numMean mPath
     
-    clear dSample meanDr_fr interval_fr streakDur numMean
-    
-% Otherwise
-else
-    
-    % Load mean images (roiM)
-    load([currDataPath filesep 'mean_roi.mat'])
 end
 
 
 %% Foot tracking step 2: mask for feet applied to global FOR
 % Creates local mask that excludes stationary objects 
 
-if ~isfile([currDataPath filesep 'blobs.mat'])
+if ~isfolder([currDataPath filesep 'blobs']) 
       
     % Downsample
     dSample = 0;
+    
+    % Path for mean images
+    mPath = [currDataPath filesep 'mean_images'];
 
     % Load initial conditions (iC)
     load([currDataPath filesep 'Initial conditions'])
     
-    % Run blob analysis
-    B = anaBlobs(currVidPath,v,'G&L props',Body,blobParam,imInvert,...
-        dSample,roiM,visSteps,iC);
+    % Path for saving blobs
+    savePath = [currDataPath filesep 'blobs'];
     
-    % Save blob data
-    save([currDataPath filesep 'blobs'],'-v7.3','B');
-      
+    % Run blob analysis
+    anaBlobs(currVidPath,v,'G&L props',Body,blobParam,imInvert,...
+        dSample,mPath,visSteps,iC,savePath);   
 end
 
 % Produce data for motion images im imStack
-if ~isfile([currDataPath filesep 'motion image data.mat'])
-
-     % Load blob data (B)
-    load([currDataPath filesep 'blobs']) 
+if ~isfolder([currDataPath filesep 'mask_static'])
+    
+    % Path for motion images
+    motionPath = [currDataPath filesep 'mask_static'];
+    
+    % Path to blob data
+    blobPath = [currDataPath filesep 'blobs'];
     
     % Load initial conditions (iC)
     load([currDataPath filesep 'Initial conditions'])
     
-    % Produce image stack
-    imStack = motionImage(currVidPath,v,'mask static',Body,B, ...
-                   imInvert,iC);
- 
-    % Save images to be analyzed
-    save([currDataPath filesep 'motion image data'],'-v7.3','imStack');
+    tStart = tic;
     
-    clear imStack B
+    % Produce image stack
+    motionImageStack(currVidPath,v,'mask static',Body,blobPath, ...
+                   imInvert,iC,motionPath,strakDr_fr);
+    disp(' ');
+    disp(['Time (min) = ' num2str(toc(tStart)/60)])
+ 
 end
 
 
 %% Foot tracking step 3: Track feet
 
 % Loop thru frames, track feet --------------------------------------------
-if ~isfile([currDataPath filesep 'foot blobs.mat'])
+if ~isfolder([currDataPath filesep 'foot_blobs'])
     
     % Load blob data (B)
-    load([currDataPath filesep 'blobs'])  
+%     load([currDataPath filesep 'blobs'])  
     
     % Load imStack
-    load([currDataPath filesep 'motion image data'])
+%     load([currDataPath filesep 'motion image data'])
     
+
     % Store linked feet in B_ft
-    B_ft = anaBlobs(currVidPath,v,'filter motion',B,strakDr_fr,Body,blobParam,...
-        visSteps,imInvert,imStack);
+    anaBlobs(currVidPath,v,'filter motion',currDataPath,strakDr_fr,Body,blobParam,...
+        visSteps,imInvert);
     
     % Save data
-    save([currDataPath filesep 'foot blobs'],'-v7.3','B_ft')
+    %save([currDataPath filesep 'foot blobs'],'-v7.3','B_ft')
     
     % Visualize a bunch of frames to check results
-    surveyData(currVidPath,v,0,'Feet',Body,B_ft,numVis);
+    surveyData(currVidPath,v,0,'Feet',currDataPath,Body,numVis);
     
     clear B B_ft imStack
        
@@ -481,16 +488,16 @@ end
 dist_thresh = 5;
 
 % Arm number assignment ------------------------------------------
-if 1 %~isfile([currDataPath filesep 'post- arms.mat'])
+if ~isfile([currDataPath filesep 'post- arms.mat'])
     
-    % Load data of feet (B_ft)
-    load([currDataPath filesep 'foot blobs'])
+    % Path to data of feet (B_ft)
+    Bpath = [currDataPath filesep 'foot_blobs'];
     
     % Update status
     disp('postProcess: Finding arm numbers . . .')
     
     % Find arm numbers and matching global data
-    B2 = postProcess('find arms',Body,iC,B_ft);
+    B2 = postProcess('find arms',Body,iC,Bpath);
     
     % Save data
     save([currDataPath filesep 'post- arms'],'-v7.3','B2')
@@ -505,13 +512,13 @@ if 1 %~isfile([currDataPath filesep 'post- arms.mat'])
     save([currDataPath filesep 'Body, post.mat'],'-v7.3','Body')
     
     % Visual check with a random frame
-    visArms(currVidPath,v,Body,B2,200)
+    %visArms(currVidPath,v,Body,B2,200)
     
     clear B2 B_ft
 end
 
 % Connect blobs across frames --------------
-if 1 %~isfile([currDataPath filesep 'post- foot refined.mat'])
+if ~isfile([currDataPath filesep 'post- foot refined.mat'])
     
     % Load B2
     load([currDataPath filesep 'post- arms'])
@@ -534,7 +541,7 @@ if 1 %~isfile([currDataPath filesep 'post- foot refined.mat'])
     % Save data
     save([currDataPath filesep 'post- foot refined'],'F')
     
-    clear Body B2 F
+    clear B2 F
     
 end
 
@@ -543,17 +550,11 @@ end
 
 %% Define frames used
 
-% Load B2
-load([currDataPath filesep 'post- arms'])
+% Get listing of frame numbers
+[a,frNums] = fileList([currDataPath filesep 'foot_blobs'],'foot_blobs');
 
-% Get index of frames used
-for i = 1:length(B2)
-    if isempty(B2(i).frIdx)
-        iFrames(i) = 0==1;
-    else
-        iFrames(i) = 1==1;
-    end
-end
+% Index for frames
+iFrames = Body.frames>=frNums(1) & Body.frames<=frNums(end);
 
 % Save data
 save([currDataPath filesep 'Frames used'],'iFrames')
@@ -575,18 +576,18 @@ if do.MakeFootMoviePost
     % Load F
     load([currDataPath filesep 'post- foot refined'])
     
-    % Get index of frames used
-    for i = 1:length(B2)
-        if isempty(B2(i).frIdx)
-            iFrames(i) = 0==1;
-        else
-            iFrames(i) = 1==1;
-        end
-    end
-    
-    % Save data
-    save([currDataPath filesep 'Frames used'],'iFrames')
-    
+%     % Get index of frames used
+%     for i = 1:length(B2)
+%         if isempty(B2(i).frIdx)
+%             iFrames(i) = 0==1;
+%         else
+%             iFrames(i) = 1==1;
+%         end
+%     end
+%     
+%     % Save data
+%     save([currDataPath filesep 'Frames used'],'iFrames')
+%     
     clear B2
 
     % File name of movie to be created
@@ -618,7 +619,7 @@ if do.MakeFootMoviePretty
     imInvert = 0;
 
     % Load iFrames
-    load([currDataPath filesep 'Frames used'])
+%     load([currDataPath filesep 'Frames used'])
     
     % Load F data
     load([currDataPath filesep 'post- foot refined']);
@@ -810,7 +811,7 @@ if isempty(dir([currDataPath filesep 'clipInfo.mat']))
         
         if getDefaults
             % Current path
-%             currVidPath = [vidPath filesep cList.path{i} filesep ...
+%             currVidPath = [paths.vid filesep cList.path{i} filesep ...
 %                 cList.fName{i} cList.ext{i}];
             
             % Current video object
@@ -844,7 +845,7 @@ if isempty(dir([currDataPath filesep 'clipInfo.mat']))
             firstFrame = nan;
             lastFrame  = nan;
             
-            break
+            return
             
         else
             return
@@ -1057,4 +1058,23 @@ end
 
 if novid==1
     error('No video files found')
+end
+
+function [a,frNums] = fileList(fPath,fPrefix)
+
+frNums = [];
+
+% File listing
+a = dir([fPath filesep fPrefix '*']);
+
+% Loop trhu files
+for i = 1:length(a)
+    
+    % Index of separator
+    iSep = find(a(i).name=='_',1,'last');
+    
+    % Get frame number
+    a(i).frNum = str2num(a(i).name((iSep+1):end-4));
+    
+    frNums = [frNums; a(i).frNum];
 end

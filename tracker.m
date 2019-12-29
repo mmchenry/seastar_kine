@@ -329,7 +329,7 @@ for i = 1:length(frames)
         % Apply mask
         im(~bwTank) = 255;
         
-        clear bwTank
+       % clear bwTank
     end
     
     % Threshold method: find centroid coordinates
@@ -430,7 +430,7 @@ for i = 1:length(frames)
         cY = props.Centroid(2);
         
         % Clear for next loop
-        clear tmp_x tmp_y
+        %clear tmp_x tmp_y
         
     % body rotation method: 
     elseif strcmp(method,'body rotation')

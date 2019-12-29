@@ -14,10 +14,10 @@ if strcmp(pMode,'post rotation')
 
 elseif strcmp(pMode,'find arms')
     
-    Body = varargin{1};
-    iC   = varargin{2};
-    B_ft = varargin{3};
-    
+    Body   = varargin{1};
+    iC     = varargin{2};
+    bPath  = varargin{3};
+    fName  = 'foot_blobs';
     
 elseif strcmp(pMode,'add arms')
     
@@ -177,55 +177,64 @@ if strcmp(pMode,'find arms')
     % Body diameter
     bDiam = 2*max(hypot(iC.xArms-iC.x,iC.yArms-iC.y));
     
-    % ASSIGN ARM NUMBERS ------------------------------------------------------
+    % Get listing of blob data files
+    a = blobList(bPath,'foot_blobs');
+    
+    % ASSIGN ARM NUMBERS (stored in B) ------------------------------------
     
     % Loop thru all frames
-    for i = 1:length(B_ft)
+    for i = 1:length(a)       
         
-        B(i).fr_num = B_ft(i).fr_num;
-        B(i).frIdx  = B_ft(i).frIdx;
+        % Current frame number
+        B(i).fr_num = a(i).frNum;
+        
+        % Index for current frame 
+        iFrame = Body.frames == a(i).frNum;
+        
+        % Load B_ft for current frame
+        load([bPath filesep a(i).name])
         
         % Store properties of local blobs
-        B(i).L = B_ft(i).propsL;
+        B(i).L = B_ft.propsL;
         
         % If there is data . . .
-        if ~isempty(B_ft(i).frIdx)
+        if ~isempty(B_ft.frIdx)
             
             % Current transformation matrix
-            tform = Body.Rotation.tform(i);
+            tform = Body.Rotation.tform(iFrame);
             
             % Current region of interest
-            roi = Body.Rotation.roi(i);
+            roi = Body.Rotation.roi(iFrame);
             
             % Loop thru each blob
-            for j = 1:length(B_ft(i).propsL)
+            for j = 1:length(B_ft.propsL)
                 
                 % Current local coordinates for foot
-                xC = B_ft(i).propsL(j).Centroid(1);
-                yC = B_ft(i).propsL(j).Centroid(2);
+                xC = B_ft.propsL(j).Centroid(1);
+                yC = B_ft.propsL(j).Centroid(2);
                 rC = atan2(yC-yO,xC-xO);
                 
                 % Transform local to global points
                 [xOr,yOr] = transformPointsInverse(tform,xC-roi.r,yC-roi.r);
                 
                 % Translate by center of roi
-                xOr = xOr  + Body.xCntr(i);
-                yOr = yOr  + Body.yCntr(i);
+                xOr = xOr  + Body.xCntr(iFrame);
+                yOr = yOr  + Body.yCntr(iFrame);
                 
                 % Store local values
-                %B_ft(i).propsL(j).coordL = [xOr yOr];
+                %B_ft.propsL(j).coordL = [xOr yOr];
                 
-                if ~isempty(B_ft(i).propsG)
+                if ~isempty(B_ft.propsG)
                     % Indicies for finding match to global
                     iMatch  = 0;
                     minDist = inf;
                     
                     % Loop thru global points
-                    for k = 1:length(B_ft(i).propsG)
+                    for k = 1:length(B_ft.propsG)
                         
                         % Current distance
-                        cDist = hypot(B_ft(i).propsG(k).Centroid(1)-xOr, ...
-                            B_ft(i).propsG(k).Centroid(2)-yOr);
+                        cDist = hypot(B_ft.propsG(k).Centroid(1)-xOr, ...
+                            B_ft.propsG(k).Centroid(2)-yOr);
                         
                         % Store index, if closer than previous
                         if cDist<minDist
@@ -239,25 +248,25 @@ if strcmp(pMode,'find arms')
                     
                     % Check by visualizing
                     if 0
-                        for k = 1:length(B_ft(i).propsG)
-                            plot(B_ft(i).propsG(k).Centroid(1), ...
-                                B_ft(i).propsG(k).Centroid(2),'ok');
+                        for k = 1:length(B_ft.propsG)
+                            plot(B_ft.propsG(k).Centroid(1), ...
+                                B_ft.propsG(k).Centroid(2),'ok');
                             hold on;
                         end
-                        plot(B_ft(i).propsG(iMatch).Centroid(1), ...
-                            B_ft(i).propsG(iMatch).Centroid(2),'r+');
+                        plot(B_ft.propsG(iMatch).Centroid(1), ...
+                            B_ft.propsG(iMatch).Centroid(2),'r+');
                         plot(xOr,yOr,'ro');
                         axis equal; hold off
                     end
                     
                     % Store global data that matches local data
-                    for fn = fieldnames(B_ft(i).propsG(iMatch))'
-                        B(i).G(j,1).(fn{1}) = B_ft(i).propsG(iMatch).(fn{1});
+                    for fn = fieldnames(B_ft.propsG(iMatch))'
+                        B(i).G(j,1).(fn{1}) = B_ft.propsG(iMatch).(fn{1});
                     end
                     
                     % Matching coordinate
-                    xMatch = B_ft(i).propsG(iMatch).Centroid(1);
-                    yMatch = B_ft(i).propsG(iMatch).Centroid(2);
+                    xMatch = B_ft.propsG(iMatch).Centroid(1);
+                    yMatch = B_ft.propsG(iMatch).Centroid(2);
                     
                     cOffset(j,:) = [xOr-xMatch yOr-yMatch];
                     
@@ -268,7 +277,7 @@ if strcmp(pMode,'find arms')
                 end
                 
                 % Store matching index from global coordinates
-%                 B_ft(i).propsL(j).iG = iMatch;
+%                 B_ft.propsL(j).iG = iMatch;
                 
                 % Loop thru arms to find a match
                 for k = 1:5
@@ -314,17 +323,22 @@ if strcmp(pMode,'add arms')
 
 xArmL = Body.xArmL;
 yArmL = Body.yArmL;
+
+Body.xArmG = nan(length(Body.frames),5);
+Body.yArmG = nan(length(Body.frames),5);
     
 % Loop thru time
-for i = 1:length(Body.frames)
+for i = 1:length(B2)
+    
+    iFrame = B2(i).fr_num == Body.frames;
     
     % Current roi and tform
-    roi   = Body.Rotation.roi(i);
-    tform = Body.Rotation.tform(i);
+    roi   = Body.Rotation.roi(iFrame);
+    tform = Body.Rotation.tform(iFrame);
     
     % Current body center
-    xCntr = Body.xCntr(i);
-    yCntr = Body.yCntr(i);
+    xCntr = Body.xCntr(iFrame);
+    yCntr = Body.yCntr(iFrame);
     
     % Current offset
     if isempty(B2(i).cOffset)
@@ -337,8 +351,8 @@ for i = 1:length(Body.frames)
     [xArmsG,yArmsG] = local2global(xCntr,yCntr,cOffset,tform,roi,xArmL,yArmL);
     
     % Store result
-    Body.xArmG(i,:) = xArmsG;
-    Body.yArmG(i,:) = yArmsG;
+    Body.xArmG(iFrame,:) = xArmsG;
+    Body.yArmG(iFrame,:) = yArmsG;
     
     % Visual to test the transformation
     if 0
@@ -376,28 +390,32 @@ end
 
 if strcmp(pMode,'connect')
     
-    % Find starting frame
-    for i = 1:length(B_ft)
-        if ~isnan(B_ft(i).frIdx)
-            iStart = i;
-            break
-        end
-    end
+%     % Find starting frame
+%     for i = 1:length(B_ft)
+%         if ~isnan(B_ft(i).frIdx)
+%             iStart = i;
+%             break
+%         end
+%     end
+%     
+%     % Find ending frame
+%     for i = 1:length(B_ft)
+%         if (i>iStart) && ~isempty(isnan(B_ft(i).cOffset)) && max(isnan(B_ft(i).cOffset))
+%             break
+%         elseif (i>iStart) && isempty(isnan(B_ft(i).cOffset))
+%             break
+%         else
+%             iEnd = i;
+%         end
+%     end
     
-    % Find ending frame
-    for i = 1:length(B_ft)
-        if (i>iStart) && ~isempty(isnan(B_ft(i).cOffset)) && max(isnan(B_ft(i).cOffset))
-            break
-        elseif (i>iStart) && isempty(isnan(B_ft(i).cOffset))
-            break
-        else
-            iEnd = i;
-        end
-    end
+    
+%     iStart = B_ft(1).fr_num;
+%     iEnd   = B_ft(end).fr_num;
 
     
     % Current frame's global properties
-    currG = B_ft(iStart).G;
+    currG = B_ft(1).G;
     
 %     % Next frame's global properties
 %     nextG = B_ft(i+1).G;
@@ -409,24 +427,25 @@ if strcmp(pMode,'connect')
 %     currG = nextG;
   
     % Loop thru time
-    for i = iStart:(iEnd-1)       
+    for i = 1:(length(B_ft)-1)       
         
         % Next frame's global properties
         nextG = B_ft(i+1).G;
         
-        % Find next points
-        [currG,nextG] = findNexts(currG,nextG,dist_thresh);
-        
-        % Store results
-        B_ft(i).G = currG;
-        
+        if isfield(nextG,'Centroid')
+            % Find next points
+            [currG,nextG] = findNexts(currG,nextG,dist_thresh);
+            
+            % Store results
+            B_ft(i).G = currG;
+        end
+            
         % Advance current G
         currG = nextG;
     end
  
     % Define output
     varargout{1} = B_ft;
-    
     
     % Initialize used structure
     for i = 1:length(B_ft)
@@ -440,8 +459,11 @@ if strcmp(pMode,'connect')
     iFrame = 1;
     
     % Indicies for frame and foot in source
-    i = iStart;
+    i = 1;
     j = 1;
+    
+    iEnd = length(B_ft);
+    iStart = 1;
     
     iColor = 1;
     
@@ -580,8 +602,7 @@ if strcmp(pMode,'Traj body system')
     % Show trajectory fit
     if 0
         figure
-        plot(CntrPnts(:,1),CntrPnts(:,2),'o',...
-            [S.pStart(1) S.pEnd(1)],[S.pStart(2) S.pEnd(2)],'-k')
+        plot(Body.xT,Body.yT,'ko')
         axis equal
         hold on   
     end
@@ -785,12 +806,17 @@ for i = 1:length(G)
     % Loop thru all next points to find closest distance
     for j = 1:length(Gn)
         
-        % Centroid of points in next frame
-        posGnext = Gn(j).Centroid;
-        
-        % Current distance
-        cDist = hypot(posG(1)-posGnext(1),posG(2)-posGnext(2));
-        
+        if isfield(Gn(j),'Centroid')
+            % Centroid of points in next frame
+            posGnext = Gn(j).Centroid;
+            
+            % Current distance
+            cDist = hypot(posG(1)-posGnext(1),posG(2)-posGnext(2));
+        else
+            posGnext = nan;
+            cDist    = inf;
+        end
+
         % If current is lower than prior minimum, store index
         if G(i).armNum==Gn(j).armNum && cDist<minDist && ~used(j)
             % Upate candidate index 
@@ -843,47 +869,25 @@ cmap(6,:) = [0.3010    0.7450    0.9330];
 cmap(7,:) = [242 155 155]./256;
 
 
-%     if 0
-%         figure
-%         for i = 1:length(currG)
-%             h = plot(currG(i).Centroid(1),currG(i).Centroid(2),'o');
-%             set(h,'MarkerEdgeColor',0.8.*[1 1 1])
-%             
-%             hold on
-%         end
-%         
-%         for i = 1:length(nextG)
-%             h = plot(nextG(i).Centroid(1),nextG(i).Centroid(2),'o');
-%             set(h,'MarkerEdgeColor',0.5.*[1 1 1])
-%             hold on
-%         end
-%         
-%         iClr = 1;
-%         
-%         for i = 1:length(currG)
-%             
-%             idx = currG(i).iNext;
-%             
-%             h = plot(currG(i).Centroid(1),currG(i).Centroid(2),'o');
-%             set(h,'MarkerEdgeColor',cmap(iClr,:))
-%             
-%             h = plot(nextG(idx).Centroid(1),nextG(idx).Centroid(2),'o');
-%             set(h,'MarkerEdgeColor',cmap(iClr,:))
-%             
-%             if iClr==size(cmap,1)
-%                 iClr = 1;
-%             else
-%                 iClr = iClr + 1;
-%             end
-%             hold on
-%         end
-%         
-%         %cmap(currG(i).armNum,:)
-%         axis equal
-%     end
-    
-    %         A(i).xF = nans(length(B_ft),1);
+function [a,frNums] = blobList(fPath,fPrefix)
 
+frNums = [];
+
+% File listing
+a = dir([fPath filesep fPrefix '*']);
+
+% Loop trhu files
+for i = 1:length(a)
+    
+    % Index of separator
+    iSep = find(a(i).name=='_',1,'last');
+    
+    % Get frame number
+    a(i).frNum = str2num(a(i).name((iSep+1):end-4));
+    
+    % Listing of frame numbers
+    frNums = [frNums; a(i).frNum];
+end
 
 
     

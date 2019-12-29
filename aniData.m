@@ -285,12 +285,16 @@ elseif strcmp(opType,'Individual feet, pretty')
                 % Store coordinates and colors
                 x{i}(n,1)      = F(j).xG(iMatch);
                 y{i}(n,1)      = F(j).yG(iMatch);
-                clr{i}(n,:)    = F(j).clr(1,:);
-
+                clr{i}(n,:)    = F(j).clr(1,:); 
             end
-            
         end
         
+        % Add nans, if no matching feet
+        if n==0
+            x{i}(1)      = nan;
+            y{i}(1)      = nan;
+            clr{i}(1,:)  = F(j).clr(1,:);
+        end
     end
     
     % Figure color and positon

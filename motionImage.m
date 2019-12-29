@@ -91,12 +91,12 @@ elseif strcmp(imType,'im static')
     
 elseif strcmp(imType,'bw static') 
     
-    fr_num = varargin{1};
-    B      = varargin{2};
-    frames = varargin{3};
-    imInvert = varargin{4};
-    imProcess = [];
-    %imInvert = 0;
+    fr_num     = varargin{1};
+    blobPath   = varargin{2};
+    frames     = varargin{3};
+    imInvert   = varargin{4};
+    imProcess  = [];
+    %imInvert  = 0;
     
     if length(fr_num)<2
         error('fr_num must be a vector of at least 2 numbers')
@@ -105,11 +105,13 @@ elseif strcmp(imType,'bw static')
 elseif strcmp(imType,'mask static') 
     
     Body      = varargin{1};
-    B         = varargin{2};
+    blobPath  = varargin{2};
     imInvert  = varargin{3};
     iC        = varargin{4};
     imProcess = [];
     %imInvert = 0;
+    
+    fName = 'blobs';
     
     % Extract data from Body
     fr_num  = Body.frames;
@@ -253,17 +255,31 @@ for i = 1:length(fr_num)
         
     elseif strcmp(imType,'bw static') 
         
+        % Current file name
+        cNumStr = ['00000' num2str(cFrame)];
+        cName = [fName '_' cNumStr(end-5:end)];
+        
+        % Load B (blob data)
+        load([blobPath filesep cName])
+        
         % Loop thru blobs
-        for k = 1:length(B(i).propsG)
+        for k = 1:length(B.propsG)
             
             % Score pixels with blobs
-            currIm(B(i).propsG(k).PixelIdxList) = 1;            
+            currIm(B.propsG(k).PixelIdxList) = 1;            
         end
        
         % Store resulting image
         bwStack(:,:,i) = currIm;
               
     elseif strcmp(imType,'mask static') 
+        
+        % Current file name
+        cNumStr = ['00000' num2str(cFrame)];
+        cName = [fName '_' cNumStr(end-5:end)];
+        
+        % Load B (blob data)
+        load([blobPath filesep cName])
         
         % Get binary of body
         bwMask = ~imbinarize(imCurr,tVal);
@@ -279,9 +295,9 @@ for i = 1:length(fr_num)
         bwMask = bwselect(bwMask,xCntr(iFrame),yCntr(iFrame));
         
         % Loop thru blobs
-        for k = 1:length(B(iFrame).propsG)        
+        for k = 1:length(B.propsG)        
             % Score pixels with blobs
-            currIm(B(iFrame).propsG(k).PixelIdxList) = 1;            
+            currIm(B.propsG(k).PixelIdxList) = 1;            
         end
         
         % White out all non-foot pixels

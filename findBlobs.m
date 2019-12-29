@@ -18,8 +18,14 @@ if strcmp(bMode,'area')
     areaMax = varargin{2};
 
     dilateerode = 0;
-
     
+elseif strcmp(bMode,'area single')
+    areaMin     = varargin{1};
+    areaMax     = varargin{2};
+    areaTarget  = varargin{3};
+
+    dilateerode = 0;
+
 elseif strcmp(bMode,'coord advanced')
     x        = varargin{1};
     y        = varargin{2};
@@ -85,7 +91,8 @@ bwOut = bw.*0~=0;
 % Initialize index
 j = 1;
 
-if strcmp(bMode,'area') || strcmp(bMode,'area and circ')
+if strcmp(bMode,'area') || strcmp(bMode,'area and circ') || ...
+   strcmp(bMode,'area single')
     
     % Survey blobs
     props = regionprops(bw,'Centroid','Area',...
@@ -100,7 +107,7 @@ if strcmp(bMode,'area') || strcmp(bMode,'area and circ')
         % If blob is in the area bounds . . .
         if (props(i).Area >= areaMin) && (props(i).Area <= areaMax)
             
-            if strcmp(bMode,'area')
+            if strcmp(bMode,'area') || strcmp(bMode,'area single')
                 % Add to area
                 areas(j,1) = props(i).Area;
                 
@@ -227,11 +234,33 @@ elseif strcmp(bMode,'coord advanced')
 
 end
 
- % Trace perimeter
-[yOut, xOut] = find(bwperim(bwOut,8));
+
+%% Find closest area to target
+
+if strcmp(bMode,'area single')
+    
+    % If more than one blob
+    if (length(areas)>1)
+        dArea = abs(areas-areaTarget);
+        
+        % Index of closest to target
+        iBest = find(dArea==min(dArea));
+        
+        % Pass info only from best fit
+        areas = areas(iBest);
+        propOut = propOut(iBest);
+    end
+    
+    % Make image for single blob
+    bwOut = bw.*0~=0;
+    bwOut(propOut.PixelIdxList) = 1;
+end
         
 
 %% Outputs
+
+ % Trace perimeter
+[yOut, xOut] = find(bwperim(bwOut,8));
 
 % Define outputs
 varargout{1} = propOut;

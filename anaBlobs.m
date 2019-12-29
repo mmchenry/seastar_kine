@@ -1,4 +1,4 @@
-function varargout = anaBlobs(vid_path,v,opType,varargin)
+function anaBlobs(vid_path,v,opType,varargin)
 % Analyze blobs that may be extracted from a video
 % B = anaBlobs(vid_path,v,opType)
 %  B - structure of blob data
@@ -28,37 +28,51 @@ if strcmp(opType,'G&L props')
 
     % Extract inputs
     %im_seq    = varargin{1};
-    Body      = varargin{1};
+    Body       = varargin{1};
     %Rotation  = varargin{4};
-    blobParam = varargin{2};
-    imInvert  = varargin{3};
-    dSample   = varargin{4};
-    roiM       = varargin{5};
-    visSteps  = varargin{6};
+    blobParam  = varargin{2};
+    imInvert   = varargin{3};
+    dSample    = varargin{4};
+    mPath      = varargin{5};
+    visSteps   = varargin{6};
+    iC         = varargin{7};
+    savePath   = varargin{8};
+    
+    fName      = 'blobs';
  
 elseif strcmp(opType,'filter motion')
     
     % Extract inputs
-    B         = varargin{1};
+    currDataPath  = varargin{1};
     winLen    = varargin{2};
     Body        = varargin{3};
     blobParam = varargin{4};
 %     tVal      = varargin{5};
     visSteps  = varargin{5};
     imInvert  = varargin{6};
-    imStack   = varargin{7};
+    
+    fName = 'foot_blobs';
+    
+    % Where to find blobPath
+    blobPath = [currDataPath filesep 'blobs'];
+    
+    % Path for motion images (imStack data)
+    motionPath = [currDataPath filesep 'mask_static'];
+    
+    % Where to save data for each frame
+    savePath = [currDataPath filesep 'foot_blobs'];
     
     dSample = 0;
     
-    % Check frame numbers
-    for i = 1:length(B)
-       B_fr(i,1) = B(i).fr_num;      
-    end
-    if sum(B_fr'-Body.frames)~=0
-        error('Frame numbers do not match between B and Body');
-    end
-    
-    clear B_fr
+%     % Check frame numbers
+%     for i = 1:length(B)
+%        B_fr(i,1) = B(i).fr_num;      
+%     end
+%     if sum(B_fr'-Body.frames)~=0
+%         error('Frame numbers do not match between B and Body');
+%     end
+%     
+%     clear B_fr
     
 else
     error('opType not recognized');
@@ -72,80 +86,72 @@ if visSteps
 end
 
 
+%% Make dir to save data
+
+if ~isdir(savePath)
+    mkdir(savePath);
+end
+
+
 %% Loop thru frames ('G&L props')
 % Create local mask that excludes stationary objects 
 
 if strcmp(opType,'G&L props')
-    
-    %B.frames        = frames;
-    %B.blobParam     = blobParam;
-    
-    
+
     % Loop thru frames
-    for i = 1:length(frames)
+     parfor i = 1:length(frames)
+%          for i = 1:length(frames)
         
         % Current frame
         cFrame = frames(i);
         
-        % Index for current frame in the data
-        %iFrame = find(frames==cFrame);
+        % Current file name (writing data)
+        cNumStr = ['00000' num2str(cFrame)];
+        cNumStr = cNumStr(end-5:end);
+        cName   = [fName '_' num2str(cNumStr)];
         
-        % Get current mean image
-        for j = 1:length(roiM)
-            if (cFrame >= roiM(j).frStart) && (cFrame <= roiM(j).frEnd)
-                imRoiMean = roiM(j).im;
-                imRoiStd  = roiM(j).imStd;
-                break
-            end
-        end
-        
+        % Get mean image for current frame
+        [imRoiMean,imRoiStd] = getMeanImage(cFrame,mPath);
+
         % Current whole frame
         im = getFrame(vid_path,v,cFrame,imInvert,'gray');
-
         
-%         im1 = double(im_roi);
-%         imMean = double(imRoiMean);
-%         imStd = double(imRoiStd);
-%         
-%         im2 = im_roi<(imRoiMean+imRoiStd);
-        
-%         if imInvert
-%             im = imcomplement(im);
-%         end
+        % Get data from S structure
+        [roi,tform] = returnS(S,i);
         
         % Roi image, mean image subtracted
         [im_roi,bw_mask,bw_roi_mask] = giveROI('stabilized',im,...
-            S.roi(i),dSample,S.tform(i),255);
+            roi,dSample,tform,255);
  
         % Subtract mean image, adjust contrast
         im_roi2 = imadjust(imsubtract(imRoiMean,im_roi));
         
         % Find threshold value
-        blobParam.tVal = graythresh(im_roi2);
+        tVal = 0.95*graythresh(im_roi2);
         
         % Find blobs in roi
-        [props,bw_roi,areas,xB,yB] = findBlobs(im_roi2,blobParam.tVal,...
+        [props,bw_roi,areas,xB,yB] = findBlobs(im_roi2,tVal,...
             'area and circ',blobParam.areaMin,blobParam.areaMax,blobParam.AR_max);
         
         % Get roi data
         %[bw_mask,im_roi,roi_rect,bw_roi_mask] = giveROI('circular',im,x,y,r,theta,0);
         
         % Blobs in the G FOR
-        bw_blobs_G = transCoord2d('bw L2G',S.tform(i),bw_roi,bw_mask,bw_roi_mask);
+        bw_blobs_G = transCoord2d('bw L2G',tform,bw_roi,bw_mask,bw_roi_mask);
         
         % Survey blobs
         propsG = regionprops(bw_blobs_G,'Centroid','Area',...
             'MajorAxisLength','MinorAxisLength',...
             'PixelIdxList','PixelList');
         
-        % Store blob data
-%         B.bwG(:,:,i) = bw_blobs_G;
-%         B.bwL(:,:,i) = bw_roi;
-        B(i).fr_num = cFrame;
-        B(i).propsG = propsG;
-        B(i).propsL = props;
+        % Save data to B strcuture
+        B = struct('fr_num',cFrame,'propsG',propsG,'propsL',props,...
+                   'bwG',bw_blobs_G,'bwL',bw_roi);
+
+        % Write to disk
+        saveData([savePath filesep cName],B)
         
-        if visSteps
+        if visSteps 
             aLevel = 0.5;
             
             % Current whole frame
@@ -185,9 +191,6 @@ if strcmp(opType,'G&L props')
         else
             disp(['anaBlobs (' opType ') : '  num2str(i) ' of ' num2str(length(frames))]);
         end
-        
-        clear props propsG bw_mask im_roi roi_rect bw_roi_mask bw_roi
-        clear areas xB yB imRoiMean im_roi2 imRoiStd
     end   
 end
 
@@ -195,82 +198,105 @@ end
 %% Loop thru frames ('filter motion')
 
 if strcmp(opType,'filter motion')
-        
-    Bin = B;
-    clear B
+    
+    %     Bin = B;
+    %     clear B
     
     %tVal = blobParam.tVal;
-
+    
     % Half interval to survey for analysis
     halfIntvl = floor(winLen/2);
     
-    % Fill B with placeholders
-    for i = 1:length(Bin)
-        B(i).fr_num = Bin(i).fr_num;
-        %B(i).frIdx  = Bin(i).frIdx;
-        B(i).propsG = nan;
-        B(i).propsL = nan;
-    end
+    %     % Fill B with placeholders
+    %     for i = 1:length(Bin)
+    %         B(i).fr_num = Bin(i).fr_num;
+    %         %B(i).frIdx  = Bin(i).frIdx;
+    %         B(i).propsG = nan;
+    %         B(i).propsL = nan;
+    %     end
+    
+    % Get listing of blob data files
+    [aBlob,frBlob] = fileList(blobPath,'blobs');
+    
+    % Get listing of averaged images
+    [aMotion,frMotion] = fileList(motionPath,'mask_static');
     
     % Frames to analyze
-    anaFrames = frames((halfIntvl+1):(length(Bin)-halfIntvl-1));
-        
-%     % Produce image stack
-%     imB = motionImage(vid_path,v,'mask static',frames,Bin,frames,imInvert);
+    %     anaFrames = frames((halfIntvl+1):(length(a)-halfIntvl-1));
+    
+    %     % Produce image stack
+    %     imB = motionImage(vid_path,v,'mask static',frames,Bin,frames,imInvert);
     
     % Loop thru frames to analyze
-    for i = 1:length(anaFrames)
+    parfor i = 1:length(frMotion)
         
         % Current frame
-        cFrame = anaFrames(i);
+        cFrame = frMotion(i);
+        
+        % Current file name
+        cNumStr = ['00000' num2str(cFrame)];
+        cName = [fName '_' cNumStr(end-5:end)];
         
         % Index for current frame in the data
         %iFrame = Bin(i).frIdx;
         iFrame = find(frames==cFrame,1,'first');
-
+        
+        % Load imBlur strcuture
+        imBlur = loadImBlur([motionPath filesep aMotion(i).name]);
+        
         % Window of frames to analyze
-        startFrame    = max([1 iFrame-halfIntvl]);
-        endFrame      = min([length(frames) iFrame+halfIntvl]);       
-        winFrames     = startFrame:endFrame;
+        %         startFrame    = max([1 iFrame-halfIntvl]);
+        %         endFrame      = min([length(frames) iFrame+halfIntvl]);
+        %         winFrames     = startFrame:endFrame;
         
-%         % Produce image that highlights static elements
-%         imB = motionImage(vid_path,v,'mask static',winFrames,Bin,...
-%                           frames,imInvert);
+        %         winFrames     = imBlur.frames;
         
-        % extract current frames 
-        bwStack = imStack(:,:,winFrames);
-
+        %         % Produce image that highlights static elements
+        %         imB = motionImage(vid_path,v,'mask static',winFrames,Bin,...
+        %                           frames,imInvert);
+        
+        %         bwStack = loadImStack(motionPath);
+        
+        % extract current frames
+        %         bwStack = imStack(:,:,winFrames);
+        
         % Get average image
-        imAvg = uint8(sum(double(bwStack),3)./length(winFrames));
+        %         imAvg = uint8(sum(double(bwStack),3)./length(winFrames));
         
         % Boost contrast
         %imB = imcomplement(imadjust(imAvg));
-        imB = imcomplement((imAvg));
-
+        imB = imcomplement(imBlur.im);
+        
         % Get threshol value for feet
         tVal = 2*graythresh(imB);
         
         % Find blobs in image
         [propsG,bw_im] = findBlobs(imB,tVal,...
-                         'area and circ',blobParam.areaMin,...
-                         blobParam.areaMax,blobParam.AR_max);
+            'area and circ',blobParam.areaMin,...
+            blobParam.areaMax,blobParam.AR_max);
         
         % Get roi data
         %[bw_mask,im_roi,roi_rect,bw_roi_mask] = giveROI('circular',imB,x,y,r,theta,0);
         im_roi = giveROI('stabilized',imB,S.roi(i),dSample, ...
-                S.tform(i),0);
-         
+            S.tform(i),0);
+        
         % Find blobs in roi
         [propsL,bw_roi] = findBlobs(im_roi,tVal,...
-                         'area and circ',blobParam.areaMin,...
-                         blobParam.areaMax,blobParam.AR_max);
+            'area and circ',blobParam.areaMin,...
+            blobParam.areaMax,blobParam.AR_max);
         
         % Store blob data
-        B(iFrame).fr_num = cFrame;
-        B(iFrame).frIdx  = iFrame;
-        B(iFrame).propsG = propsG;
-        B(iFrame).propsL = propsL;
+%         B_ft.fr_num = cFrame;
+%         B_ft.frIdx  = iFrame;
+%         B_ft.propsG = propsG;
+%         B_ft.propsL = propsL;
 
+        B_ft = struct('fr_num',cFrame,'frIdx',iFrame,'propsG',propsG,...
+            'propsL',propsL);
+        
+        % Write data
+        saveB_ft([savePath filesep cName],B_ft)
+        
         if visSteps
             
             % Alpha transparency
@@ -283,56 +309,131 @@ if strcmp(opType,'filter motion')
             imshow(im,'InitialMag','fit');
             hold on
             
-             % Make a truecolor all-green image, make non-blobs invisible
+            % Make a truecolor all-green image, make non-blobs invisible
             green = cat(3, zeros(size(imB)), ones(size(imB)), ...
-                           zeros(size(imB)));
+                zeros(size(imB)));
             h = imshow(green,'InitialMag','fit');
             
             set(h, 'AlphaData', bw_im.*aLevel)
-            title(['Frame ' num2str(cFrame)]); 
-            for j = 1:length(B(iFrame).propsG)
-               scatter(B(iFrame).propsG(j).Centroid(1),...
-                       B(iFrame).propsG(j).Centroid(2),'SizeData',200,...
-                       'MarkerEdgeColor','b')
+            title(['Frame ' num2str(cFrame)]);
+            for j = 1:length(B_ft(iFrame).propsG)
+                scatter(B_ft(iFrame).propsG(j).Centroid(1),...
+                    B_ft(iFrame).propsG(j).Centroid(2),'SizeData',200,...
+                    'MarkerEdgeColor','b')
             end
             hold off
             
             subplot(2,1,2)
             imshow(giveROI('stabilized',im,S.roi(i),dSample,S.tform(i)),...
-                   'InitialMag','fit');
+                'InitialMag','fit');
             hold on
-             % Make a truecolor all-green image, make non-blobs invisible
+            % Make a truecolor all-green image, make non-blobs invisible
             green = cat(3, zeros(size(bw_roi)), ones(size(bw_roi)), ...
-                           zeros(size(bw_roi)));
+                zeros(size(bw_roi)));
             h = imshow(green,'InitialMag','fit');
             set(h, 'AlphaData', bw_roi.*aLevel)
             
-            for j = 1:length(B(iFrame).propsL)
-               scatter(B(iFrame).propsL(j).Centroid(1),...
-                       B(iFrame).propsL(j).Centroid(2),'SizeData',400,...
-                       'MarkerEdgeColor','b')
+            for j = 1:length(B_ft(iFrame).propsL)
+                scatter(B_ft(iFrame).propsL(j).Centroid(1),...
+                    B_ft(iFrame).propsL(j).Centroid(2),'SizeData',400,...
+                    'MarkerEdgeColor','b')
             end
             hold off
-            title(['Frame ' num2str(cFrame)]); 
+            title(['Frame ' num2str(cFrame)]);
             
         end
         
         
         % Status report
-%         disp(' ')
+        %         disp(' ')
         disp(['anaBlobs (' opType ') : done ' num2str(i) ' of ' ...
-              num2str((length(Bin)-halfIntvl))])
-%         disp(' ');
+            num2str(length(frMotion))])
+        %         disp(' ');
         
-        clear im_roi im bw_roi bw_im propsG propsL
-    end 
-        
+        %clear im_roi im bw_roi bw_im propsG propsL cName B_ft
+    end
+    
 end
 
 %% Outputs
 
-varargout{1} = B;
+% varargout{1} = B;
 
 
+function [imRoiMean,imRoiStd] = getMeanImage(cFrame,mPath)
 
+% Listing of mean images
+a = dir([mPath filesep 'mean*']);
+
+for i = 1:length(a)
+    
+    % Index of separators
+    iSep = find(a(i).name=='_');
+    
+    % Get start frame
+    frStart = str2num(a(i).name((iSep(2)+1):(iSep(3)-1)));
+    
+    % Get end frame
+    frEnd = str2num(a(i).name((iSep(3)+1):(end-4)));
+    
+    if cFrame>=frStart && cFrame<=frEnd
+        % Load imean image data
+        load([mPath filesep a(i).name])
+        
+        % Define 
+        imRoiMean = roiM.im;
+        imRoiStd  = roiM.imStd;
+
+        break
+    end
+end
+
+% Check for definition
+if ~exist('imRoiMean','var')
+    error(['No match for cFrame = ' num2str(cFrame)])
+end
+
+
+function imStack = loadImStack(motionPath)
+
+
+function imBlur = loadImBlur(blurPath)
+load(blurPath)
+
+function [roi,tform] = returnS(S,i)
+
+roi    = S.roi(i);
+tform  = S.tform(i);
+
+
+function saveData(sPath,B)
+% Saves structure B.  Needed to parallelize the code.
+save(sPath,'-v7.3','B')
+
+
+function saveB_ft(sPath,B_ft)
+% Save data for current frame
+save(sPath,'-v7.3','B_ft')
+
+function [a,frNums] = fileList(fPath,fPrefix)
+
+frNums = [];
+
+% File listing
+a = dir([fPath filesep fPrefix '*']);
+
+% Loop trhu files
+for i = 1:length(a)
+    
+    % Index of separator
+    iSep = find(a(i).name=='_',1,'last');
+    
+    % Get frame number
+    a(i).frNum = str2num(a(i).name((iSep+1):end-4));
+    
+    frNums = [frNums; a(i).frNum];
+end
+
+
+    
 

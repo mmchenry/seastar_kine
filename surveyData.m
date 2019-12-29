@@ -109,28 +109,35 @@ elseif strcmp(opType,'Centroid & Rotation') || strcmp(opType,'no analysis')
     
 elseif strcmp(opType,'Feet')
     
-    Body     = varargin{1}; 
-    B_ft     = varargin{2};
-    numVis   = varargin{3};
+    currDataPath    = varargin{1}; 
+    Body            = varargin{2}; 
+%     B_ft     = varargin{2};
+    numVis          = varargin{3};
+    
+    % Path to foot data (B_ft files)
+    footPath = [currDataPath filesep 'foot_blobs'];
+    
+    % List files of B_ft
+    [aB_ft,frames] = listB_ft(footPath);
     
     % Start index
     j = 1;
     
     % Loop thru frames
-    for i = 1:length(B_ft)
+    for i = 1:length(aB_ft)
+        
+        % load B_ft
+        load([footPath filesep aB_ft(i).name])
         
        % If there is foot blob data . . .
-       if ~isempty(B_ft(i).frIdx)
-           
-           % Store frame number
-           frames(j,1) = B_ft(i).fr_num;
+       if ~isempty(B_ft.frIdx)           
            
            % Index in the Body data
-           idx = find(Body.frames==frames(end),1,'first');
+           idx = find(Body.frames==frames(i),1,'first');
            
            % Store from blob data
-           propsG{j} = B_ft(i).propsG;
-           propsL{j} = B_ft(i).propsL;
+           propsG{j} = B_ft.propsG;
+           propsL{j} = B_ft.propsL;
            
            % Store from Body
            roi(j,1)     = Body.Rotation.roi(idx);
@@ -141,8 +148,6 @@ elseif strcmp(opType,'Feet')
            % Advance index
            j = j + 1;
        end
-       
-       
     end
       
     numroipts = length(Body.Rotation.roi(1).xPerimL);    
@@ -158,8 +163,7 @@ elseif strcmp(opType,'Feet')
     pNumAdvance = 2;
     
     % Figure color
-    fColor = 0.2.*[1 1 1];
-    
+    fColor = 0.2.*[1 1 1];   
     
 elseif strcmp(opType,'Feet local')
     
@@ -586,5 +590,28 @@ if strcmp(opType,'blobs G&L')
         end
     end
 end
+
+
+
+
+function [a,frNums] = listB_ft(footPath)
+
+a = dir([footPath filesep 'foot_blobs*']);
+
+frNums = [];
+
+% Loop thru file entries
+for i = 1:length(a)
+
+     % Index of separator
+    iSep = find(a(i).name=='_',1,'last');
+    
+    % Get frame number
+    a(i).frNum = str2num(a(i).name((iSep+1):end-4));
+    
+    % Listing of frame numbers
+    frNums = [frNums; a(i).frNum];
+end
+
 
 
