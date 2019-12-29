@@ -127,8 +127,7 @@ clear idx
 %% Define reference image
     
 % First image
-% im0 = getFrame(vid_path,v,1,iminvert,clrMode);
-im0 = getFrame(vid_path,v,cFrame,iminvert,clrMode);
+im0 = getFrame(vid_path,v,cFrame,iminvert,clrMode,r);
 
 % Current roi
 roi = giveROI('define','rectangular',numroipts,r,x0,y0);
@@ -170,6 +169,13 @@ end
 %iFrame = find(Body.frames,1,'first');
 
 
+
+%% Do a course pass on rotation, in series 
+
+
+% intCourse = 20;
+
+
 %% Tracking object
 
 % Loop thru frames
@@ -183,7 +189,7 @@ while true
     % Current image
     cFrame = Body.frames(iFrame);
     
-    im = getFrame(vid_path,v,cFrame,iminvert,clrMode);
+    im = getFrame(vid_path,v,cFrame,iminvert,clrMode,r);
     
     % Center point
     cX = Body.x(iFrame);

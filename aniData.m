@@ -185,6 +185,7 @@ elseif strcmp(opType,'Individual feet')
     imVis    = varargin{2};
     F        = varargin{3};
     iFrames  = varargin{4};
+    iC       = varargin{5};
 
     % Frame numebrs to analyze
     frames   = Body.frames(iFrames)';
@@ -226,10 +227,8 @@ elseif strcmp(opType,'Individual feet')
                 y{i}(n,1)      = F(j).yG(iMatch);
                 clr{i}(n,:)    = F(j).clr(1,:);
 
-            end
-            
+            end  
         end
-        
     end
     
     % Figure color and positon
@@ -246,6 +245,7 @@ elseif strcmp(opType,'Individual feet, pretty')
     imVis    = varargin{2};
     F        = varargin{3};
     iFrames  = varargin{4};
+    iC       = varargin{5};
 
     % Frame numebrs to analyze
     frames   = Body.frames(iFrames)';

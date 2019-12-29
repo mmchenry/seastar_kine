@@ -88,6 +88,9 @@ rPart = pi/5;
 % Colormap values
 cmap = cmap_vals;
 
+% Maximum size of an image dimension (for downsampling)
+maxSize = 350;
+
 
 %% Post-processing after rotataion tracking 
 
@@ -106,7 +109,7 @@ if strcmp(pMode,'post rotation')
     for i = 1:length(Body.Rotation.tform)
         
         % Scaling factor for downsampling
-        Body.Rotation.roi(i).imFactor = 300./Body.Rotation.roi(i).rect(3);
+        Body.Rotation.roi(i).imFactor = maxSize./Body.Rotation.roi(i).rect(3);
         
         % Compensate tform for downsampling
         Body.Rotation.tform(i).T(3,1:2) = Body.Rotation.tform(i).T(3,1:2) ./ ...

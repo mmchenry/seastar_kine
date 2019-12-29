@@ -146,7 +146,7 @@ parfor i = 1:length(frames)
     cFrame = frames(i);
     
     % Current image
-    im = getFrame(vid_path,v,cFrame,imInvert,'gray',imMean);
+    im = getFrame(vid_path,v,cFrame,imInvert,'gray',imMean,iC.r);
     
     % Eliminate outside of mask
     if ~isempty(xMask)
@@ -174,7 +174,7 @@ parfor i = 1:length(frames)
     end
     
     % Update status
-    disp(['trackerCenter (' method ') : done ' num2str(i) ' of ' num2str(length(frames))])   
+    disp(['trackCenter (' method ') : done ' num2str(i) ' of ' num2str(length(frames))])   
 
         
     % Visualize centroid, for debugging 

@@ -1,4 +1,4 @@
-function im = getFrame(vid_path,v,fr_num,imInvert,clrMode,imMean)  
+function im = getFrame(vid_path,v,fr_num,imInvert,clrMode,imMean,padLen)  
 % Reads image file from a video. 
 %   v - video structure
 %   fr_num - frame number desired
@@ -24,6 +24,10 @@ function im = getFrame(vid_path,v,fr_num,imInvert,clrMode,imMean)
     
     if nargin < 6
         imMean = [];
+    end
+    
+    if nargin < 7
+        padLen = 0;
     end
 
     % Check requested frame number
@@ -108,3 +112,21 @@ if ~isempty(imMean)
     %im = uint8(imadjust(imcomplement(imsubtract(imMean,im))));
     
 end
+
+% Add padding
+if padLen~=0
+    
+    % Color of padding
+    padClr = double(round(quantile(im(:),0.75)));
+    
+    % Increase pad slightly
+    padLen = padLen+2;
+    
+    % Add pad to sides, top and bottom
+    im2 = [padClr.*ones(size(im,1),padLen) im padClr.*ones(size(im,1),padLen)];
+    im2 = [padClr.*ones(padLen,size(im2,2)); im2];
+    im2 = [im2; padClr.*ones(padLen,size(im2,2))];
+    
+end
+
+

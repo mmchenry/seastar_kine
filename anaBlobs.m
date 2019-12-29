@@ -114,7 +114,7 @@ if strcmp(opType,'G&L props')
         [imRoiMean,imRoiStd] = getMeanImage(cFrame,mPath);
 
         % Current whole frame
-        im = getFrame(vid_path,v,cFrame,imInvert,'gray');
+        im = getFrame(vid_path,v,cFrame,imInvert,'gray',[],iC.r);
         
         % Get data from S structure
         [roi,tform] = returnS(S,i);
@@ -155,7 +155,7 @@ if strcmp(opType,'G&L props')
             aLevel = 0.5;
             
             % Current whole frame
-            imI = getFrame(vid_path,v,cFrame,~imInvert,'gray');
+            imI = getFrame(vid_path,v,cFrame,~imInvert,'gray',[].iC.r);
 
             subplot(2,1,1)
             h = imshow(imI,'InitialMag','fit');
@@ -199,33 +199,14 @@ end
 
 if strcmp(opType,'filter motion')
     
-    %     Bin = B;
-    %     clear B
-    
-    %tVal = blobParam.tVal;
-    
     % Half interval to survey for analysis
     halfIntvl = floor(winLen/2);
-    
-    %     % Fill B with placeholders
-    %     for i = 1:length(Bin)
-    %         B(i).fr_num = Bin(i).fr_num;
-    %         %B(i).frIdx  = Bin(i).frIdx;
-    %         B(i).propsG = nan;
-    %         B(i).propsL = nan;
-    %     end
-    
+
     % Get listing of blob data files
     [aBlob,frBlob] = fileList(blobPath,'blobs');
     
     % Get listing of averaged images
     [aMotion,frMotion] = fileList(motionPath,'mask_static');
-    
-    % Frames to analyze
-    %     anaFrames = frames((halfIntvl+1):(length(a)-halfIntvl-1));
-    
-    %     % Produce image stack
-    %     imB = motionImage(vid_path,v,'mask static',frames,Bin,frames,imInvert);
     
     % Loop thru frames to analyze
     parfor i = 1:length(frMotion)
@@ -243,25 +224,6 @@ if strcmp(opType,'filter motion')
         
         % Load imBlur strcuture
         imBlur = loadImBlur([motionPath filesep aMotion(i).name]);
-        
-        % Window of frames to analyze
-        %         startFrame    = max([1 iFrame-halfIntvl]);
-        %         endFrame      = min([length(frames) iFrame+halfIntvl]);
-        %         winFrames     = startFrame:endFrame;
-        
-        %         winFrames     = imBlur.frames;
-        
-        %         % Produce image that highlights static elements
-        %         imB = motionImage(vid_path,v,'mask static',winFrames,Bin,...
-        %                           frames,imInvert);
-        
-        %         bwStack = loadImStack(motionPath);
-        
-        % extract current frames
-        %         bwStack = imStack(:,:,winFrames);
-        
-        % Get average image
-        %         imAvg = uint8(sum(double(bwStack),3)./length(winFrames));
         
         % Boost contrast
         %imB = imcomplement(imadjust(imAvg));
@@ -284,13 +246,8 @@ if strcmp(opType,'filter motion')
         [propsL,bw_roi] = findBlobs(im_roi,tVal,...
             'area and circ',blobParam.areaMin,...
             blobParam.areaMax,blobParam.AR_max);
-        
-        % Store blob data
-%         B_ft.fr_num = cFrame;
-%         B_ft.frIdx  = iFrame;
-%         B_ft.propsG = propsG;
-%         B_ft.propsL = propsL;
 
+        % Define B_ft strcuture
         B_ft = struct('fr_num',cFrame,'frIdx',iFrame,'propsG',propsG,...
             'propsL',propsL);
         

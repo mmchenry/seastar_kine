@@ -88,7 +88,7 @@ for i = 1:length(fr_num)
     
     % Update stack
     [imStack,frCurr] = addToStack(vid_path,v,frCurr,imStack,cFrame,...
-        halfIntvl,B,tVal,xCntr,yCntr,imInvert);
+        halfIntvl,B,tVal,xCntr,yCntr,imInvert,iC);
     
     % Get average image
     imBlur.im = uint8(sum(double(imStack),3)./length(frCurr));
@@ -126,7 +126,7 @@ end
 
 
 function [imStack,frCurr] = addToStack(vid_path,v,frCurr,imStack,cFrame,...
-                                 halfIntvl,B,tVal,xCntr,yCntr,imInvert)
+                                 halfIntvl,B,tVal,xCntr,yCntr,imInvert,iC)
 
 % If no data yet . . .                             
 if isempty(imStack)
@@ -143,7 +143,7 @@ if isempty(imStack)
     for i = 1:length(winFrames)
         
         % Create sum image based on first frame
-        im = getFrame(vid_path,v,winFrames(i),imInvert,'gray');
+        im = getFrame(vid_path,v,winFrames(i),imInvert,'gray',[],iC.r);
         
         % Modify image, store result
         imStack(:,:,i) = imModify(im,B,tVal,xCntr,yCntr);
@@ -155,7 +155,7 @@ else
     endFrame   = cFrame + halfIntvl;
     
     % Create sum image based on first frame
-    im = getFrame(vid_path,v,endFrame,imInvert,'gray');
+    im = getFrame(vid_path,v,endFrame,imInvert,'gray',[],iC.r);
     
     % Modify image, store result
     imEnd = imModify(im,B,tVal,xCntr,yCntr);

@@ -66,6 +66,7 @@ elseif strcmp(imType,'mean roi')
     imInvert  = varargin{2};
     Body      = varargin{3};
     dSample   = varargin{4};
+    iC        = varargin{5};
     
     % Extract frame numbers to analyze
     if length(varargin)>4
@@ -192,16 +193,16 @@ for i = 1:length(fr_num)
     % Load current image
     if strcmp(imType,'bw static') || strcmp(imType,'mask static')
         % Create sum image based on first frame
-        imCurr = getFrame(vid_path,v,cFrame,imInvert,'gray');    
+        imCurr = getFrame(vid_path,v,cFrame,imInvert,'gray',[],iC.r);    
             
     elseif strcmp(imType,'im static')
         % Create sum image based on first frame
-        imCurr = getFrame(vid_path,v,cFrame,imInvert,'gray');    
+        imCurr = getFrame(vid_path,v,cFrame,imInvert,'gray',[],iC.r);    
         
     elseif strcmp(imType,'mean') || strcmp(imType,'mean bright')
            
         % Get current frame
-        imCurr       = getFrame(vid_path,v,cFrame,imInvert,'gray');   
+        imCurr       = getFrame(vid_path,v,cFrame,imInvert,'gray',[],iC.r);   
         
     elseif strcmp(imType,'mean color')
         
@@ -210,7 +211,7 @@ for i = 1:length(fr_num)
     
     elseif strcmp(imType,'mean roi') 
         % Get current frame
-        im       = getFrame(vid_path,v,cFrame,imInvert,'gray');     
+        im       = getFrame(vid_path,v,cFrame,imInvert,'gray',[],iC.r);     
         
         % Get current roi
         imCurr = giveROI('stabilized',im,S.roi(iFrame),dSample,S.tform(iFrame));

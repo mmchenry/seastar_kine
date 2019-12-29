@@ -258,7 +258,7 @@ if ~strcmp(opType,'blobs G&L')
         subplot(nRow,nCol,pNum)
 
         % Current whole frame
-        im = getFrame(vid_path,v,anaFrames(i),imInvert,'gray');
+        im = getFrame(vid_path,v,anaFrames(i),imInvert,'gray',[],iC.r);
         
         if strcmp(opType,'blobs L simple')
             % Roi image, mean image subtracted
@@ -517,8 +517,8 @@ f = figure;
 if strcmp(opType,'Centroid & Rotation')
     
         % Whole frames
-        im1 = getFrame(vid_path,v,anaFrames(1),imInvert,'gray');
-        im2 = getFrame(vid_path,v,anaFrames(end),imInvert,'gray');
+        im1 = getFrame(vid_path,v,anaFrames(1),imInvert,'gray',[],iC.r);
+        im2 = getFrame(vid_path,v,anaFrames(end),imInvert,'gray',[],iC.r);
         
         % Index in data for current frame
         iData1 = find(Body.frames==anaFrames(1),1,'first');
@@ -549,7 +549,7 @@ if strcmp(opType,'blobs G&L')
         
         if isfield(B(i).propsG,'Area')
             % Current whole frame
-            im = getFrame(vid_path,v,B(i).fr_num,imInvert,'gray');
+            im = getFrame(vid_path,v,B(i).fr_num,imInvert,'gray',[],iC.r);
             
             % Display frame
             h = imshow(imcompliment(im),'InitialMag','fit');

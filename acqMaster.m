@@ -384,7 +384,7 @@ if ~isfolder([currDataPath filesep 'mean_images'])
         
         % Calc mean image
         [imMean,imStd] = motionImage(currVidPath,v,'mean roi','none',imInvert,...
-                        Body,dSample,roiM.frames);
+                        Body,dSample,roiM.frames,iC);
                     
         % Store
         roiM.im    = imMean;
@@ -459,21 +459,11 @@ end
 
 % Loop thru frames, track feet --------------------------------------------
 if ~isfolder([currDataPath filesep 'foot_blobs'])
-    
-    % Load blob data (B)
-%     load([currDataPath filesep 'blobs'])  
-    
-    % Load imStack
-%     load([currDataPath filesep 'motion image data'])
-    
 
     % Store linked feet in B_ft
     anaBlobs(currVidPath,v,'filter motion',currDataPath,strakDr_fr,Body,blobParam,...
         visSteps,imInvert);
-    
-    % Save data
-    %save([currDataPath filesep 'foot blobs'],'-v7.3','B_ft')
-    
+
     % Visualize a bunch of frames to check results
     surveyData(currVidPath,v,0,'Feet',currDataPath,Body,numVis);
     
@@ -601,7 +591,7 @@ if do.MakeFootMoviePost
     disp(' ')
 
     aniData(currVidPath,v,currDataPath,fName,imInvert,...
-        'Individual feet',Body,visSteps,F,iFrames);
+        'Individual feet',Body,visSteps,F,iFrames,iC);
 %     aniData(currVidPath,v,currDataPath,fName,imInvert,...
 %         'Global feet',Body,visSteps,B_ft);
 
@@ -619,7 +609,7 @@ if do.MakeFootMoviePretty
     imInvert = 0;
 
     % Load iFrames
-%     load([currDataPath filesep 'Frames used'])
+    load([currDataPath filesep 'Frames used'])
     
     % Load F data
     load([currDataPath filesep 'post- foot refined']);
@@ -640,7 +630,7 @@ if do.MakeFootMoviePretty
 
     % Create animation
     aniData(currVidPath,v,currDataPath,fName,imInvert,...
-        'Individual feet, pretty',Body,visSteps,F,iFrames);
+        'Individual feet, pretty',Body,visSteps,F,iFrames,iC);
 end
 
 
