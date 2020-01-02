@@ -116,17 +116,47 @@ end
 % Add padding
 if padLen~=0
     
-    % Color of padding
-    padClr = double(round(quantile(im(:),0.75)));
-    
     % Increase pad slightly
-    padLen = padLen+2;
-    
-    % Add pad to sides, top and bottom
-    im2 = [padClr.*ones(size(im,1),padLen) im padClr.*ones(size(im,1),padLen)];
-    im2 = [padClr.*ones(padLen,size(im2,2)); im2];
-    im2 = [im2; padClr.*ones(padLen,size(im2,2))];
-    
+        padLen = padLen+2;
+        
+%     if strcmp(clrMode,'color')
+        
+    if mean(im(:))>(256/2)
+        qVal = 0.75;
+    else
+        qVal = 0.25;
+    end
+
+    for i = 1:size(im,3)
+        % Color of padding
+        padClr = double(round(quantile(...
+                        reshape(im(:,:,i),size(im,1)*size(im,2),1),qVal)));
+        
+        % Add pad to sides, top and bottom
+        im2  = [padClr.*ones(size(im,1),padLen) im(:,:,i) ...
+                      padClr.*ones(size(im,1),padLen)];
+        im2 = [padClr.*ones(padLen,size(im2,2)); im2];
+        im2 = [im2; padClr.*ones(padLen,size(im2,2))];
+        
+        % Store in im3
+        im3(:,:,i) = im2;
+        
+        clear im2
+    end
+%     else
+%         % Color of padding
+%         padClr = double(round(quantile(im(:),0.75)));
+%         
+%         % Increase pad slightly
+%         padLen = padLen+2;
+%         
+%         % Add pad to sides, top and bottom
+%         im2 = [padClr.*ones(size(im,1),padLen) im padClr.*ones(size(im,1),padLen)];
+%         im2 = [padClr.*ones(padLen,size(im2,2)); im2];
+%         im2 = [im2; padClr.*ones(padLen,size(im2,2))];
+%     end
+    % Transfer image
+     im = im3;
 end
 
 

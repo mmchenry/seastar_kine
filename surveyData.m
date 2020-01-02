@@ -113,12 +113,13 @@ elseif strcmp(opType,'Feet')
     Body            = varargin{2}; 
 %     B_ft     = varargin{2};
     numVis          = varargin{3};
+    iC              = varargin{4};
     
     % Path to foot data (B_ft files)
     footPath = [currDataPath filesep 'foot_blobs'];
     
     % List files of B_ft
-    [aB_ft,frames] = listB_ft(footPath);
+    [aB_ft,frame_list] = listB_ft(footPath);
     
     % Start index
     j = 1;
@@ -133,7 +134,7 @@ elseif strcmp(opType,'Feet')
        if ~isempty(B_ft.frIdx)           
            
            % Index in the Body data
-           idx = find(Body.frames==frames(i),1,'first');
+           idx = find(Body.frames==frame_list(i),1,'first');
            
            % Store from blob data
            propsG{j} = B_ft.propsG;
@@ -144,6 +145,7 @@ elseif strcmp(opType,'Feet')
            xCntr(j,1)   = Body.xCntr(idx);
            yCntr(j,1)   = Body.yCntr(idx);
            tform(j,1)   = Body.Rotation.tform(idx);
+           frames(j,1)  = frame_list(i);
            
            % Advance index
            j = j + 1;
@@ -225,7 +227,9 @@ end
 %% Initialize things
 
 % Frames to analyze
-anaFrames = round(linspace(min(frames),max(frames),numVis));
+anaFrames = 800 %round(linspace(min(frames),max(frames),numVis));
+
+% anaFrames = round(linspace(round(max(frames)/2),max(frames),numVis));
 
 set(0,'DefaultFigureWindowStyle','docked')
 %set(0,'DefaultFigureWindowStyle','normal')
@@ -380,7 +384,8 @@ if ~strcmp(opType,'blobs G&L')
                 roi.yPerimL(5)+offVal];
             
             % Stabilized image
-            imStable =  giveROI('stabilized',im,roi,0,Body.Rotation.tform(iData));
+            imStable =  giveROI('stabilized',im,roi,0,...
+                Body.Rotation.tform(iData));
             
             % Plot tracking
             h(1) = line(xG,yG,'Color',[1 0 0 0.2],'LineWidth',3);
@@ -422,10 +427,20 @@ if ~strcmp(opType,'blobs G&L')
                 roi(iData).yPerimL(5)+offVal];
             
             % Stabilized image
-            imStable =  giveROI('stabilized',im,roi(iData),0,tform(iData),0);
+            imStable =  giveROI('stabilized',im,roi(iData),0,tform(iData),[],0);
             
             % Plot tracking
             h(1) = line(xG,yG,'Color',[1 1 0 0.5],'LineWidth',3);
+            plot(xC,yC,'g+')
+            
+            % Plot centers of tube feet
+            for j = 1:length(propsG{iData})
+                xFG(j,1) = propsG{iData}(j).Centroid(1);
+                yFG(j,1) = propsG{iData}(j).Centroid(2);
+            end
+            
+            h = scatter(xFG,yFG,'MarkerEdgeColor',[1 1 0],'SizeData',20,...
+                    'MarkerEdgeAlpha',1);
             
             % Plot roi
             subplot(nRow,nCol,pNum+1)
@@ -466,7 +481,7 @@ if ~strcmp(opType,'blobs G&L')
                 roi(iData).yPerimL(5)+offVal];
             
             % Stabilized image
-            imStable =  giveROI('stabilized',im,roi(iData),0,tform(iData),0);
+            imStable =  giveROI('stabilized',im,roi(iData),0,tform(iData),[],0);
             
             % Plot roi
             imshow(imStable,'InitialMag','fit')

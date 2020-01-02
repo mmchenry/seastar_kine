@@ -66,8 +66,7 @@ elseif strcmp(imType,'mean roi')
     imInvert  = varargin{2};
     Body      = varargin{3};
     dSample   = varargin{4};
-    iC        = varargin{5};
-    
+   
     % Extract frame numbers to analyze
     if length(varargin)>4
         
@@ -79,6 +78,8 @@ elseif strcmp(imType,'mean roi')
     
     S      = Body.Rotation;
     frames = Body.frames;
+    
+    iC        = varargin{6};
     
     clear Body
    
@@ -207,7 +208,7 @@ for i = 1:length(fr_num)
     elseif strcmp(imType,'mean color')
         
         % Get current frame
-        imCurr       = getFrame(vid_path,v,cFrame,imInvert,'rgb');  
+        imCurr       = getFrame(vid_path,v,cFrame,imInvert,'rgb',[],iC.r);  
     
     elseif strcmp(imType,'mean roi') 
         % Get current frame

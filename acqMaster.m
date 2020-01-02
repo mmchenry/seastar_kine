@@ -3,6 +3,12 @@ function acqMaster(fileName)
 
 %% Code execution
 
+% Re-runs acquisition
+do.rerunAcq = 0;
+
+% Re-runs analysis (not including acquisition)
+do.rerunAna = 0;
+
 % Create movies of the Centroid movies for review
 do.MakeCentroidMovie = 0;
 
@@ -26,7 +32,7 @@ reRunRotation = 0;
 do.anaSurvey = 0;
 
 % Visualize steps of analysis executed
-visSteps = 0;
+visSteps = 1;
 
 
 %% Verify deleting data
@@ -70,6 +76,8 @@ blobParam.tVal    = 0.3;
 blobParam.areaMin = 50;
 blobParam.areaMax = 2000; 
 blobParam.AR_max  = 6;
+
+maxSize = 350;
 
 
 %% Manage paths (need to modify for new PC)
@@ -205,7 +213,7 @@ end
 
 %% Track centroid coordinates
 
-if ~isfile([currDataPath filesep 'Centroid.mat'])
+if do.rerunAcq || ~isfile([currDataPath filesep 'Centroid.mat'])
     
     disp(['Tracking centroid: ' currVidPath])
     disp('')
@@ -280,21 +288,21 @@ end
 
 %% Track rotation
     
-if ~isfile([currDataPath filesep 'Body.mat'])
+if do.rerunAcq || ~isfile([currDataPath filesep 'Body.mat'])
     
     % Downsample frames for image registration (speed up processing)
     dSample = 1;
     
     % Run tracker for predator
     trackRotation(currVidPath,v,currDataPath,'advanced',...
-        dSample,visSteps,reRunRotation,imInvert);
+        dSample,visSteps,reRunRotation,imInvert,maxSize);
     
     % Load data ('Body')
     load([currDataPath filesep 'Body.mat'])
     
     % Apply post-processing
     %Body = rotationPostProcess(Body,v,iC);
-    Body = postProcess('post rotation',Body,v,iC);
+    Body = postProcess('post rotation',Body,v,iC,maxSize);
     
     % Save with post-processing
     save([currDataPath filesep 'Body.mat'],'-v7.3','Body')
@@ -312,7 +320,7 @@ else
     % Make sure post-processing done
     if ~isfield(Body,'xCntr')
         % Apply post-processing
-        Body = rotationPostProcess(Body,v,iC);
+        Body = postProcess('post rotation',Body,v,iC,maxSize);
         
         % Save with post-processing
         save([currDataPath filesep 'Body.mat'],'Body')
@@ -359,7 +367,7 @@ interval_fr = [interval_fr(1:end-1); max(Body.frames)];
 mPath = [currDataPath filesep 'mean_images'];
 
 % Create mean images over regular interval of movie -----------
-if ~isfolder([currDataPath filesep 'mean_images'])
+if do.rerunAcq || ~isfolder([currDataPath filesep 'mean_images'])
     
     % Make directory
     if ~isfolder(mPath)
@@ -413,7 +421,7 @@ end
 %% Foot tracking step 2: mask for feet applied to global FOR
 % Creates local mask that excludes stationary objects 
 
-if ~isfolder([currDataPath filesep 'blobs']) 
+if do.rerunAcq || ~isfolder([currDataPath filesep 'blobs']) 
       
     % Downsample
     dSample = 0;
@@ -427,13 +435,13 @@ if ~isfolder([currDataPath filesep 'blobs'])
     % Path for saving blobs
     savePath = [currDataPath filesep 'blobs'];
     
-    % Run blob analysis
+    % Run blob analysis (generates B, saved in 'blobs' files)
     anaBlobs(currVidPath,v,'G&L props',Body,blobParam,imInvert,...
         dSample,mPath,visSteps,iC,savePath);   
 end
 
 % Produce data for motion images im imStack
-if ~isfolder([currDataPath filesep 'mask_static'])
+if do.rerunAcq || ~isfolder([currDataPath filesep 'mask_static'])
     
     % Path for motion images
     motionPath = [currDataPath filesep 'mask_static'];
@@ -446,7 +454,7 @@ if ~isfolder([currDataPath filesep 'mask_static'])
     
     tStart = tic;
     
-    % Produce image stack
+    % Produce image stack (Creates series of blur images in mask_static)
     motionImageStack(currVidPath,v,'mask static',Body,blobPath, ...
                    imInvert,iC,motionPath,strakDr_fr);
     disp(' ');
@@ -458,14 +466,17 @@ end
 %% Foot tracking step 3: Track feet
 
 % Loop thru frames, track feet --------------------------------------------
-if ~isfolder([currDataPath filesep 'foot_blobs'])
+if do.rerunAcq || ~isfolder([currDataPath filesep 'foot_blobs'])
 
-    % Store linked feet in B_ft
+    % Stores linked feet in B_ft, in 'foot_blobs' folder
     anaBlobs(currVidPath,v,'filter motion',currDataPath,strakDr_fr,Body,blobParam,...
         visSteps,imInvert);
+    
+    % Load initial conditions (iC)
+    load([currDataPath filesep 'Initial conditions'])
 
     % Visualize a bunch of frames to check results
-    surveyData(currVidPath,v,0,'Feet',currDataPath,Body,numVis);
+    surveyData(currVidPath,v,0,'Feet',currDataPath,Body,numVis,iC);
     
     clear B B_ft imStack
        
@@ -478,22 +489,23 @@ end
 dist_thresh = 5;
 
 % Arm number assignment ------------------------------------------
-if ~isfile([currDataPath filesep 'post- arms.mat'])
+if do.rerunAna || ~isfile([currDataPath filesep 'post- arms.mat'])
     
     % Path to data of feet (B_ft)
     Bpath = [currDataPath filesep 'foot_blobs'];
     
-    % Update status
-    disp('postProcess: Finding arm numbers . . .')
+    % Find arm numbers and matching global data
+    B2 = postProcess('package data',Body,iC,Bpath);
     
     % Find arm numbers and matching global data
-    B2 = postProcess('find arms',Body,iC,Bpath);
-    
-    % Save data
-    save([currDataPath filesep 'post- arms'],'-v7.3','B2')
-    
+    B2 = postProcess('find offset',Body,iC,Bpath,B2);
+
     % Add arms in global FOR to Body
-    Body = postProcess('add arms',Body,iC,B2);
+    [Body,B2] = postProcess('add arms',Body,iC,B2);
+    
+    % Save Body and B2
+    save([currDataPath filesep 'Body, post.mat'],'-v7.3','Body')
+    save([currDataPath filesep 'post- arms'],'-v7.3','B2')
     
     % Add arms and trajectory coordinate systems to body
     Body = postProcess('Traj body system',Body);
@@ -503,15 +515,15 @@ if ~isfile([currDataPath filesep 'post- arms.mat'])
     
     % Visual check with a random frame
     %visArms(currVidPath,v,Body,B2,200)
-    
-    clear B2 B_ft
 end
 
 % Connect blobs across frames --------------
-if ~isfile([currDataPath filesep 'post- foot refined.mat'])
+if 1 %do.rerunAna || ~isfile([currDataPath filesep 'post- foot refined.mat'])
     
     % Load B2
-    load([currDataPath filesep 'post- arms'])
+    if ~exist('B2','var')
+        load([currDataPath filesep 'post- arms'])
+    end
     
     % Load Body
     load([currDataPath filesep 'Body, post.mat'])
@@ -531,8 +543,7 @@ if ~isfile([currDataPath filesep 'post- foot refined.mat'])
     % Save data
     save([currDataPath filesep 'post- foot refined'],'F')
     
-    clear B2 F
-    
+    clear F 
 end
 
 % Visualize result
@@ -557,8 +568,10 @@ if do.MakeFootMoviePost
     % Turn of image inversion
     imInvert = 0;
     
-    % Load B2
-    load([currDataPath filesep 'post- arms'])
+     % Load B2
+    if ~exist('B2','var')
+        load([currDataPath filesep 'post- arms'])
+    end
     
     % Load Body
     load([currDataPath filesep 'Body, post.mat'])

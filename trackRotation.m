@@ -30,7 +30,7 @@ function trackRotation(vid_path,v,currDataPath,method,varargin)
 saveInterval = 10;
 
 % Maximum size of an image dimension (for downsampling)
-maxSize = 250;
+% maxSize = 250;
 
 currDataFile = 'Body.mat';
 
@@ -48,15 +48,18 @@ if strcmp(method,'advanced')
      optimizer.MaximumStepLength = 5e-4;
     optimizer.MaximumIterations = 1500;
     optimizer.RelaxationFactor  = 0.2;
+    
+    % Maximum image size
+    maxSize = varargin{3};
 
 end
 
 
 %% Load/create data files
 
-if isfile([currDataPath filesep 'Body.mat'])
-    load([currDataPath filesep 'Body.mat'])
-else
+%  if isfile([currDataPath filesep 'Body.mat'])
+%      load([currDataPath filesep 'Body.mat'])
+% else
     % Load Centroid
     load([currDataPath filesep 'Centroid.mat'])
     
@@ -67,7 +70,7 @@ else
     Body.y_flip = Centroid.y_flip;
     
     clear Centroid
-end
+% end
 
 % Load iC
 load([currDataPath filesep 'Initial conditions'])
@@ -90,8 +93,10 @@ dSample = varargin{1};
 
 
 if length(varargin)>3
-    visSteps = varargin{2};
-    iminvert = varargin{3};
+    visSteps      = varargin{2};
+    reRunRotation = varargin{3};
+    iminvert      = varargin{4};
+    maxSize       = varargin{5};
 else
     visSteps = 0;
     iminvert = 0;
@@ -108,6 +113,7 @@ ana.auto = ones(length(Body.frames),1);
 
 % Set current frame to first for reference image
 cFrame = Body.frames(1);
+%cFrame = Body.frames(550);
 
 iFrame = find(Body.frames==cFrame,1,'first');
 x0     = Body.x(iFrame);
@@ -127,7 +133,8 @@ clear idx
 %% Define reference image
     
 % First image
-im0 = getFrame(vid_path,v,cFrame,iminvert,clrMode,r);
+%im0 = getFrame(vid_path,v,cFrame,iminvert,clrMode,[],r);
+im0 = getFrame(vid_path,v,1,iminvert,clrMode,[],r);
 
 % Current roi
 roi = giveROI('define','rectangular',numroipts,r,x0,y0);
@@ -136,10 +143,10 @@ roi = giveROI('define','rectangular',numroipts,r,x0,y0);
 roi0 = roi;
 
 % Focus on roi
-[im_roi0,bw_mask] = giveROI('unstabilized',im0,roi,dSample);
+[im_roi0,bw_mask] = giveROI('unstabilized',im0,roi,dSample,[],maxSize);
 
 % High-res version of reference image
-[im_roi0HR,bw_maskHR] = giveROI('unstabilized',im0,roi,0);
+[im_roi0HR,bw_maskHR] = giveROI('unstabilized',im0,roi,0,[],maxSize);
 
 % Adjust image
 %im_roi0 = im_modify(im_roi0);
@@ -148,23 +155,25 @@ roi0 = roi;
 % Counter for saving data
 nSave = 1;
 
-% If re-running analysis . . . 
-if ~isfield(Body,'Rotation')
-    
-    % Set index at the start
-    iFrame = 1;   
-    
-% If resuming analysis . . .
-else
-    % Jump to next unanalyzed frame
-    iFrame = length(Body.Rotation.tform)+1;
-end
+% % If re-running analysis . . . 
+% if 1 %~isfield(Body,'Rotation')
+%     
+%     % Set index at the start
+%     %iFrame = 1;   
+%     
+% % If resuming analysis . . .
+% else
+%     % Jump to next unanalyzed frame
+%     iFrame = length(Body.Rotation.tform)+1;
+% end
+% 
+% if iFrame~=1
+%     disp(' '); 
+%     disp('========== Resuming analysis of sequence ===============');
+%     disp(' ')
+% end
 
-if iFrame~=1
-    disp(' '); 
-    disp('========== Resuming analysis of sequence ===============');
-    disp(' ')
-end
+% iFrame = 550;
 
 %iFrame = find(Body.frames,1,'first');
 
@@ -189,7 +198,7 @@ while true
     % Current image
     cFrame = Body.frames(iFrame);
     
-    im = getFrame(vid_path,v,cFrame,iminvert,clrMode,r);
+    im = getFrame(vid_path,v,cFrame,iminvert,clrMode,[],r);
     
     % Center point
     cX = Body.x(iFrame);
@@ -199,7 +208,7 @@ while true
     roi = giveROI('define','rectangular',numroipts,r,cX,cY);
     
     % Give image, unstabilized (i.e. unrotated)
-    [im_roi,bw_mask_roi] = giveROI('unstabilized',im,roi,dSample);
+    [im_roi,bw_mask_roi] = giveROI('unstabilized',im,roi,dSample,[],maxSize);
     
     % Modify image
    % im_roi = im_modify(im_roi);
@@ -255,10 +264,10 @@ while true
         clear im_roiHR bw_mask_roiHR tform_last ang_last
    
         % Store transformation matrix
-        Body.Rotation.tform(iFrame) = tform;
+        Body.Rotation.tform(iFrame) = tform;  
         Body.Rotation.roi(iFrame)   = roi;
         
-        %clear displ disp_net tformInv Drot_ang tform netRot_ang T Drot_rad
+        clear displ disp_net tformInv Drot_ang tform netRot_ang T Drot_rad
     end
     
     % Update status
@@ -271,9 +280,9 @@ while true
         % Use roi from current frame
         %roiCurr = giveROI('define','rectangular',numroipts,r,Body.x(iFrame),Body.y(iFrame));
         
-        %imStable = giveROI('stabilized',im,roi,dSample,tform);
+        %imStable = giveROI('stabilized',im,roi,dSample,tform,[],maxSize);
         imStable =  giveROI('stabilized',im,Body.Rotation.roi(iFrame),...
-                            dSample,Body.Rotation.tform(iFrame));
+                            dSample,Body.Rotation.tform(iFrame),[],maxSize);
         
         % Modify image
         %imStable = im_modify(imStable);
@@ -312,11 +321,13 @@ while true
         end
         
         warning on
+        
+        % Pause briefly to render
+        pause(0.001)
     end
     
     
-    % Pause briefly to render
-    pause(0.001)
+    
     
     
     % Visualize centroid, for debugging

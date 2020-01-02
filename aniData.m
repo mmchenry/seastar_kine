@@ -269,7 +269,7 @@ elseif strcmp(opType,'Individual feet, pretty')
         % Loop thru feet
         for j = 1:length(F)
             
-            % Index fo current frame to F data
+            % Index of current frame to F data
             iMatch = F(j).frames==frames(i);
  
             % Check for repeats
@@ -354,11 +354,13 @@ if ~strcmp(opType,'blobs G&L')
             
         elseif strcmp(opType,'Individual feet, pretty')
             
-            im = getFrame(vid_path,v,frames(i),0,'color');
+            imRange = 0.002;
             
-            im(:,:,1) = adapthisteq(im(:,:,1));
-            im(:,:,2) = adapthisteq(im(:,:,2));
-            im(:,:,3) = adapthisteq(im(:,:,3));
+            im = getFrame(vid_path,v,frames(i),0,'color',[],iC.r);
+            
+            im(:,:,1) = adapthisteq(im(:,:,1),'ClipLimit',imRange);
+            im(:,:,2) = adapthisteq(im(:,:,2),'ClipLimit',imRange);
+            im(:,:,3) = adapthisteq(im(:,:,3),'ClipLimit',imRange);
             
         else
             % Current whole frame
@@ -594,8 +596,8 @@ h = scatter(x{i}(j),y{i}(j),...
 %                     'MarkerEdgeColor',clr{i}(j,:),'SizeData',200,...
 %                     'MarkerEdgeAlpha',0.8);
 h = scatter(x{i}(j),y{i}(j),...
-                    'MarkerEdgeColor','y','SizeData',300,...
-                    'MarkerEdgeAlpha',0.8);
+                    'MarkerEdgeColor','y','SizeData',150,...
+                    'MarkerEdgeAlpha',0.5,'LineWidth',1);
             end
             
             h = scatter(xArm(i,:),yArm(i,:),...

@@ -88,7 +88,7 @@ for i = 1:length(fr_num)
     
     % Update stack
     [imStack,frCurr] = addToStack(vid_path,v,frCurr,imStack,cFrame,...
-        halfIntvl,B,tVal,xCntr,yCntr,imInvert,iC);
+                                halfIntvl,B,tVal,xCntr,yCntr,imInvert,iC);
     
     % Get average image
     imBlur.im = uint8(sum(double(imStack),3)./length(frCurr));

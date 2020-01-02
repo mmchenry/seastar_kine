@@ -202,7 +202,7 @@ end
 Centroid.x        = x;
 Centroid.y        = y;
 Centroid.y_flip   = y_flip;
-
+Centroid.frames   = frames;
 
 %% Define outputs
 

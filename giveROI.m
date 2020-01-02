@@ -55,7 +55,6 @@ if strcmp(action,'define')
         roi.yCntr = 0;
     end
     
-    
 elseif strcmp(action,'unstabilized')
     
     im      = varargin{1};
@@ -73,6 +72,13 @@ elseif strcmp(action,'unstabilized')
     else
         fillColor = 255;
     end
+    
+    if dSample 
+        maxSize = varargin{5};
+    end
+    
+    allowPad = 0;
+    
         
 elseif strcmp(action,'stabilized')
     
@@ -81,20 +87,35 @@ elseif strcmp(action,'stabilized')
     dSample = varargin{3};
     tform   = varargin{4};
     
-    if length(varargin) > 4
-        if (length(varargin{5})>1)
-            imMean  = varargin{5};
-            fillColor = 255;
-        else
-            imMean    = [];
-            fillColor = varargin{5};
-        end
+    if length(varargin)<5
+        imMean = [];
     else
-        imMean    = [];
+        imMean  = varargin{5};
+    end
+    if length(varargin)<5
         fillColor = 255;
+    else
+        fillColor = varargin{6};
     end
     
+%     if length(varargin) > 4
+%         if (length(varargin{5})>1)
+%             
+%             fillColor = 255;
+%         else
+%             imMean    = [];
+%             fillColor = varargin{5};
+%         end
+%     else
+%         imMean    = [];
+%         fillColor = 255;
+%     end
+    
     allowPad = 0;
+    
+    if dSample 
+        maxSize = varargin{7};
+    end
     
 else
     error('Do not recognize action')
@@ -145,7 +166,7 @@ if strcmp(action,'define')
 else
     
     % Maximum size of an image dimension (for downsampling)
-    maxSize = 350;
+%     maxSize = 350;
     
 end
 
@@ -272,15 +293,20 @@ if ~strcmp(action,'define')
     end
     
     % Reduce size (helps speed up image registration)
-    if dSample && (length(im)>maxSize)
+    if dSample && (size(im_roi,2)>maxSize)
         
         % Factor by which to resize
-        imFactor = maxSize/length(im);
+        imFactor = maxSize/size(im_roi,2);
         
-        % Downsample image
-        im_roi = imresize(im_roi,imFactor);
-        
-        bw_roi_mask = imresize(bw_roi_mask,imFactor);
+        if imFactor>1
+            warning('Your max size exceed the image size, not downsampling')
+        else
+            
+            % Downsample image
+            im_roi = imresize(im_roi,imFactor);
+            
+            bw_roi_mask = imresize(bw_roi_mask,imFactor);
+        end
         % White out pixels outside of circular roi
         %bw_roi = roipoly(size(im_roi,1),size(im_roi,2),round(yC*imFactor),round(xC*imFactor));
     end

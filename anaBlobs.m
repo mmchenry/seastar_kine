@@ -100,7 +100,7 @@ if strcmp(opType,'G&L props')
 
     % Loop thru frames
      parfor i = 1:length(frames)
-%          for i = 1:length(frames)
+        %  for i = 1:length(frames)
         
         % Current frame
         cFrame = frames(i);
@@ -121,7 +121,7 @@ if strcmp(opType,'G&L props')
         
         % Roi image, mean image subtracted
         [im_roi,bw_mask,bw_roi_mask] = giveROI('stabilized',im,...
-            roi,dSample,tform,255);
+            roi,dSample,tform);
  
         % Subtract mean image, adjust contrast
         im_roi2 = imadjust(imsubtract(imRoiMean,im_roi));
@@ -139,10 +139,10 @@ if strcmp(opType,'G&L props')
         % Blobs in the G FOR
         bw_blobs_G = transCoord2d('bw L2G',tform,bw_roi,bw_mask,bw_roi_mask);
         
-        % Survey blobs
+        % Survey properties of blobs
         propsG = regionprops(bw_blobs_G,'Centroid','Area',...
-            'MajorAxisLength','MinorAxisLength',...
-            'PixelIdxList','PixelList');
+                             'MajorAxisLength','MinorAxisLength',...
+                             'PixelIdxList','PixelList');
         
         % Save data to B strcuture
         B = struct('fr_num',cFrame,'propsG',propsG,'propsL',props,...
@@ -155,7 +155,7 @@ if strcmp(opType,'G&L props')
             aLevel = 0.5;
             
             % Current whole frame
-            imI = getFrame(vid_path,v,cFrame,~imInvert,'gray',[].iC.r);
+            imI = getFrame(vid_path,v,cFrame,~imInvert,'gray',[],iC.r);
 
             subplot(2,1,1)
             h = imshow(imI,'InitialMag','fit');
@@ -240,7 +240,7 @@ if strcmp(opType,'filter motion')
         % Get roi data
         %[bw_mask,im_roi,roi_rect,bw_roi_mask] = giveROI('circular',imB,x,y,r,theta,0);
         im_roi = giveROI('stabilized',imB,S.roi(i),dSample, ...
-            S.tform(i),0);
+            S.tform(i),[],0);
         
         % Find blobs in roi
         [propsL,bw_roi] = findBlobs(im_roi,tVal,...
