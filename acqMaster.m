@@ -32,7 +32,7 @@ reRunRotation = 0;
 do.anaSurvey = 0;
 
 % Visualize steps of analysis executed
-visSteps = 1;
+visSteps = 0;
 
 
 %% Verify deleting data
@@ -518,7 +518,7 @@ if do.rerunAna || ~isfile([currDataPath filesep 'post- arms.mat'])
 end
 
 % Connect blobs across frames --------------
-if 1 %do.rerunAna || ~isfile([currDataPath filesep 'post- foot refined.mat'])
+if do.rerunAna || ~isfile([currDataPath filesep 'post- foot refined.mat'])
     
     % Load B2
     if ~exist('B2','var')

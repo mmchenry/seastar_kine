@@ -176,7 +176,7 @@ elseif strcmp(opType,'Global feet')
     fPos = [ 1 530  2002  995];
     
     % Clear 
-    clear Body j idx B_ft
+    clear Body j idx B_ft F
     
     
 elseif strcmp(opType,'Individual feet')
@@ -302,7 +302,7 @@ elseif strcmp(opType,'Individual feet, pretty')
     fPos   = [ 1 530  2002  995];
     
     % Clear 
-    clear Body j idx B_ft   
+    clear Body j idx B_ft varargin
     
     
 elseif strcmp(opType,'Centroid & Rotation') || strcmp(opType,'no analysis')    
@@ -340,6 +340,8 @@ if nargout>0
     % Initialize index
     idx = 1;
 end
+
+imRect = round([703  2868  3853  2168]);
 
 
 %% loop thru frames (not 'blobs G&L')
@@ -589,7 +591,11 @@ h = scatter(x{i}(j),y{i}(j),...
         elseif strcmp(opType,'Individual feet, pretty')
 
             set(f,'Color',0.2.*[1 1 1])
-            set(hTitle,'Color',0.8.*[1 1 1]);
+            %set(hTitle,'Color',0.8.*[1 1 1]);
+            
+%             set(gca,'Units','normalized')
+            h = text(round(size(im,2)/7)+20,round(size(im,2)/6),...
+                hTitle.String,'Color',0.8.*[1 1 1],'FontSize',18);
             
             for j = 1:length(x{i})
 %                 h = scatter(x{i}(j),y{i}(j),...
@@ -613,8 +619,10 @@ h = scatter(x{i}(j),y{i}(j),...
         drawnow
         pause(0.001)  
  
+        imRect = [314  1300-974 1744 974];
 
-        imFrame = getframe(f);
+        imFrame = getframe(gca);
+        imFrame.cdata = imcrop(imFrame.cdata,imRect);
         writeVideo(vOut,imFrame);
         
         if imVis
@@ -624,6 +632,8 @@ h = scatter(x{i}(j),y{i}(j),...
         end
         
         hold off
+        
+        clear imInvert imRange im h fColor fPos imFrame
     end
 end
 

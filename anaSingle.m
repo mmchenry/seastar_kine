@@ -57,24 +57,28 @@ else
 end
 
 
+paths = givePaths;
+
+
+
 %% Catalog sequence videos
 
-% Go into batch mode, if no filename given
+
+
+
+%% Catalog sequence videos
+
+%cList = catVidfiles(paths.vid);
+
+% cList.fName = 'S004_S001_T007';
 if nargin<1
+%      cList.fName = 'SS001_S001_T013';
+% cList.fName = 'S005_S001_T011';
+    %cList.fName = 'STUDIO0_S009_S001_T020';
+%      cList.fName = ['weights' filesep 'STUDIO0_S009_S001_T009'];
+     cList.fName = ['floats' filesep 'STUDIO0_S009_S001_T020'];
+else
     
-    % Get list of sequences
-    cList = dir([dataPath filesep 'S0*']);
-    
-    % Loop thru cList, running anaSingle
-    for i = 1:length(cList)
-        disp(['Batchmode: running ' cList(i).name]); disp(' ')
-        anaSingle(cList(i).name)
-    end
-    
-    % Stop code
-    return
-    
-else  
     cList.fName = fileName;
 end
 
@@ -82,8 +86,32 @@ cList.ext   = 'MOV';
 cList.movtype = 'mov';
 cList.path = '';
 
+% % Go into batch mode, if no filename given
+% if nargin<1
+%     
+%     % Get list of sequences
+%     cList = dir([dataPath filesep 'S0*']);
+%     
+%     % Loop thru cList, running anaSingle
+%     for i = 1:length(cList)
+%         disp(['Batchmode: running ' cList(i).name]); disp(' ')
+%         anaSingle(cList(i).name)
+%     end
+%     
+%     % Stop code
+%     return
+%     
+% else  
+%     cList.fName = fileName;
+% end
+% 
+% cList.ext   = 'MOV';
+% cList.movtype = 'mov';
+% cList.path = '';
+
 % Paths for current sequence
-currDataPath = [dataPath filesep cList.path filesep cList.fName];
+currDataPath = [paths.data filesep cList.path filesep cList.fName];
+% currDataPath = [dataPath filesep cList.path filesep cList.fName];
 %currVidPath  = [vidPath filesep cList.path filesep cList.fName '.' cList.ext];
 
 % % Check video path 
@@ -110,7 +138,54 @@ load([currDataPath filesep 'post- foot refined'])
 
 %% Sequence-specific information
 
-if strcmp(cList.fName,'S005_S001_T011')
+if strcmp(cList.fName,['floats' filesep 'STUDIO0_S009_S001_T020'])
+    
+    %TODO: These data are made up -- need to input real values
+    
+    P.indivNum = 1;
+    
+    % Start and end of bouncing gait (s)
+    P.tBounceStart = 17;
+    P.tBounceEnd   = 30;
+    
+     % Start and end of non-bouncing walking (s)
+    P.tWalkStart = 0;
+    P.tWalkEnd   = 15;
+    
+    % Body mass (kg)
+    P.mass = 10.27e-3;
+    
+    % Calibration constant (m/pix)
+    P.cal = 1;
+    
+    % Total number of tube feet
+    P.numFeet = 20*5;
+    
+elseif strcmp(cList.fName,['weights' filesep 'STUDIO0_S009_S001_T009'])
+    
+    %TODO: These data are made up -- need to input real values
+    
+    P.indivNum = 1;
+    
+    % Start and end of bouncing gait (s)
+    P.tBounceStart = 22;
+    P.tBounceEnd   = 70;
+    
+     % Start and end of non-bouncing walking (s)
+    P.tWalkStart = 0;
+    P.tWalkEnd   = 20;
+    
+    % Body mass (kg)
+    P.mass = 10.27e-3;
+    
+    % Calibration constant (m/pix)
+    P.cal = 1;
+    
+    % Total number of tube feet
+    P.numFeet = 20*5;
+
+    
+elseif strcmp(cList.fName,'S005_S001_T011')
     
     P.indivNum = 6;
     
@@ -671,13 +746,51 @@ fS = contactStats(F,frRate);
 iBodWalk   = Body.t>=P.tWalkStart & Body.t<=P.tWalkEnd;
 iBodBounce = Body.t>=P.tBounceStart & Body.t<=P.tBounceEnd;
 
-% Speed measurement
-spd = P.cal.*hypot(diff(smooth(Body.xCntr)),...
-                   diff(smooth(Body.yCntr)))...
-                ./diff(Body.t);
-spd = [spd(1); spd];
+% Frame rate
+frRate = 1./mean(diff(Body.t));
+
+% Containers
+wDur = [];
+bDur = [];
+
+% Loop thru feet
+for i = 1:length(F)
+    
+    tCurr = F(i).frames./frRate;
+    
+    % Save time,  if duration is within walk period
+    if (min(tCurr)>= P.tWalkStart) && (max(tCurr)<= P.tWalkEnd)
+        
+        wDur = [wDur; range(tCurr)];
+        
+    % Save time,  if duration is within bounce period
+    elseif (min(tCurr)>= P.tBounceStart) && (max(tCurr)<= P.tBounceEnd)
+        
+        bDur = [bDur; range(tCurr)];
+        
+    end
+end
+
+% Body diameter (pix)
+bDiam = max([nanmax(nanmax(Body.xArmTL,[],2)-nanmin(Body.xArmTL,[],2)), ...
+             nanmax(nanmax(Body.yArmTL,[],2)-nanmin(Body.yArmTL,[],2))]);
+
+% Calculate speed (blody lengths)
+spd = hypot(diff(smooth(Body.xCntr)),diff(smooth(Body.yCntr)))./diff(Body.t);
+spd = [spd(1); spd]./bDiam;
+
+% Speed measurement (m/s)
+% spd = P.cal.*hypot(diff(smooth(Body.xCntr)),...
+%                    diff(smooth(Body.yCntr)))...
+%                 ./diff(Body.t);
+% spd = [spd(1); spd];
 
 % Displacement 
+
+
+% Store power stroke duration
+D.meanPwrDur.w = nanmean(wDur);
+D.meanPwrDur.b = nanmean(bDur);
 
 % Store speed
 D.meanSpeed.w  = nanmean(spd(iBodWalk));
@@ -843,7 +956,7 @@ cmap(6,:) = [0.3010    0.7450    0.9330];
 cmap(7,:) = [0.6350    0.0780    0.1840];
 
 
-function starPts = makeStar(xA,yA,xC,yC)
+function [starPts,ALen] = makeStar(xA,yA,xC,yC)
 % Create periperal shape of seastar body
 
 nArms = length(xA);
@@ -1020,7 +1133,7 @@ armAng = atan2(Body.yArmTL(iBodStart,:),Body.xArmTL(iBodStart,:));
 [tmp,iArm] = sort(abs(armAng));
 
 % Points for whole body
-starPts = makeStar(meanArmx,meanArmy,0,0);
+[starPts,armLen] = makeStar(meanArmx,meanArmy,0,0);
 
 % Make legend for tube foot colors
 if 0
@@ -1049,9 +1162,13 @@ if 0
     clear sSize h xV yV  
 end
 
+% Body diameter (pix)
+bDiam = max([nanmax(nanmax(Body.xArmTL,[],2)-nanmin(Body.xArmTL,[],2)), ...
+             nanmax(nanmax(Body.yArmTL,[],2)-nanmin(Body.yArmTL,[],2))]);
+
 % Calculate speed
 spd = hypot(diff(smooth(Body.xCntr)),diff(smooth(Body.yCntr)))./diff(Body.t);
-spd = [spd(1); spd];
+spd = [spd(1); spd]./bDiam;
 
 % Calculate heading
 for i = 1:length(Body.xArmT)
@@ -1064,7 +1181,7 @@ subplot(4,5,2:5)
 h(1) = plot(Body.t(iBod)-tStart,spd(iBod));ax1=gca;
 % [ax1,h(1),h(2)] = plotyy(Body.t(iBod)-tStart,spd(iBod),...
 % Body.t(iBod)-tStart,theta(iBod));
-ylabel(ax1(1),'Speed (pix/s)')
+ylabel(ax1(1),'Speed (diameters/s)')
 %ylabel(ax1(2),'Heading (deg)')
 
 %xlabel('Time s)');
@@ -1244,7 +1361,8 @@ end
 
 
 % Width of body along x-axis
-normLen = 1*range(Body.xArmTL(1,:));
+iS = find(~isnan(Body.xArmTL(:,1)),1);
+normLen = 1*range(Body.xArmTL(iS,:));
 
 % Index of body values to include
 iBodStart = find(Body.frames==min(frStart),1,'first');
@@ -1321,15 +1439,19 @@ end
 % Angular position of arms
 armAng = atan2(Body.yArmTL(iBodStart,:),Body.xArmTL(iBodStart,:));
 
+% Body diameter (pix)
+bDiam = max([nanmax(nanmax(Body.xArmTL,[],2)-nanmin(Body.xArmTL,[],2)), ...
+             nanmax(nanmax(Body.yArmTL,[],2)-nanmin(Body.yArmTL,[],2))]);
+
 % Indicies for arm numbers, sorted by angular position
 [tmp,iArm] = sort(abs(armAng));
 
 % Points for whole body
-starPts = makeStar(meanArmx,meanArmy,0,0);
+[starPts,armLen] = makeStar(meanArmx,meanArmy,0,0);
 
 % Calculate speed
 spd = hypot(diff(smooth(Body.xCntr)),diff(smooth(Body.yCntr)))./diff(Body.t);
-spd = [spd(1); spd];
+spd = [spd(1); spd] ./ bDiam;
 
 % Calculate heading
 for i = 1:length(Body.xArmT)
@@ -1342,7 +1464,7 @@ subplot(4,5,2:5)
 h(1) = plot(Body.t(iBod)-tStart,spd(iBod));ax1=gca;
 % [ax1,h(1),h(2)] = plotyy(Body.t(iBod)-tStart,spd(iBod),...
 % Body.t(iBod)-tStart,theta(iBod));
-ylabel(ax1(1),'Speed (pix/s)')
+ylabel(ax1(1),'Speed (diameter/s)')
 %ylabel(ax1(2),'Heading (deg)')
 
 %xlabel('Time s)');
@@ -1352,7 +1474,7 @@ set(ax1(1),'YColor','k')
 set(ax1,'TickDir','out')
 %set(ax1(2),'YColor',0.5.*[1 1 1])
 title(ttext)
-grid on
+% grid on
 % Get x-limits
 xL = xlim;
 
@@ -1396,7 +1518,7 @@ for i = 1:length(arms)
     hold on
 end
 
-
+if 1
 % Loop thru each footprint
 for i = 1:length(armPos)
 
@@ -1457,6 +1579,7 @@ for i = 1:length(armPos)
               'FaceColor','interp','EdgeColor','none','FaceAlpha',fAlpha);  
     end
 end
+end
 
 grid on
 ylim([1 6])
@@ -1490,7 +1613,9 @@ h2(1) = plot(Body.t(iBod)-tStart,OP,'k-');
 set(gca,'TickDir','out')
 ylabel('Polar order parameter')
 xlabel('time (s)')
-grid on
+% grid on
+ylim([0 1])
+set(h2(1),'Color','k','LineWidth',1.5)
 
 ttt=2
 

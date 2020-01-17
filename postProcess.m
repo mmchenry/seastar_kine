@@ -76,7 +76,7 @@ elseif strcmp(pMode,'Remove bad feet')
     minDisp = 30;
     
     % Minium duration of contact
-    minFrames = 15;
+    minFrames = 25;
  
     % Minimum distance from mouth, relative to body size
     minMouthDist = 0.05;
