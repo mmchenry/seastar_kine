@@ -1,7 +1,9 @@
-function acqMaster(fileName)
-% Acquisition of sea star kinematics
+function acqMaster(dataPath,vidPath,action)
+% Acquisition of sea star kinematics, only from a bottom view of the tube
+% feet on glass
 
-%% Code execution
+
+%% Code execution defaults
 
 % Re-runs acquisition
 do.rerunAcq = 0;
@@ -19,7 +21,10 @@ do.MakeRotationMovies = 0;
 do.MakeFootMovie = 0;
 
 % Make movie of foot tracking for a presentation
-do.MakeFootMoviePretty = 1;
+do.MakeFootMoviePretty = 0;
+
+% Make video for analysis by DeepLabCut
+d.MakeDeepMovie = 0;
 
 % Make movie to evaluate centroid and rotation tracking, after
 % post-processing
@@ -33,6 +38,25 @@ do.anaSurvey = 0;
 
 % Visualize steps of analysis executed
 visSteps = 0;
+
+% Surveys the data to show tracking over a fixed number of video stills
+visFootTracking = 0;
+
+
+%% 
+
+% Run MakeDeepMovie, if requested
+if strcmp(action,'run analysis')
+    
+    % Do nothing
+    
+elseif strcmp(action,'deep movie')
+    
+    d.MakeDeepMovie = 1;
+    
+else
+    error(['Do not recognize ' action])
+end
 
 
 %% Verify deleting data
@@ -80,36 +104,40 @@ blobParam.AR_max  = 6;
 maxSize = 350;
 
 
-%% Manage paths (need to modify for new PC)
+%% Manage paths 
    
 paths = givePaths;
-
 
 
 %% Catalog sequence videos
 
 %cList = catVidfiles(paths.vid);
 
-%cList.fName = 'S004_S001_T007';
-if nargin<1
-    %cList.fName = 'SS001_S001_T013';
-    %cList.fName = 'STUDIO0_S009_S001_T020';
-    cList.fName = ['weights' filesep 'STUDIO0_S009_S001_T009'];
-else
-    
-    cList.fName = fileName;
-end
-cList.ext   = 'MOV';
-cList.movtype = 'mov';
-cList.path = '';
+% %cList.fName = 'S004_S001_T007';
+% if nargin<1
+%     %cList.fName = 'SS001_S001_T013';
+%     %cList.fName = 'STUDIO0_S009_S001_T020';
+%     cList.fName = ['weights' filesep 'STUDIO0_S009_S001_T009'];
+% else
+%     
+%     cList.fName = fileName;
+% end
+% cList.ext   = 'MOV';
+% cList.movtype = 'mov';
+% cList.path = '';
 
 % Paths for current sequence
-currDataPath = [paths.data filesep cList.path filesep cList.fName];
-currVidPath  = [paths.vid filesep cList.path filesep cList.fName '.' cList.ext];
+currDataPath = [paths.data filesep dataPath];
+currVidPath  = [paths.vid filesep vidPath];
 
 % Check video path 
 if ~isfile(currVidPath)
     error(['Video file does not exist at ' currVidPath]);
+end
+
+% Check data path 
+if ~isfolder(currDataPath)
+    error(['Data folder does not exist at ' currDataPath]);
 end
 
 % Load video info (v)
@@ -549,6 +577,7 @@ end
 % Visualize result
 % surveyData(currVidPath,v,0,'Individual feet',Body,B_ft,numVis);
 
+
 %% Define frames used
 
 % Get listing of frame numbers
@@ -559,6 +588,16 @@ iFrames = Body.frames>=frNums(1) & Body.frames<=frNums(end);
 
 % Save data
 save([currDataPath filesep 'Frames used'],'iFrames')
+
+
+%% Make movie for analyzing via DeepLabCut
+
+if d.MakeDeepMovie
+    
+    ttt= 3;
+    
+    
+end
 
 
 %% Make movie of individual feet, after post-processing
@@ -647,6 +686,38 @@ if do.MakeFootMoviePretty
 end
 
 
+%% Visualize a sampling of video frames
+
+if visFootTracking
+    
+    % Numebr of frames to visualize
+    nFrames = 20;
+
+    % Load iFrames
+    load([currDataPath filesep 'Frames used'])
+    
+    % Load F data
+    load([currDataPath filesep 'post- foot refined']);
+    
+    % Load Body
+    load([currDataPath filesep 'Body, post.mat'])
+    
+    % File name of movie to be created
+    fName = 'Foot tracking, pretty';
+    
+    % Load video info (v)                added by CG
+    v = defineVidObject(currVidPath);
+    
+    % Load video info (v)                added by CG
+%     v = defineVidObject(currVidPath);
+    
+    % Create animation
+    visTracking(currVidPath,v,currDataPath,imInvert,...
+                'Basic',Body,visSteps,F,iFrames,iC,nFrames);
+    
+end
+
+
 %% Visualize frames from all steps of the analysis
 
 if do.anaSurvey
@@ -674,9 +745,6 @@ if do.anaSurvey
     surveyData(currVidPath,v,0,'Feet local',Body,B_ft,numVis);
     
 end
-
-
-
 
 
 
@@ -900,168 +968,7 @@ firstFrame   = str2num(answer{1});
 lastFrame    = str2num(answer{2});
 
 
-function cList = catVidfiles(vidPath)
 
-
-a1 = dir(vidPath);
-
-n = 1;
-
-novid = 1;
-
-% Loop thru for adult and juvenile directories
-for i = 1:length(a1)
-    
-    if a1(i).isdir && strcmp(a1(i).name,'Adults')      
-        currAge = 'a';       
-    elseif a1(i).isdir && strcmp(a1(i).name,'Juveniles')       
-        currAge = 'j';        
-    else       
-        currAge = [];        
-    end
-    
-   
-    
-    if ~isempty(currAge)
-        
-        a2 = dir([vidPath filesep a1(i).name]);
-        
-        % Loop thru oriention directories
-        for j = 1:length(a2)
-            
-            if a2(j).isdir && strcmp(a2(j).name,'Horizontal')
-                
-                currOrient = 'h';
-                
-            elseif a2(j).isdir && strcmp(a2(j).name,'Vertical')
-                
-                currOrient = 'v';
-                
-            elseif a2(j).isdir && ...
-                    (strcmp(a2(j).name,'Upside-down') || strcmp(a2(j).name,'UpsideDown'))
-                
-                currOrient = 'u';
-                
-            else
-                currOrient = [];
-            end
-            
-            
-            if ~isempty(currOrient)
-                
-                a3 = dir([vidPath filesep a1(i).name filesep a2(j).name]);
-                
-                % Loop trhu individual directories
-                for k = 1:length(a3)
-                    
-                    if a3(k).isdir && length(a3(k).name)>2 &&...
-                            strcmp(a3(k).name(1:2),'SS')
-                        
-                        indivNum = str2num(a3(k).name(3:4));
-                        
-                        % Directory contents for individual
-                        a4 = dir([vidPath filesep a1(i).name filesep ...
-                            a2(j).name filesep a3(k).name]);
-
-                        m = 1;cal.Type=[];
-                        
-                        % Loop thru sequences for the indiviual
-                        for l = 1:length(a4)
-                            
-                            % If video is a calibration
-                            if length(a4(l).name) > 10 && ...
-                                    (strcmp(a4(l).name(1:11),'calibration') || ...
-                                     strcmp(a4(l).name(1:11),'Calibration'))
-                                     
-                                if a4(l).isdir
-                                    cal.Type = 'image';
-                                    
-                                elseif ~a4(l).isdir && strcmp(a4(l).name(end-2:end),'MP4')
-                                    cal.Type = 'mp4';
-                                    
-                                elseif ~a4(l).isdir && strcmp(a4(l).name(end-2:end),'MOV')
-                                    cal.Type = 'mov';
-                                    
-                                else
-                                    error('no match for calibration type');
-                                end
-                                
-                                % Store calibration path
-                                cal.Path = [a1(i).name filesep ...
-                                    a2(j).name filesep a3(k).name ...
-                                    filesep a4(l).name];
-                                
-                                % If video is an MOV file . . .
-                            elseif ~a4(l).isdir && length(a4(l).name)>3 && ...
-                                    strcmp(a4(l).name(end-2:end),'MOV')
-                                
-                                movPath{m} = [a1(i).name filesep ...
-                                    a2(j).name filesep a3(k).name ...
-                                    filesep a4(l).name];
-                                movType{m} = 'mov';
-                                
-                                m = m + 1;
-                                
-                            elseif ~a4(l).isdir && length(a4(l).name)>3 && ...
-                                    strcmp(a4(l).name(end-2:end),'MP4')
-                                
-                                movPath{m} = [a1(i).name filesep ...
-                                    a2(j).name filesep a3(k).name ...
-                                    filesep a4(l).name];
-                                movType{m} = 'mp4';
-                                
-                                m = m + 1;    
-                                % If video is an image sequence
-                            elseif a4(l).isdir && length(a4(l).name)>3 && ...
-                                    strcmp(a4(l).name(1:4),'time')
-                                
-                                movType{m} = 'image seq';
-                                movPath{m} = [a1(i).name filesep ...
-                                    a2(j).name filesep a3(k).name ...
-                                    filesep a4(l).name];
-                            end
-                        end
-
-                        % Loop trhu sequences
-                        for f = 1:length(movType)                            
-                            
-                            % Extract file parts
-                            [pathstr,name,ext] = fileparts(movPath{f});
-                            
-                            
-                            % Store info on inidvidual
-                            cList.age(n,1)    = currAge;
-                            cList.indiv(n,1)  = indivNum;
-                            cList.orient(n,1) = currOrient;
-                            
-                            cList.vidType{n} = movType{f};
-                            cList.path{n}    = pathstr;
-                            cList.fName{n}   = name;
-                            cList.ext{n}     = ext;
-                            
-                            novid = 0;
-                            
-                            if isempty(cal.Type)
-                                cList.calPath{n} = [];
-                                %disp(' ')
-                                warning(['No calibration for: ' movPath{f}]);
-                            else
-                                cList.calPath{n} = cal.Path;
-                            end
-                            
-                            % Advance sequence index
-                            n = n + 1;                            
-                        end                     
-                    end
-                end              
-            end
-        end     
-    end   
-end
-
-if novid==1
-    error('No video files found')
-end
 
 function [a,frNums] = fileList(fPath,fPrefix)
 

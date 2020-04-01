@@ -204,6 +204,7 @@ Centroid.y        = y;
 Centroid.y_flip   = y_flip;
 Centroid.frames   = frames;
 
+
 %% Define outputs
 
 % Threshold method

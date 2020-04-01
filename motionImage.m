@@ -44,19 +44,26 @@ if strcmp(imType,'mean') || ...
     % Image processing
     imInvert = varargin{2};
     
+    Body      = varargin{3};
+    dSample   = varargin{4};
+    
     % Extract frame numbers
     if nargin>5
-        if length(varargin{3})>1
-            fr_num = varargin{3};
+        if length(varargin{5})>1
+            fr_num = varargin{5};
         else
             % Max number of frames to analyze
-            maxFrames = varargin{3};
+            maxFrames = varargin{5};
             fr_num = [];
         end
     else
         maxFrames = 100;
         fr_num = [];
     end
+    
+%     Body    = varargin{4};
+    frames = Body.frames;
+    iC        = varargin{6};
     
 
 elseif strcmp(imType,'mean roi') 
