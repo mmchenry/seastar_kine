@@ -2,13 +2,26 @@ function batchMaster
 % Handles the acquisition of data for all sequences
 
 
+
+%% Execution control
+
+% Generate movies for deepLabCut analysis
+do.deepLabCutMovies = 1;
+
+% Visualize centroid tracking
+do.visCentroids = 0;
+
+% Visualize centrdoi and rotation tracking
+do.visCentRot = 0;
+
+
+%% Manage paths and parameters
+   
+% Get root paths
+paths = givePaths;
+
 % Extension for viode file names
 extVid = 'MOV';
-
-
-%% Manage paths 
-   
-paths = givePaths;
 
 
 %% Read data from catalog spreadsheet
@@ -233,8 +246,10 @@ end
 
 %% Make movies for DeepLabCut
 
+if do.deepLabCutMovies
+
 % Loop thru sequences
-for i = 1:length(seq)
+parfor i = 1:length(seq)
     
     % Current directories
     dataPath = [seq(i).dirName filesep 'bottom' filesep seq(i).fName_bot];
@@ -242,12 +257,77 @@ for i = 1:length(seq)
                 '.' seq(i).ext];
     
     % Run analysis
-    movieMaster(dataPath,vidPath,'deep movie')
-    
+    movieMaster(dataPath,vidPath,'deep movie') 
+end
 end
 
 
+%% Visualize centroid tracking for all sequences
 
+if do.visCentroids
+    
+% Number of plots
+numVis = 16;
+
+imInvert = 0;
+
+% Loop thru sequences
+for i = 1:length(seq)
+
+    % Current directories
+    dataPath = [paths.data filesep seq(i).dirName filesep ...
+                'bottom' filesep seq(i).fName_bot];
+    vidPath  = [paths.vid filesep seq(i).dirName filesep ...
+                'bottom' filesep seq(i).fName_bot '.' seq(i).ext];
+
+    % Load video info (v)
+    v = defineVidObject(vidPath);
+
+    % Load initial conditions (iC)
+    load([dataPath filesep 'Initial conditions'])
+
+     % Load centroid data (Centroid)
+     load([dataPath filesep 'Centroid.mat'])
+
+    % Visualize a bunch of frames to check results
+    surveyData(vidPath,v,imInvert,'Centroid tracking',Centroid,iC,...
+        numVis,seq(i).fName_bot);
+end
+end
+
+
+%% Visualzie centroid and rotation tracking for all sequences
+
+if do.visCentRot
+    
+% Number of plots
+numVis = 16;
+
+imInvert = 0;
+
+% Loop thru sequences
+for i = 1:length(seq)
+
+    % Current directories
+    dataPath = [paths.data filesep seq(i).dirName filesep ...
+                'bottom' filesep seq(i).fName_bot];
+    vidPath  = [paths.vid filesep seq(i).dirName filesep ...
+                'bottom' filesep seq(i).fName_bot '.' seq(i).ext];
+
+    % Load video info (v)
+    v = defineVidObject(vidPath);
+
+    % Load initial conditions (iC)
+    load([dataPath filesep 'Initial conditions'])
+
+    % Load body kinematics (Body)
+    load([dataPath filesep 'Body.mat'])
+
+    % Visualize a bunch of frames to check results
+    surveyData(vidPath,v,imInvert,'Centroid & Rotation',Body,iC,numVis,...
+        seq(i).fName_bot);
+end
+end
 
 
 

@@ -46,8 +46,7 @@ S        = Body.Rotation;
 aLevel = 0.2;
 
 
-%% Movie for DeepLabCut
-
+%% Movie for deep learning analysis
 
 if strcmp(action,'deep movie')
     
@@ -71,20 +70,22 @@ open(vOut)
 
 % Blob data files
 %blobDir = dir([currDataPath filesep 'blobs' filesep 'blobs_*.mat']);
-maskDir  = dir([currDataPath filesep 'mask_static' filesep 'mask_*.mat']);
+% maskDir  = dir([currDataPath filesep 'mask_static' filesep 'mask_*.mat']);
 %ftDir     = dir([currDataPath filesep 'foot_blobs' filesep 'foot_*.mat']);
-ftDir     = dir([currDataPath filesep 'blobs' filesep 'blobs_*.mat']);
+% ftDir     = dir([currDataPath filesep 'blobs' filesep 'blobs_*.mat']);
 
 % Mean images for local FOR
 meanDir = dir([currDataPath filesep 'mean_images' filesep 'mean_*.mat']);
 
+frames = Body.frames;
+
 % Get frame numbers from ftDir
-for i = 1:length(ftDir)
-    frames(i,1) = str2num(ftDir(i).name(end-9:end-4));   
-end
+% for i = 1:length(ftDir)
+%     frames(i,1) = str2num(ftDir(i).name(end-9:end-4));   
+% end
 
 % Sort frame numbers
-[frames,idx] = sort(frames);
+% [frames,idx] = sort(frames);
 
 % Read frames corresponding to each mean image
 for i = 1:length(meanDir)
@@ -105,8 +106,15 @@ for i = 1:length(frames)
     % Current frame
     cFrame = frames(i);
     
+    % Index for match to frame number in the Body data
+    idx = Body.frames==cFrame;
+    
+    % Get current rotation data
+    roi    = Body.Rotation.roi(idx);
+    tform  = Body.Rotation.tform(idx);
+    
     % Load B_ft strcuture
-    load([currDataPath filesep 'blobs' filesep  ftDir(idx(i)).name])
+%     load([currDataPath filesep 'blobs' filesep  ftDir(idx(i)).name])
     
     roiM = [];
     
@@ -121,9 +129,6 @@ for i = 1:length(frames)
     if isempty(roiM)
         error('No mean image for current frame')
     end
-        
-    % Get data from S structure
-    [roi,tform] = returnS(S,i);
         
     % Current whole frame
     im = getFrame(currVidPath,v,cFrame,imInvert,'gray',[],iC.r);
@@ -145,8 +150,13 @@ for i = 1:length(frames)
         error('No sea star is in the video frame');
     end
     
+    % Set max pixel intensity
+    if i==1
+        maxLevel = double(max(im_roi(:)))/255;
+    end
+    
    % Subtract mean image, adjust contrast
-   im_roi = imadjust(im_roi,[0 0.6*double(max(im_roi(:)))/255],[0 1]);    
+   im_roi = imadjust(im_roi,[0 0.6*maxLevel],[0 1]);    
    
   
     % Start with blank
@@ -221,11 +231,3 @@ bw = bwselect(bw,xC,yC);
 % im(~bw) = 255;
 
 
-
-
-
-
-function [roi,tform] = returnS(S,i)
-
-roi    = S.roi(i);
-tform  = S.tform(i);

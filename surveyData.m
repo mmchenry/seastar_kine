@@ -7,6 +7,9 @@ function surveyData(vid_path,v,imInvert,opType,varargin)
 
 alphaLevel = 0.5;
 
+% Default title text
+tText = '';
+
 
 %% Parse inputs
 
@@ -52,8 +55,12 @@ elseif strcmp(opType,'Centroid tracking')
     iC      = varargin{2};
     numVis  = varargin{3};
     
+    if length(varargin)>3
+        tText = varargin{4};
+    end
+    
     % Number of rows and columns in each fig
-    nRow = 2;
+    nRow = 5;
     nCol = 2;
     
     % Number of panels for each frame
@@ -91,11 +98,15 @@ elseif strcmp(opType,'Centroid & Rotation') || strcmp(opType,'no analysis')
     iC      = varargin{2};
     numVis  = varargin{3};
     
+    if length(varargin)>3
+        tText = varargin{4};
+    end
+    
     frames = Body.frames;    
     numroipts = length(Body.Rotation.roi(1).xPerimL);    
 
     % Number of rows and columns in each fig
-    nRow = 3;
+    nRow = 4;
     nCol = 2;
     
     % Number of panels for each frame
@@ -227,7 +238,7 @@ end
 %% Initialize things
 
 % Frames to analyze
-anaFrames = 800 %round(linspace(min(frames),max(frames),numVis));
+anaFrames = round(linspace(min(frames),max(frames),numVis));
 
 % anaFrames = round(linspace(round(max(frames)/2),max(frames),numVis));
 
@@ -236,7 +247,7 @@ set(0,'DefaultFigureWindowStyle','docked')
 
 % Make figure
 %f = figure('Position',[1 1 1150 1340]);
-f = figure('Color',fColor);
+f = figure('Color',fColor,'Name',tText,'NumberTitle','off');
 
 if nargout>0
     % Initialize index
@@ -281,7 +292,7 @@ if ~strcmp(opType,'blobs G&L')
             
         elseif strcmp(opType,'Centroid tracking')
             
-            subplot(2,2,pNum)
+            subplot(nRow,nCol,pNum)
             
             %roi = Body.roi(iData);
             if i ==1
@@ -300,7 +311,7 @@ if ~strcmp(opType,'blobs G&L')
             h = imshow(im,'InitialMag','fit');
             hold on
             
-            hTitle = title(['Frame ' num2str(anaFrames(i))]);
+            hTitle = title([tText ': Frame ' num2str(anaFrames(i))]);
         end
         
         if strcmp(opType,'blobs G&L')
@@ -347,13 +358,13 @@ if ~strcmp(opType,'blobs G&L')
             [props,bw,areas,xB,yB] = findBlobs(im,iC.tVal,'coord',xC,yC);
             
             % Make a truecolor all-green image, make non-blobs invisible
-            green = cat(3, zeros(size(im)), ones(size(im)), zeros(size(im)));
-            h = imshow(green,'InitialMag','fit');
-            set(h, 'AlphaData', bw*0.3)
+%             green = cat(3, zeros(size(im)), ones(size(im)), zeros(size(im)));
+%             h = imshow(green,'InitialMag','fit');
+%             set(h, 'AlphaData', bw*0.3)
             
             % Plot tracking
-            h(1) = line(xG,yG,'Color','k','LineWidth',1);
-            h(2) = plot(xC,yC,'k+');
+            h(1) = line(xG,yG,'Color','g','LineWidth',1);
+            h(2) = plot(xC,yC,'g+');
             
             clear xB yB areas bw props
             
@@ -388,15 +399,15 @@ if ~strcmp(opType,'blobs G&L')
                 Body.Rotation.tform(iData));
             
             % Plot tracking
-            h(1) = line(xG,yG,'Color',[1 0 0 0.2],'LineWidth',3);
-            h(1) = line([xO xC],[yO yC],'Color',[1 0 0 0.2],'LineWidth',3);
+            h(1) = line(xG,yG,'Color',[0 1 0 0.2],'LineWidth',3);
+            h(1) = line([xO xC],[yO yC],'Color',[0 1 0 0.2],'LineWidth',3);
             %h(2) = plot(xC,yC,'r+');
             
             % Plot roi
             subplot(nRow,nCol,pNum+1)
             imshow(imStable,'InitialMag','fit')
             hold on
-            line(xL,yL,'Color',[1 0 0 0.2],'LineWidth',4);
+            line(xL,yL,'Color',[0 1 0 0 0.2],'LineWidth',4);
             
             drawnow
             pause(0.001)
@@ -495,7 +506,7 @@ if ~strcmp(opType,'blobs G&L')
                     'MarkerEdgeAlpha',0.5);
             end
             
-            hTitle = title(['Frame ' num2str(anaFrames(i))]);
+            hTitle = title([tText ': Frame ' num2str(anaFrames(i))]);
             set(f,'Color',0.2.*[1 1 1])
             set(hTitle,'Color',0.8.*[1 1 1]);
             
@@ -509,7 +520,7 @@ if ~strcmp(opType,'blobs G&L')
         if ((pNum+pNumAdvance)>nCol*nRow) && (i<length(anaFrames))
             
             % New figure window
-            f = figure('Color',fColor);
+            f = figure('Color',fColor,'Name',tText,'NumberTitle','off');
             
             % Reset panel number
             pNum = 1;
@@ -527,37 +538,39 @@ end
 
 %% Additional image
 
-f = figure;
-
 if strcmp(opType,'Centroid & Rotation')
     
-        % Whole frames
-        im1 = getFrame(vid_path,v,anaFrames(1),imInvert,'gray',[],iC.r);
-        im2 = getFrame(vid_path,v,anaFrames(end),imInvert,'gray',[],iC.r);
-        
-        % Index in data for current frame
-        iData1 = find(Body.frames==anaFrames(1),1,'first');
-        iData2 = find(Body.frames==anaFrames(end),1,'first');
-        
-        % Get current roi
-        roi1 = Body.Rotation.roi(iData1);
-        roi2 = Body.Rotation.roi(iData2);
-        
-        % Stabilized images
-        imStable1 =  giveROI('stabilized',im1,roi1,0,Body.Rotation.tform(iData1));
-        imStable2 =  giveROI('stabilized',im2,roi2,0,Body.Rotation.tform(iData2));
-        
-        warning off
-        imshowpair(imStable1,imStable2)
-        warning on
-        title(['Frames ' num2str(anaFrames(1)) ' and ' ...
-                num2str(anaFrames(end)) ' compared'])
+    f = figure;
+    
+    % Whole frames
+    im1 = getFrame(vid_path,v,anaFrames(1),imInvert,'gray',[],iC.r);
+    im2 = getFrame(vid_path,v,anaFrames(end),imInvert,'gray',[],iC.r);
+    
+    % Index in data for current frame
+    iData1 = find(Body.frames==anaFrames(1),1,'first');
+    iData2 = find(Body.frames==anaFrames(end),1,'first');
+    
+    % Get current roi
+    roi1 = Body.Rotation.roi(iData1);
+    roi2 = Body.Rotation.roi(iData2);
+    
+    % Stabilized images
+    imStable1 =  giveROI('stabilized',im1,roi1,0,Body.Rotation.tform(iData1));
+    imStable2 =  giveROI('stabilized',im2,roi2,0,Body.Rotation.tform(iData2));
+    
+    warning off
+    imshowpair(imStable1,imStable2)
+    warning on
+    title(['Frames ' num2str(anaFrames(1)) ' and ' ...
+        num2str(anaFrames(end)) ' compared'])
 end
 
 
 %% loop thru frames ('blobs G&L')
 
 if strcmp(opType,'blobs G&L')
+    
+    f = figure;
     
     % Loop thru data
     for i = 1:length(B)
