@@ -407,7 +407,7 @@ if ~strcmp(opType,'blobs G&L')
             subplot(nRow,nCol,pNum+1)
             imshow(imStable,'InitialMag','fit')
             hold on
-            line(xL,yL,'Color',[0 1 0 0 0.2],'LineWidth',4);
+            line(xL,yL,'Color',[0 1 0 0.2],'LineWidth',4);
             
             drawnow
             pause(0.001)

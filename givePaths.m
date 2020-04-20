@@ -1,9 +1,13 @@
 function paths = givePaths
 % Returns a structure of paths for running code
 
+% Lambda computers
+if ~isempty(dir('/flux/SeaStars'))
+    paths.vid  = '/flux/SeaStars/video/ControlWeightsFloats';
+    paths.data = '/flux/SeaStars/data/ControlWeightsFloats';
 
 % Matt's computer
-if ~isempty(dir(['/Users/mmchenry/Documents/Matlab code']))
+elseif ~isempty(dir(['/Users/mmchenry/Documents/Matlab code']))
 
     % Path to root dir of video (CSULB project, external drive)
 %     vidPath = '/Users/mmchenry/Documents/Video/Chip sea stars/prelim video';

@@ -5,13 +5,16 @@ function batchMaster
 
 %% Execution control
 
+% Run acquisition of kinematics from bottom view
+do.acqBottom = 1;
+
 % Generate movies for deepLabCut analysis
-do.deepLabCutMovies = 1;
+do.deepLabCutMovies = 0;
 
 % Visualize centroid tracking
 do.visCentroids = 0;
 
-% Visualize centrdoi and rotation tracking
+% Visualize centroid and rotation tracking
 do.visCentRot = 0;
 
 
@@ -41,7 +44,7 @@ j = 1;seq = [];
 for i = 1:length(T.date)
     
     % If using video at all and currently analyzing
-    if T.use_video(i)==1 && T.ana_video(i)==1
+    if T.use_video(i)==1 && T.ana_video(i)==1 && T.complete_video(i)==0
        
         seq(j).dateNum        = datenum(T.date(i));
         seq(j).ext            = extVid;
@@ -80,18 +83,20 @@ clear j T
 
 %% Survey video and data files for match to sequences requested
 
-% Check for presence of video directories
+% Check for presence of calibration video directories
 if ~isfolder([paths.vid filesep 'calibration'])
     error(['Missing folder: ' paths.vid filesep 'calibration'])
-    
-elseif ~isfolder([paths.vid filesep seq(i).dirName])
-    error(['Missing folder: ' paths.vid filesep seq(i).dirName])
 end
 
 k = 1;
 
 % Loop thru sequences to find matches among files
 for i = 1:length(seq)
+    
+    % Check for video dir
+    if ~isfolder([paths.vid filesep seq(i).dirName])
+        error(['Missing folder: ' paths.vid filesep seq(i).dirName])
+    end
     
     % Video files for side view
     aSide = dir([paths.vid filesep seq(i).dirName filesep 'side' ...
@@ -157,6 +162,9 @@ for i = 1:length(seq)
         vid_calBot(k)   = aCalBot(iMatch_calBot);
         vid_calSide(k)  = aCalSide(iMatch_calSide);
         
+        % Log good sequence number
+        seq_good(k) = i;
+        
         % Advance index
         k = k + 1;
     end
@@ -202,7 +210,14 @@ elseif ~exist('vid_calSide','var')
     error('No matches between spreadsheet and side calibration videos . . .')
 end
 
-clear i k
+% Revise seq to include only 'good' sequences
+for i = 1:length(seq_good)
+   seq_new(i) = seq(seq_good(i)); 
+end
+
+seq = seq_new;
+
+clear i k seq_new
 
 
 %% Make data directories, if necessary
@@ -212,11 +227,12 @@ if ~isfolder([paths.data filesep 'calibration'])
     mkdir([paths.data filesep 'calibration'])
 end
 
-% Loop thur sequences
+% Loop thru sequences
 for i = 1:length(seq)
     
     % Make dirName, if not present
     if ~isfolder([paths.data filesep seq(i).dirName])
+        disp(['Making the folders for: ' paths.data filesep seq(i).dirName])
         mkdir([paths.data filesep seq(i).dirName])
         mkdir([paths.data filesep seq(i).dirName filesep 'side'])
         mkdir([paths.data filesep seq(i).dirName filesep 'bottom'])
@@ -231,7 +247,7 @@ for i = 1:length(seq)
         mkdir(currSide)
     end
     
-    % Current side directory
+    % Current bottom directory
     currBot = [paths.data filesep seq(i).dirName filesep 'bottom' ...
                filesep seq(i).fName_bot];
     
@@ -243,6 +259,25 @@ for i = 1:length(seq)
     clear currSide currBot    
 end
 
+%% Run acquisition of bottom view
+
+if do.acqBottom
+
+% parpool(4)    
+% Loop thru sequences (use parfor for parallel processing)
+for i = 1:length(seq)
+    
+    % Current directories
+    dataPath = [seq(i).dirName filesep 'bottom' filesep seq(i).fName_bot];
+    vidPath  = [seq(i).dirName filesep 'bottom' filesep seq(i).fName_bot  ...
+                '.' seq(i).ext];
+    
+    % Run analysis
+    acqMaster(dataPath,vidPath,'run acq') 
+    
+    ttt=3;
+end
+end
 
 %% Make movies for DeepLabCut
 

@@ -46,9 +46,14 @@ visFootTracking = 0;
 %% 
 
 % Run MakeDeepMovie, if requested
-if strcmp(action,'run analysis')
+if strcmp(action,'run acq')
     
     % Do nothing
+    
+elseif strcmp(action,'rerun acq')
+    
+    % Re-runs acquisition
+    do.rerunAcq = 1;
     
 elseif strcmp(action,'deep movie')
     
@@ -247,7 +252,7 @@ if do.rerunAcq || ~isfile([currDataPath filesep 'Centroid.mat'])
     disp('')
 
     % Frames
-    frames = clipInfo.startFrame:clipInfo.endFrame;
+    frames = v.UserData.FirstFrame:v.UserData.LastFrame;
     
     % Region of interest for first frame
     roi0 = giveROI('define','circular',numroipts,iC.r,iC.x,iC.y);
@@ -494,7 +499,7 @@ end
 %% Foot tracking step 3: Track feet
 
 % Loop thru frames, track feet --------------------------------------------
-if do.rerunAcq || ~isfolder([currDataPath filesep 'foot_blobs'])
+if 1 %do.rerunAcq || ~isfolder([currDataPath filesep 'foot_blobs'])
 
     % Stores linked feet in B_ft, in 'foot_blobs' folder
     anaBlobs(currVidPath,v,'filter motion',currDataPath,strakDr_fr,Body,blobParam,...

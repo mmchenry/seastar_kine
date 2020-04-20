@@ -137,6 +137,9 @@ end
 
 %% Tracking object
 
+% Set up pool for parallel processing
+% parpool(8)
+
 nFrames = 1;
 
 % Loop thru frames
