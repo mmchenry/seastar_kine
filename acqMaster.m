@@ -21,7 +21,7 @@ do.MakeRotationMovies = 0;
 do.MakeFootMovie = 0;
 
 % Make movie of foot tracking for a presentation
-do.MakeFootMoviePretty = 0;
+do.MakeFootMoviePretty = 1;
 
 % Make video for analysis by DeepLabCut
 d.MakeDeepMovie = 0;
@@ -46,7 +46,11 @@ visFootTracking = 0;
 %% 
 
 % Run MakeDeepMovie, if requested
+<<<<<<< Updated upstream
 if strcmp(action,'run acq')
+=======
+if nargin< 3 || strcmp(action,'run analysis')
+>>>>>>> Stashed changes
     
     % Do nothing
     

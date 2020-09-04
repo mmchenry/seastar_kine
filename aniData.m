@@ -22,8 +22,14 @@ function varargout = aniData(vid_path,v,data_path,movie_file,...
 
 alphaLevel = 0.5;
 
-% Set up output video file
-vOut = VideoWriter([data_path filesep movie_file '.mp4'],'MPEG-4');
+if ~isunix
+    % Set up output video file
+    vOut = VideoWriter([data_path filesep movie_file '.mp4'],'MPEG-4');
+else
+    % Set up output video file
+    vOut = VideoWriter([data_path filesep movie_file '.avi'],'Motion JPEG AVI');
+end
+
 vOut.Quality = 50;
 
 open(vOut)

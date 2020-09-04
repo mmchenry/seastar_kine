@@ -20,6 +20,12 @@ elseif ~isempty(dir(['/Users/mmchenry/Documents/Matlab code']))
 %     paths.data = '/Users/mmchenry/Documents/Projects/Chip sea stars/prelim data';
     paths.data = '/Users/mmchenry/Documents/Projects/Chip sea stars/ControlWeightedFloats';
 
+elseif isfolder('/flux/SeaStars/data/ControlWeightsFloats')
+    
+    paths.vid = '/flux/SeaStars/video/ControlWeightsFloats';
+    paths.data = '/flux/SeaStars/data/ControlWeightsFloats';
+    
+    
 elseif isfolder('C:\Users\tpo\Documents\seastar_kine')
     
     % Path to root dir of video (CSULB project, external drive)
