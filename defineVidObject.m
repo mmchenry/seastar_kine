@@ -69,8 +69,13 @@ else
     v = VideoReader(vid_path);
     warning on
     
+    if v.FrameRate==0
+        error('Frame rate being read as zero')
+    end
+    
     % Store number of frames
     v.UserData.FirstFrame = 1;
+    %v.UserData.LastFrame = v.NumFrames; %This mthod is super slow
     v.UserData.LastFrame = floor(v.FrameRate*v.Duration) - 1;
 end
 

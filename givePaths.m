@@ -6,7 +6,12 @@ if ~isempty(dir('/flux/SeaStars'))
     paths.vid  = '/flux/SeaStars/video/ControlWeightsFloats';
     paths.data = '/flux/SeaStars/data/ControlWeightsFloats';
 
-% Matt's computer
+% Matt's Linux box    
+elseif ~isempty(dir('/home/mmchenry/Documents/data/Chip_sea_stars/ControlWeightedFloats'))
+    paths.vid = '/home/mmchenry/Documents/Video/Chip_sea_stars/ControlWeightedFloats';
+    paths.data = '/home/mmchenry/Documents/data/Chip_sea_stars/ControlWeightedFloats';
+    
+% Matt's laptop
 elseif ~isempty(dir(['/Users/mmchenry/Documents/Matlab code']))
 
     % Path to root dir of video (CSULB project, external drive)

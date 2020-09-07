@@ -31,15 +31,13 @@ d.MakeDeepMovie = 0;
 
 % Make movie to evaluate centroid and rotation tracking, after
 % post-processing
-%TODO: This code does not seem to work at this point. MoviePretty does
-%work.
-do.MakeFootMoviePost = 0;
+do.MakeFootMoviePost = 1;
 
 % Re-run the rotation anlysis from the beginning 
 reRunRotation = 0;
 
 % Visualize frames to survey all steps of the analysis
-do.anaSurvey = 1;
+do.anaSurvey = 0;
 
 % Visualize steps of analysis executed
 visSteps = 0;
@@ -668,9 +666,10 @@ if do.MakeFootMoviePost
     disp(' ')
     disp(['Making Foot tracking Movie: ' fName])
     disp(' ')
+    
 
     aniData(currVidPath,v,currDataPath,fName,imInvert,...
-        'Individual feet',Body,visSteps,F,iFrames,iC);
+        'Individual feet, local',Body,visSteps,F,iFrames,iC);
 %     aniData(currVidPath,v,currDataPath,fName,imInvert,...
 %         'Global feet',Body,visSteps,B_ft);
 

@@ -25,12 +25,11 @@ alphaLevel = 0.5;
 if ~isunix
     % Set up output video file
     vOut = VideoWriter([data_path filesep movie_file '.mp4'],'MPEG-4');
+    vOut.Quality = 50;
 else
     % Set up output video file
-    vOut = VideoWriter([data_path filesep movie_file '.avi']);
+    vOut = VideoWriter([data_path filesep movie_file '.avi'],'Uncompressed AVI');
 end
-
-vOut.Quality = 50;
 
 open(vOut)
 
@@ -131,8 +130,165 @@ elseif strcmp(opType,'Feet')
     % Clear 
     clear Body j idx B_ft
     
+elseif strcmp(opType,'Local feet')
     
+     
+    Body         = varargin{1}; 
+    visSteps     = varargin{2}; 
+    F            = varargin{3};
+    iC           = varargin{4};
+    tText        = varargin{6};
     
+    % Listing of data 
+    aData = dir([currDataPath filesep 'foot_blobs' filesep 'foot_blobs*.mat']);
+    
+    % Loop thru frames to store properties
+    for i = 1:length(aData)
+           % Store frame number
+           frames(i,1) = str2num(aData(i).name(end-9:end-4));
+    end
+    
+    % List frame numbers in order
+    frames = sort(frames);
+    
+    % Loop thru frames
+    for i = 1:length(frames)
+        
+        % Index in the Body data
+        idx = find(Body.frames==frames(i),1,'first');
+        
+        % Find matching coordinates
+        if ~isempty(idx)
+            % Store from Body
+            roi(i,1)     = Body.Rotation.roi(idx);
+            xCntr(i,1)   = Body.xCntr(idx);
+            yCntr(i,1)   = Body.yCntr(idx);
+            tform(i,1)   = Body.Rotation.tform(idx);  
+        else
+            error('No match in Body data for current foot data');
+        end
+        
+        % Index for foot coordinates
+        n = 1;
+        
+        % Find matches in foot data
+        for j = 1:length(F)
+            
+            % Index of mathcing frames
+            idx2 = F(j).frames==frames(i);
+            
+            % Log foot cooordinates, if there
+            if sum(idx2)==1
+                xTmp(n,1) = F(j).xL(idx2);
+                yTmp(n,1) = F(j).yL(idx2);
+                
+                n = n + 1;
+                
+            elseif sum(idx2)>1
+                error('More than one matching frame, somehow')
+            end
+        end
+        
+        % Store foot results
+        if n > 1
+            xFt{i} = xTmp;
+            yFt{i} = yTmp;
+        else
+           xFt{i} = nan;
+           yFt{i} = nan;
+        end
+    end
+      
+    % Number of points in ROI
+    numroipts = length(Body.Rotation.roi(1).xPerimL);    
+    
+    % Clear 
+    clear Body j idx B_ft
+    
+    % Number of rows and columns in each fig
+    nRow = 2;
+    nCol = 1;
+    
+    % Number of panels for each frame
+    pNumAdvance = 1;
+    
+    % Figure color
+    fColor = 0.2.*[1 1 1];
+
+
+elseif strcmp(opType,'Individual feet, local')
+    
+    Body     = varargin{1}; 
+    imVis    = varargin{2};
+    F        = varargin{3};
+    iFrames  = varargin{4};
+    iC       = varargin{5};
+
+    % Listing of raw data for feet 
+    aData = dir([data_path filesep 'foot_blobs' filesep 'foot_blobs*.mat']);
+    
+    % Loop thru filenames to get frame numbers
+    for i = 1:length(aData)
+           % Store frame number
+           frames(i,1) = str2num(aData(i).name(end-9:end-4));
+    end
+    
+    % List frame numbers in order
+    [frames,iFile] = sort(frames);
+    
+    % Loop thru frames
+    for i = 1:length(frames)
+        
+        % Number of feet in frame
+        n = 0;
+        
+        % Index for body data
+        iMatchBody = Body.frames==frames(i);
+        
+        % Arm coordinates
+%         xArm   = Body.xArmL;
+%         yArm   = Body.yArmL;
+        
+        % Get roi and transformation values
+        roi(i,1)     = Body.Rotation.roi(iMatchBody);
+        tform(i,1)   = Body.Rotation.tform(iMatchBody); 
+        
+        % Body center
+%         xCntr(i,:)   = Body.xCntr(iMatchBody);
+%         yCntr(i,:)   = Body.yCntr(iMatchBody);
+        
+        % Loop thru feet
+        for j = 1:length(F)
+            
+            % Index fo current frame to F data
+            iMatch = F(j).frames==frames(i);
+ 
+            % Check for repeats
+            if sum(iMatch)>1
+                error('Multiple instances of same frame for a foot');
+            end
+            
+            % If there is a match, store coordinates
+            if max(iMatch)
+                % Advance index
+                n = n + 1;
+                
+                % Store coordinates and colors
+                x{i}(n,1)      = F(j).xL(iMatch);
+                y{i}(n,1)      = F(j).yL(iMatch);
+                clr{i}(n,:)    = F(j).clr(1,:);
+            end  
+        end
+    end
+    
+    % Figure color and positon
+    fColor = 0.2.*[1 1 1];
+    fPos   = [ 1 530  2002  995];
+    
+    % Clear 
+    clear Body j idx B_ft
+    
+  
 elseif strcmp(opType,'Global feet')
     
     Body     = varargin{1}; 
@@ -183,66 +339,6 @@ elseif strcmp(opType,'Global feet')
     
     % Clear 
     clear Body j idx B_ft F
-    
-    
-elseif strcmp(opType,'Individual feet')
-    
-    Body     = varargin{1}; 
-    imVis    = varargin{2};
-    F        = varargin{3};
-    iFrames  = varargin{4};
-    iC       = varargin{5};
-
-    % Frame numebrs to analyze
-    frames   = Body.frames(iFrames)';
-    
-    for i = 1:length(frames)
-        
-        % Number of feet in frame
-        n = 0;
-        
-        % Index for body data
-        iMatchBody = Body.frames==frames(i);
-        
-        % Arm coordinates
-        xArm(i,:)   = Body.xArmG(iMatchBody,:);
-        yArm(i,:)   = Body.yArmG(iMatchBody,:);
-        
-        % Body center
-        xCntr(i,:)   = Body.xCntr(iMatchBody);
-        yCntr(i,:)   = Body.yCntr(iMatchBody);
-        
-        % Loop thru feet
-        for j = 1:length(F)
-            
-            % Index fo current frame to F data
-            iMatch = F(j).frames==frames(i);
- 
-            % Check for repeats
-            if sum(iMatch)>1
-                error('Multiple instances of same frame for a foot');
-            end
-            
-            % If there is a match, store coordinates
-            if max(iMatch)
-                % Advance index
-                n = n + 1;
-                
-                % Store coordinates and colors
-                x{i}(n,1)      = F(j).xG(iMatch);
-                y{i}(n,1)      = F(j).yG(iMatch);
-                clr{i}(n,:)    = F(j).clr(1,:);
-
-            end  
-        end
-    end
-    
-    % Figure color and positon
-    fColor = 0.2.*[1 1 1];
-    fPos   = [ 1 530  2002  995];
-    
-    % Clear 
-    clear Body j idx B_ft
     
     
 elseif strcmp(opType,'Individual feet, pretty')
@@ -332,13 +428,14 @@ end
 
 %% Initialize things
 
-set(0,'DefaultFigureWindowStyle','normal')
-
-% Make figure
-f = figure('Position',fPos,'Color',fColor);
-
 if ~imVis
+    set(0,'DefaultFigureWindowStyle','normal')
+    % Make figure
+    f = figure('Position',fPos,'Color',fColor);
     set(f,'Visible','off')
+else
+    set(0,'DefaultFigureWindowStyle','docked')
+    f = figure('Color',fColor);
 end
 
 if nargout>0
@@ -369,6 +466,10 @@ if ~strcmp(opType,'blobs G&L')
             im(:,:,2) = adapthisteq(im(:,:,2),'ClipLimit',imRange);
             im(:,:,3) = adapthisteq(im(:,:,3),'ClipLimit',imRange);
             
+        elseif strcmp(opType,'Individual feet, local')
+            % Current whole frame
+            im = getFrame(vid_path,v,frames(i),imInvert,'gray',[],iC.r);
+ 
         else
             % Current whole frame
             im = getFrame(vid_path,v,frames(i),imInvert,'gray');
@@ -400,8 +501,17 @@ if ~strcmp(opType,'blobs G&L')
             end
         end
         
-        % Display frame
-        h = imshow(im,'InitialMag','fit');
+        if strcmp(opType,'Individual feet, local')
+            % Stabilized image
+            imStable =  giveROI('stabilized',im,roi(i),0,tform(i),[],0);
+            
+            % Display frame
+            h = imshow(imStable,'InitialMag','fit');
+        else
+            % Display frame
+            h = imshow(im,'InitialMag','fit');
+        end
+        
         hold on
         hTitle = title(['Frame ' num2str(frames(i))]);
         
@@ -569,44 +679,69 @@ if ~strcmp(opType,'blobs G&L')
                     'MarkerEdgeAlpha',0.2);
             end
     
-      
-        elseif strcmp(opType,'Individual feet')
+        elseif strcmp(opType,'Local feet')
             
             set(f,'Color',0.2.*[1 1 1])
             set(hTitle,'Color',0.8.*[1 1 1]);
             
+            
+        elseif strcmp(opType,'Individual feet, local')
+            
+            % Level of alpha transparency
+            aLevel = 0.3;
+            
+             % Offset border
+            offVal = 2;
+            
+            % Load B_ft data for current frame
+            load([data_path filesep 'foot_blobs' filesep ...
+                  aData(iFile(i)).name])
+            
+            % Figure colors
+            set(f,'Color',0.2.*[1 1 1])
+            set(hTitle,'Color',0.8.*[1 1 1]);
+
+            % Plot positions of feet (after post-processing)
             for j = 1:length(x{i})
-%                 h = scatter(x{i}(j),y{i}(j),...
-%                     'MarkerEdgeColor',clr{i}(j,:),'SizeData',200,...
-%                     'MarkerEdgeAlpha',0.8);
-h = scatter(x{i}(j),y{i}(j),...
-                    'MarkerEdgeColor','y','SizeData',300,...
-                    'MarkerEdgeAlpha',0.3);
+                  h = scatter(x{i}(j),y{i}(j),...
+                    'MarkerEdgeColor','r','SizeData',1000,...
+                    'MarkerEdgeAlpha',0.5,'LineWidth',4);
             end
             
-            h = scatter(xArm(i,:),yArm(i,:),...
-                    'MarkerEdgeColor','r','MarkerFaceColor','r',...
-                    'SizeData',20,'MarkerEdgeAlpha',0.8);
-           h = scatter(xCntr(i,:),yCntr(i,:),...
-                    'MarkerEdgeColor','r','MarkerFaceColor','r',...
-                    'SizeData',20,'MarkerEdgeAlpha',0.8);
-                ttt = 3;
-                
+            % Create black local image
+            bw_im = imStable==300;
+            
+            % Identify all blobs for candidate tube feet
+            for j = 1:length(B_ft.propsL)
+                % Put white pixels where blobs exist
+                bw_im(B_ft.propsL(j).PixelIdxList) = 1;
+            end
+            
+             % Make a truecolor all-green image, make non-blobs invisible
+            green = cat(3, ones(size(imStable)), ones(size(imStable)), ...
+                           zeros(size(imStable)));
+            h = imshow(green,'InitialMag','fit');
+            set(h, 'AlphaData', bw_im.*aLevel)
+            
+%             h = scatter(xArm,yArm,...
+%                     'MarkerEdgeColor','r','MarkerFaceColor','r',...
+%                     'SizeData',20,'MarkerEdgeAlpha',0.8);
+                ttt=3;
                 
         elseif strcmp(opType,'Individual feet, pretty')
+            
 
+              
             set(f,'Color',0.2.*[1 1 1])
             %set(hTitle,'Color',0.8.*[1 1 1]);
             
 %             set(gca,'Units','normalized')
             h = text(round(size(im,2)/7)+20,round(size(im,2)/6),...
                 hTitle.String,'Color',0.8.*[1 1 1],'FontSize',18);
-            
+      
+            % Plot positions of feet (after post-processing)
             for j = 1:length(x{i})
-%                 h = scatter(x{i}(j),y{i}(j),...
-%                     'MarkerEdgeColor',clr{i}(j,:),'SizeData',200,...
-%                     'MarkerEdgeAlpha',0.8);
-h = scatter(x{i}(j),y{i}(j),...
+                h = scatter(x{i}(j),y{i}(j),...
                     'MarkerEdgeColor','y','SizeData',150,...
                     'MarkerEdgeAlpha',0.5,'LineWidth',1);
             end
@@ -622,6 +757,7 @@ h = scatter(x{i}(j),y{i}(j),...
         end
         
         drawnow
+        hT = text(20,30,['Frame ' num2str(frames(i))],'Color','w','FontSize',24);
         pause(0.001)  
  
 %         imRect = [314  1300-974 1744 974];
@@ -638,7 +774,7 @@ h = scatter(x{i}(j),y{i}(j),...
         
         hold off
         
-        clear imRange im h fColor fPos imFrame
+        clear imRange im h fColor fPos imFrame h hT
     end
 end
 
