@@ -354,7 +354,7 @@ imRect = round([703  2868  3853  2168]);
 if ~strcmp(opType,'blobs G&L')
     
     % Loop thru data
-    for i = 1:3%length(frames)
+    for i = 1:length(frames)
 
         if strcmp(opType,'no analysis') 
             im = getFrame(vid_path,v,frames(i),0,'color');
@@ -624,10 +624,10 @@ h = scatter(x{i}(j),y{i}(j),...
         drawnow
         pause(0.001)  
  
-        imRect = [314  1300-974 1744 974];
+%         imRect = [314  1300-974 1744 974];
 
         imFrame = getframe(gca);
-        imFrame.cdata = imcrop(imFrame.cdata,imRect);
+%         imFrame.cdata = imcrop(imFrame.cdata,imRect);
         writeVideo(vOut,imFrame);
         
         if imVis

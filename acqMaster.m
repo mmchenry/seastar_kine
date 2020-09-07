@@ -12,7 +12,7 @@ do.rerunAcq = 0;
 do.rerunAna = 0;
 
 % Create figures of still frames to test that tracking has worked
-do.runSurveyData = 1;
+do.runSurveyData = 0;
 
 % Create movies of the Centroid movies for review
 do.MakeCentroidMovie = 0;
@@ -39,10 +39,10 @@ do.MakeFootMoviePost = 0;
 reRunRotation = 0;
 
 % Visualize frames to survey all steps of the analysis
-do.anaSurvey = 0;
+do.anaSurvey = 1;
 
 % Visualize steps of analysis executed
-visSteps = 1;
+visSteps = 0;
 
 % Surveys the data to show tracking over a fixed number of video stills
 visFootTracking = 0;
@@ -754,22 +754,25 @@ if do.anaSurvey
          load([currDataPath filesep 'Body, post.mat'])
     end
     
-    if ~exist('B_ft','var')
-        % Load data of feet (B_ft)
-        load([currDataPath filesep 'foot blobs'])
+    if ~exist('F','var')
+         % Load Body
+         load([currDataPath filesep 'post- foot refined'])
     end
-    
+
     % Number of frames to visualize
     numVis = 16;
     
     % Centroid tracking
-    surveyData(currVidPath,v,imInvert,'Centroid tracking',Centroid,iC,numVis);
+%     surveyData(currVidPath,v,imInvert,'Centroid tracking',Centroid,iC,numVis);
     
     % Rotation
-    surveyData(currVidPath,v,imInvert,'Centroid & Rotation',Body,iC,numVis);
+%     surveyData(currVidPath,v,imInvert,'Centroid & Rotation',Body,iC,numVis);
     
-    % Feet
-    surveyData(currVidPath,v,0,'Feet local',Body,B_ft,numVis);
+    if isfolder([currDataPath filesep 'foot_blobs'])
+        % Feet (local frame)
+        surveyData(currVidPath,v,0,'Feet local',currDataPath,Body,numVis,...
+            iC,F,v.Name);
+    end
     
 end
 

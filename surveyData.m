@@ -181,44 +181,76 @@ elseif strcmp(opType,'Feet')
     
 elseif strcmp(opType,'Feet local')
     
-    Body     = varargin{1}; 
-    B_ft     = varargin{2};
-    numVis   = varargin{3};
+    currDataPath = varargin{1};  
+    Body         = varargin{2}; 
+    numVis       = varargin{3};
+    iC           = varargin{4};
+    F            = varargin{5};
+    tText        = varargin{6};
     
-    % Start index
-    j = 1;
+    % Listing of data 
+    aData = dir([currDataPath filesep 'foot_blobs' filesep 'foot_blobs*.mat']);
+    
+    % Loop thru frames to store properties
+    for i = 1:length(aData)
+           % Store frame number
+           frames(i,1) = str2num(aData(i).name(end-9:end-4));
+    end
+    
+    % List frame numbers in order
+    frames = sort(frames);
     
     % Loop thru frames
-    for i = 1:length(B_ft)
+    for i = 1:length(frames)
         
-       % If there is foot blob data . . .
-       if ~isempty(B_ft(i).frIdx)
-           
-           % Store frame number
-           frames(j,1) = B_ft(i).fr_num;
-           
-           % Index in the Body data
-           idx = find(Body.frames==frames(end),1,'first');
-           
-           % Store from blob data
-           propsG{j} = B_ft(i).propsG;
-           propsL{j} = B_ft(i).propsL;
-           
-           % Store from Body
-           roi(j,1)     = Body.Rotation.roi(idx);
-           xCntr(j,1)   = Body.xCntr(idx);
-           yCntr(j,1)   = Body.yCntr(idx);
-           tform(j,1)   = Body.Rotation.tform(idx);
-           
-           % Advance index
-           j = j + 1;
-       end
-       
-       
+        % Index in the Body data
+        idx = find(Body.frames==frames(i),1,'first');
+        
+        % Find matching coordinates
+        if ~isempty(idx)
+            % Store from Body
+            roi(i,1)     = Body.Rotation.roi(idx);
+            xCntr(i,1)   = Body.xCntr(idx);
+            yCntr(i,1)   = Body.yCntr(idx);
+            tform(i,1)   = Body.Rotation.tform(idx);  
+        else
+            error('No match in Body data for current foot data');
+        end
+        
+        % Index for foot coordinates
+        n = 1;
+        
+        % Find matches in foot data
+        for j = 1:length(F)
+            
+            % Index of mathcing frames
+            idx2 = F(j).frames==frames(i);
+            
+            % Log foot cooordinates, if there
+            if sum(idx2)==1
+                xTmp(n,1) = F(j).xL(idx2);
+                yTmp(n,1) = F(j).yL(idx2);
+                
+                n = n + 1;
+                
+            elseif sum(idx2)>1
+                error('More than one matching frame, somehow')
+            end
+        end
+        
+        % Store foot results
+        if n > 1
+            xFt{i} = xTmp;
+            yFt{i} = yTmp;
+        else
+           xFt{i} = nan;
+           yFt{i} = nan;
+        end
     end
       
+    % Number of points in ROI
     numroipts = length(Body.Rotation.roi(1).xPerimL);    
-
+    
     % Clear 
     clear Body j idx B_ft
     
@@ -471,10 +503,17 @@ if ~strcmp(opType,'blobs G&L')
         
             
         elseif strcmp(opType,'Feet local')
-
+            
+            % Level of alpha transparency
+            aLevel = 0.5;
+            
              % Offset border
             offVal = 2;
             
+            % Load B_ft data for current frame
+            load([currDataPath filesep 'foot_blobs' filesep ...
+                  aData(iData).name])
+           
             % roi in global frame
             xG = roi(iData).xPerimG;
             yG = roi(iData).yPerimG;
@@ -499,10 +538,32 @@ if ~strcmp(opType,'blobs G&L')
             hold on
             %line(xL,yL,'Color',[1 1 0 0.5],'LineWidth',6);
             
-            % Plot centers of tube feet
-            for j = 1:length(propsL{iData})
-                h = scatter(propsL{iData}(j).Centroid(1),propsL{iData}(j).Centroid(2),...
-                    'MarkerEdgeColor',[1 1 0],'SizeData',300,...
+            % Create black local image
+            bw_im = imStable==300;
+            
+            % Identify all blobs for candidate tube feet
+            for j = 1:length(B_ft.propsL)
+                % Put white pixels where blobs exist
+                bw_im(B_ft.propsL(j).PixelIdxList) = 1;
+            end
+            
+             % Make a truecolor all-green image, make non-blobs invisible
+            green = cat(3, zeros(size(imStable)), ones(size(imStable)), ...
+                           zeros(size(imStable)));
+            h = imshow(green,'InitialMag','fit');
+            set(h, 'AlphaData', bw_im.*aLevel)
+            
+%             % Plot centers of tube feet
+%             for j = 1:length(B_ft.propsL)
+%                 h = scatter(B_ft.propsL(j).Centroid(1),B_ft.propsL(j).Centroid(2),...
+%                     'MarkerEdgeColor',[1 1 0],'SizeData',150,...
+%                     'MarkerEdgeAlpha',0.5);
+%             end
+
+             % Plot centers of tube feet
+            for j = 1:length(xFt{iData})
+                h = scatter(xFt{iData}(j),yFt{iData}(j),...
+                    'MarkerEdgeColor',[1 1 0],'SizeData',150,...
                     'MarkerEdgeAlpha',0.5);
             end
             
