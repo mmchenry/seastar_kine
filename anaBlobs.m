@@ -209,7 +209,8 @@ if strcmp(opType,'filter motion')
     [aMotion,frMotion] = fileList(motionPath,'mask_static');
     
     % Loop thru frames to analyze
-    parfor i = 1:length(frMotion)
+%     parfor i = 1:length(frMotion)
+    for i = 1:length(frMotion)
         
         % Current frame
         cFrame = frMotion(i);
@@ -249,7 +250,7 @@ if strcmp(opType,'filter motion')
 
         % Define B_ft strcuture
         B_ft = struct('fr_num',cFrame,'frIdx',iFrame,'propsG',propsG,...
-            'propsL',propsL);
+                      'propsL',propsL);
         
         % Write data
         saveB_ft([savePath filesep cName],B_ft)
@@ -273,9 +274,9 @@ if strcmp(opType,'filter motion')
             
             set(h, 'AlphaData', bw_im.*aLevel)
             title(['Frame ' num2str(cFrame)]);
-            for j = 1:length(B_ft(iFrame).propsG)
-                scatter(B_ft(iFrame).propsG(j).Centroid(1),...
-                    B_ft(iFrame).propsG(j).Centroid(2),'SizeData',200,...
+            for j = 1:length(B_ft.propsG)
+                scatter(B_ft.propsG(j).Centroid(1),...
+                    B_ft.propsG(j).Centroid(2),'SizeData',200,...
                     'MarkerEdgeColor','b')
             end
             hold off
@@ -290,9 +291,9 @@ if strcmp(opType,'filter motion')
             h = imshow(green,'InitialMag','fit');
             set(h, 'AlphaData', bw_roi.*aLevel)
             
-            for j = 1:length(B_ft(iFrame).propsL)
-                scatter(B_ft(iFrame).propsL(j).Centroid(1),...
-                    B_ft(iFrame).propsL(j).Centroid(2),'SizeData',400,...
+            for j = 1:length(B_ft.propsL)
+                scatter(B_ft.propsL(j).Centroid(1),...
+                    B_ft.propsL(j).Centroid(2),'SizeData',400,...
                     'MarkerEdgeColor','b')
             end
             hold off

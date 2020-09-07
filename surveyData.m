@@ -125,6 +125,7 @@ elseif strcmp(opType,'Feet')
 %     B_ft     = varargin{2};
     numVis          = varargin{3};
     iC              = varargin{4};
+    tText           = varargin{5};
     
     % Path to foot data (B_ft files)
     footPath = [currDataPath filesep 'foot_blobs'];
@@ -232,7 +233,6 @@ elseif strcmp(opType,'Feet local')
     fColor = 0.2.*[1 1 1];
 
 end
-
 
 
 %% Initialize things
@@ -441,7 +441,7 @@ if ~strcmp(opType,'blobs G&L')
             imStable =  giveROI('stabilized',im,roi(iData),0,tform(iData),[],0);
             
             % Plot tracking
-            h(1) = line(xG,yG,'Color',[1 1 0 0.5],'LineWidth',3);
+            h(1) = line(xG,yG,'Color',[1 0 0 0.5],'LineWidth',3);
             plot(xC,yC,'g+')
             
             % Plot centers of tube feet
@@ -450,19 +450,19 @@ if ~strcmp(opType,'blobs G&L')
                 yFG(j,1) = propsG{iData}(j).Centroid(2);
             end
             
-            h = scatter(xFG,yFG,'MarkerEdgeColor',[1 1 0],'SizeData',20,...
+            h = scatter(xFG,yFG,'MarkerEdgeColor',[1 0 0],'SizeData',10,...
                     'MarkerEdgeAlpha',1);
             
             % Plot roi
             subplot(nRow,nCol,pNum+1)
             imshow(imStable,'InitialMag','fit')
             hold on
-            line(xL,yL,'Color',[1 1 0 0.5],'LineWidth',6);
+            line(xL,yL,'Color',[1 0 0 0.5],'LineWidth',6);
             
             % Plot centers of tube feet
             for j = 1:length(propsL{iData})
                 h = scatter(propsL{iData}(j).Centroid(1),propsL{iData}(j).Centroid(2),...
-                    'MarkerEdgeColor',[1 1 0],'SizeData',300,...
+                    'MarkerEdgeColor',[1 0 0],'SizeData',150,...
                     'MarkerEdgeAlpha',0.5);
             end
             

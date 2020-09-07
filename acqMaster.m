@@ -11,6 +11,9 @@ do.rerunAcq = 0;
 % Re-runs analysis (not including acquisition)
 do.rerunAna = 0;
 
+% Create figures of still frames to test that tracking has worked
+do.runSurveyData = 1;
+
 % Create movies of the Centroid movies for review
 do.MakeCentroidMovie = 0;
 
@@ -18,16 +21,18 @@ do.MakeCentroidMovie = 0;
 do.MakeRotationMovies = 0;
 
 % Make movie of foot tracking
-do.MakeFootMovie = 0;
+% do.MakeFootMovie = 1;
 
 % Make movie of foot tracking for a presentation
-do.MakeFootMoviePretty = 1;
+do.MakeFootMoviePretty = 0;
 
 % Make video for analysis by DeepLabCut
 d.MakeDeepMovie = 0;
 
 % Make movie to evaluate centroid and rotation tracking, after
 % post-processing
+%TODO: This code does not seem to work at this point. MoviePretty does
+%work.
 do.MakeFootMoviePost = 0;
 
 % Re-run the rotation anlysis from the beginning 
@@ -37,21 +42,17 @@ reRunRotation = 0;
 do.anaSurvey = 0;
 
 % Visualize steps of analysis executed
-visSteps = 0;
+visSteps = 1;
 
 % Surveys the data to show tracking over a fixed number of video stills
 visFootTracking = 0;
 
 
-%% 
+%% Deal with inputs
 
 % Run MakeDeepMovie, if requested
-<<<<<<< Updated upstream
-if strcmp(action,'run acq')
-=======
 if nargin< 3 || strcmp(action,'run analysis')
->>>>>>> Stashed changes
-    
+ 
     % Do nothing
     
 elseif strcmp(action,'rerun acq')
@@ -503,8 +504,10 @@ end
 %% Foot tracking step 3: Track feet
 
 % Loop thru frames, track feet --------------------------------------------
-if 1 %do.rerunAcq || ~isfolder([currDataPath filesep 'foot_blobs'])
+if do.rerunAcq || ~isfolder([currDataPath filesep 'foot_blobs'])
 
+    visSteps = 1;
+    
     % Stores linked feet in B_ft, in 'foot_blobs' folder
     anaBlobs(currVidPath,v,'filter motion',currDataPath,strakDr_fr,Body,blobParam,...
         visSteps,imInvert);
@@ -597,6 +600,21 @@ iFrames = Body.frames>=frNums(1) & Body.frames<=frNums(end);
 
 % Save data
 save([currDataPath filesep 'Frames used'],'iFrames')
+
+
+%% Visualize video stills
+
+if do.runSurveyData
+    
+    % Visualize a bunch of frames to check results of rotation tracking
+%     surveyData(currVidPath,v,imInvert,'Centroid tracking',Centroid,iC,...
+%         numVis,v.Name);
+    
+    % Visualize a bunch of frames to check results of foot tracking
+    surveyData(currVidPath,v,imInvert,'Feet',currDataPath,Body,...
+        numVis,iC,v.Name);
+
+end
 
 
 %% Make movie for analyzing via DeepLabCut
@@ -867,7 +885,6 @@ hold off
 
 ttt = 3;
     
-
 function clipInfo = selectDurations(currDataPath,currVidPath)
 % Interactively prompts to select a duration for analysis
 
@@ -959,7 +976,6 @@ if isempty(dir([currDataPath filesep 'clipInfo.mat']))
     %save([currDataPath filesep 'clipInfo'],'clipInfo')
 end
 
-
 function [firstFrame,lastFrame] = getFrameNum(firstFrame,lastFrame,im1,im2)
 
 prompt={'Start frame num:','Last frame num:'};
@@ -975,9 +991,6 @@ end
 
 firstFrame   = str2num(answer{1});
 lastFrame    = str2num(answer{2});
-
-
-
 
 function [a,frNums] = fileList(fPath,fPrefix)
 

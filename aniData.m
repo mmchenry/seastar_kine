@@ -1,5 +1,5 @@
 function varargout = aniData(vid_path,v,data_path,movie_file,...
-    imInvert,opType,varargin)
+                             imInvert,opType,varargin)
 % Animates blobs that may be extracted from a video
 % M = anaBlobs(vid_path,v,imInvert,display,opType)
 %  M - movie object
@@ -27,7 +27,7 @@ if ~isunix
     vOut = VideoWriter([data_path filesep movie_file '.mp4'],'MPEG-4');
 else
     % Set up output video file
-    vOut = VideoWriter([data_path filesep movie_file '.avi'],'Motion JPEG AVI');
+    vOut = VideoWriter([data_path filesep movie_file '.avi']);
 end
 
 vOut.Quality = 50;
@@ -330,7 +330,6 @@ elseif strcmp(opType,'Centroid & Rotation') || strcmp(opType,'no analysis')
 end
 
 
-
 %% Initialize things
 
 set(0,'DefaultFigureWindowStyle','normal')
@@ -355,7 +354,7 @@ imRect = round([703  2868  3853  2168]);
 if ~strcmp(opType,'blobs G&L')
     
     % Loop thru data
-    for i = 1:length(frames)
+    for i = 1:3%length(frames)
 
         if strcmp(opType,'no analysis') 
             im = getFrame(vid_path,v,frames(i),0,'color');
@@ -639,7 +638,7 @@ h = scatter(x{i}(j),y{i}(j),...
         
         hold off
         
-        clear imInvert imRange im h fColor fPos imFrame
+        clear imRange im h fColor fPos imFrame
     end
 end
 
