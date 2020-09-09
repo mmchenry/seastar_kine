@@ -1,27 +1,19 @@
-function visMaster
+function visMaster(dataPath,vidPath,action)
 % Visualizations to review acquisition of sea star kinematics
 
-%% Declare sequence to visualize
+%% Check input 'action'
 
-% Define sequence to visualize
-cList.path{1}   =  ['Juveniles' filesep 'Horizontal' filesep 'SS20']; 
-cList.fName{1}  = '400A8443';
-cList.ext{1} = '.MOV';
+if ~strcmp(action,'centroid movie') && ...
+   ~strcmp(action,'rotation movie') && ...
+   ~strcmp(action,'feet local movie') && ...
+   ~strcmp(action,'feet pretty movie') && ...
+   ~strcmp(action,'feet frames') && ...
+   ~strcmp(action,'feet local frames') && ...
+   ~strcmp(action,'centroid frames') && ...
+   ~strcmp(action,'rotation frames')
 
-
-%% Code execution
-
-% Create movies of the Centroid movies for review
-do.MakeCentroidMovie = 1;
-
-% Review results of centroid tracking
-do.playCentroid = 0;  
-
-% Make movie for review
-do.MakeRotationMovie = 1;
-
-% Conduct review
-do.playRotation = 0;
+    error(['Do not recognize ' action])
+end
 
 
 %% General parameters
@@ -31,64 +23,261 @@ imInvert = 1;
 
 numroipts = 500;
 
+% Number of frames to visualize with surveyData
+numVis = 16;
 
-%% Manage paths (need to modify for new PC)
+% Whether to visualize individual frames, as they are being generated
+visSteps = 0;
+
+
+%% Manage paths and load data
+  
+paths = givePaths;
+
+% Paths for current sequence
+currDataPath = [paths.data filesep dataPath];
+currVidPath  = [paths.vid filesep vidPath];
+
+% Check video path 
+if ~isfile(currVidPath)
+    error(['Video file does not exist at ' currVidPath]);
+end
+
+% Check data path 
+if ~isfolder(currDataPath)
+    error(['Data folder does not exist at ' currDataPath]);
+end
+
+% Load video info (v)
+v = defineVidObject(currVidPath);
+
+% Load frame intervals ('clipInfo')
+load([currDataPath filesep 'clipInfo'])
+
+% Load initial conditions (iC)
+load([currDataPath filesep 'Initial conditions'])
+
+
+%% Generate centroid movie ('centroid movie') 
+
+if strcmp(action,'centroid movie') 
+
+    % Load centroid data (Centroid)
+    load([currDataPath filesep 'Centroid.mat'])
+    
+    % Name of movie file
+    movFile = 'Centroid tracking';
+
+    % Frames
+    frames = clipInfo.startFrame:clipInfo.endFrame;
+    
+    % Region of interest for first frame
+    roi0 = giveROI('define','circular',numroipts,iC.r,iC.x,iC.y);
+    
+    % Create coordinate transformation structure
+    %S = defineSystem2d('roi',roi0,Centroid);
+    
+    % Define roi for each frame
+    for i = 1:length(Centroid.x)
+       Centroid.roi(i) =  giveROI('define','circular',numroipts,...
+           iC.r,Centroid.x(i),Centroid.y(i));     
+    end
+    
+    % Update status
+    disp(' '); disp(['Making Centroid Movie: ' currVidPath]); disp(' ')
+    
+    % Make movie
+    aniData(currVidPath,v,currDataPath,movFile,imInvert,...
+                'Centroid tracking',Centroid,visSteps,iC);
+    
+    clear iC Centroid clipInfo S M mov roi0 frames 
+end
+
+
+%% Generate rotation movie ('rotation movie')
+
+if strcmp(action,'rotation movie') 
+    
+    % File name of movie to be created
+    fName = 'Centroid and rotation';
+    
+    disp(' ')
+    disp(['Making Pred Rotation Movie: ' currVidPath])
+    disp(' ')
+    
+    % Make movie
+    aniData(currVidPath,v,currDataPath,fName,imInvert,...
+        'Centroid & Rotation',Body,visSteps,iC);
+    
+    clear M mov Rotation S fName  
+end
+
+
+%% Make movie of individual feet ('feet local movie')
+
+if strcmp(action,'feet local movie') 
+    
+    % Turn of image inversion
+    imInvert = 0;
+    
+     % Load B2
+    if ~exist('B2','var')
+        load([currDataPath filesep 'post- arms'])
+    end
+    
+    % Load Body
+    load([currDataPath filesep 'Body, post.mat'])
+    
+    % Load F
+    load([currDataPath filesep 'post- foot refined'])
+    
+    % Load frames used (iFrames)
+    load([currDataPath filesep 'Frames used'])
+    
+    clear B2
+
+    % File name of movie to be created
+    fName = 'Foot tracking, indivdual white';
+    
+    % Load video info (v)                added by CG
+    v = defineVidObject(currVidPath);
+    
+    disp(' ')
+    disp(['Making Foot tracking Movie: ' fName])
+    disp(' ')
+    
+    % Generate movie
+    aniData(currVidPath,v,currDataPath,fName,imInvert,...
+        'Individual feet, local',Body,visSteps,F,iFrames,iC);
+%     aniData(currVidPath,v,currDataPath,fName,imInvert,...
+%         'Global feet',Body,visSteps,B_ft);
    
-if ~isempty(dir(['/Users/mmchenry/Documents/Matlab code']))
+    clear B2 F fName
+end
+
+
+%% Make movie of feet for presentation ('feet pretty movie')
+
+if strcmp(action,'feet pretty movie') 
+
+    % Turn of image inversion
+    imInvert = 0;
+
+    % Load iFrames
+    load([currDataPath filesep 'Frames used'])
     
-    % Path to kineBox
-    %kinePath = '/Users/mmchenry/Documents/Matlab code/kineBox';
-    kinePath = '/Users/mmchenry/Documents/Matlab code/kineBox_old';
+    % Load F data
+    load([currDataPath filesep 'post- foot refined']);
     
-    % Path to root dir of video (CSULB project, external drive)
-    %vidPath = '/Volumes/Video/Sea stars/CSULB test/Raw video';
-    vidPath = '/Volumes/Video/Sea stars/CSULB/Raw video';
+    % Load Body
+    load([currDataPath filesep 'Body, post.mat'])
     
-    % Location of video frames
-    vidFramePath = '/Volumes/Video/Sea stars/CSULB test/Video frames';
+    % File name of movie to be created
+    fName = 'Foot tracking, pretty';
     
-    % Path to root of data
-    dataPath = '/Users/mmchenry/Documents/Projects/Seastars/CSULB data';
+    % Load video info (v)                added by CG
+    v = defineVidObject(currVidPath);
     
+    % Update status
+    disp(' ')
+    disp(['Making Foot tracking Movie: ' fName])
+    disp(' ')
+
+    % Create animation
+    aniData(currVidPath,v,currDataPath,fName,imInvert,...
+        'Individual feet, pretty',Body,visSteps,F,iFrames,iC);
+end
+
+
+%% Visualize video stills of feet ('centroid frames')
+
+if strcmp(action,'centroid frames') 
     
-  % remember to undo %%  to run all vids
- elseif ~isempty(dir(['C:\Program Files\MATLAB\R2016a']))
-    
-    %vidPath = '\\flow.local\shared\Sea stars';
-    %vidPath = 'C:\Users\andres\Documents\Sea stars';
-    %special vid path
-    %vidpath=
-    % dataPath = '\\flow.local\andres\Sea stars\CSULB data';
-    
-    % kinePath = 'C:\Users\andres\Documents\GitPath\kineBox';
-    
-% Line to assign single vids    
-elseif ~isempty(dir(['C:\Program Files\MATLAB\R2016a']))
-    
-    %vidPath = '\\flow.local\shared\Sea stars';
-    vidPath = 'C:\Users\andres\Documents\SS Assign';
-    %special vid path
-    %vidpath=
-    % dataPath = '\\flow.local\andres\SS Assign\CSULB data'; %% by CG
-    dataPath = 'C:\Users\andres\Documents\dataPath';
-    
-    kinePath = 'C:\Users\andres\Documents\GitPath\kineBox';
-else
-    error('Do not recognize computer')
+    % Visualize a bunch of frames to check results of rotation tracking
+     surveyData(currVidPath,v,imInvert,'Centroid tracking',Centroid,iC,...
+        numVis,v.Name);
     
 end
 
 
-% Add kinePath
-%addpath(kinePath)
+%% Visualize video stills of feet ('rotation frames')
 
-% Index of movie
-i = 1;
+if strcmp(action,'rotation frames') 
+    
+    if ~exist('Body','var')
+         % Load Body
+         load([currDataPath filesep 'Body, post.mat'])
+    end
+    
+    if ~exist('F','var')
+         % Load Body
+         load([currDataPath filesep 'post- foot refined'])
+    end
+    
+    % Visualize a bunch of frames to check results of rotation tracking
+    surveyData(currVidPath,v,imInvert,'Centroid & Rotation',Body,iC,numVis);
+    
+end
 
-% Current paths
-currDataPath = [dataPath filesep cList.path{i} filesep cList.fName{i}];
-currVidPath  = [vidPath filesep cList.path{i} filesep cList.fName{i} cList.ext{i}];
 
+%% Visualize video stills of feet ('feet frames')
+
+if strcmp(action,'feet frames') 
+    
+    % Visualize a bunch of frames to check results of foot tracking
+    surveyData(currVidPath,v,imInvert,'Feet',currDataPath,Body,...
+        numVis,iC,v.Name);
+end
+
+
+%% Visualize video stills of feet ('feet local frames')
+
+if strcmp(action,'feet local frames') 
+    
+    % Visualize a bunch of frames to check results of foot tracking
+    surveyData(currVidPath,v,imInvert,'Feet local',currDataPath,Body,...
+        numVis,iC,v.Name);
+end
+
+
+
+%% Visualize a sampling of video frames
+
+%TODO: Test this old code
+if 0 
+    
+    % Numebr of frames to visualize
+    nFrames = 20;
+
+    % Load iFrames
+    load([currDataPath filesep 'Frames used'])
+    
+    % Load F data
+    load([currDataPath filesep 'post- foot refined']);
+    
+    % Load Body
+    load([currDataPath filesep 'Body, post.mat'])
+    
+    % File name of movie to be created
+    fName = 'Foot tracking, pretty';
+    
+    % Load video info (v)                added by CG
+    v = defineVidObject(currVidPath);
+    
+    % Load video info (v)                added by CG
+%     v = defineVidObject(currVidPath);
+    
+    % Create animation
+    visTracking(currVidPath,v,currDataPath,imInvert,...
+                'Basic',Body,visSteps,F,iFrames,iC,nFrames);
+    
+end
+
+
+
+
+
+return
 
 %% Generate centroid movie data (do.MakeCentroidMovie)
 

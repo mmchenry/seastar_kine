@@ -28,7 +28,9 @@ if ~isunix
     vOut.Quality = 50;
 else
     % Set up output video file
-    vOut = VideoWriter([data_path filesep movie_file '.avi'],'Uncompressed AVI');
+%     vOut = VideoWriter([data_path filesep movie_file '.avi'],'Uncompressed AVI');
+    vOut = VideoWriter([data_path filesep movie_file '.avi'],'Motion JPEG AVI');
+    vOut.Quality = 75;
 end
 
 open(vOut)
@@ -409,17 +411,21 @@ elseif strcmp(opType,'Individual feet, pretty')
     
 elseif strcmp(opType,'Centroid & Rotation') || strcmp(opType,'no analysis')    
        
-    Body = varargin{1}; 
+    % Inputs
+    Body   = varargin{1}; 
+    imVis  = varargin{2};
+    iC     = varargin{3};
+    
+    % Define parameters
     frames = Body.frames;    
     numroipts = length(Body.Rotation.roi(1).xPerimL);    
-    if nargin > 1
-        imVis = varargin{2};
-    else
-        imVis = 1;
-    end
-    
+
     fColor = [1 1 1];
-    fPos = [1 1 1150 1340];
+    %fPos = [1 1 1150 1340];
+    fPos = [1 1 1000 700];
+    
+    % Offset border
+        offVal = 2;
     
     %moviePath = varargin{3};
 
@@ -446,12 +452,220 @@ end
 imRect = round([703  2868  3853  2168]);
 
 
-%% loop thru frames (not 'blobs G&L')
 
-if ~strcmp(opType,'blobs G&L')
+%% Centroid only ('Centroid tracking')
+
+if strcmp(opType,'Centroid tracking')
+ 
+    % Loop thru data
+    for i = 1:length(frames)
+        
+        % Get current frame
+        im = getFrame(vid_path,v,frames(i),imInvert,'gray',[],iC.r);
+        
+        % Display frame
+        imshow(im,'InitialMag','fit');
+        hold on
+        
+        % Define on first run thru loop
+        if i ==1
+            totArea = size(im,1)*size(im,2);
+            areaMin = totArea/10^4;
+            areaMax = totArea/10^2;
+        end
+        
+        % roi in global frame
+        xG = Body.roi(i).xPerimG;
+        yG = Body.roi(i).yPerimG;
+        xC = Body.roi(i).xCntr;
+        yC = Body.roi(i).yCntr;
+        
+        % Overlay blobs
+        %[props,bw,areas,xB,yB] = findBlobs(im,iC.tVal,'area',areaMin,areaMax);
+        [props,bw,areas,xB,yB] = findBlobs(im,iC.tVal,'coord',xC,yC);
+        
+        % Make a truecolor all-green image, make non-blobs invisible
+        green = cat(3, zeros(size(im)), ones(size(im)), zeros(size(im)));
+        h = imshow(green,'InitialMag','fit');
+        set(h, 'AlphaData', bw*0.3)
+        
+        % Plot tracking
+        h(1) = line(xG,yG,'Color','k','LineWidth',1);
+        h(2) = plot(xC,yC,'k+');
+        hold off
+        
+        % Add frame number
+        text(40,100,['Frame ' num2str(frames(i))],'Color','k','FontSize',24);
+        
+        % Render and write frame
+        drawnow
+        imFrame = getframe(gca);
+        writeVideo(vOut,imFrame);
+        
+        if ~imVis
+            pause(0.0001);
+        else
+            disp(['aniData (' opType ') : ' num2str(i) ' of ' num2str(length(frames))])
+        end
+        
+        clear h xB yB areas bw props
+    end
+end
+
+
+%% Centroid and rotation movie ('Centroid & Rotation')
+
+if strcmp(opType,'Centroid & Rotation')
     
     % Loop thru data
     for i = 1:length(frames)
+        
+        % Current whole frame
+        im = getFrame(vid_path,v,frames(i),imInvert,'gray',[],iC.r);
+        
+        % Plot frame
+        subplot(1,2,1)
+        h = imshow(im,'InitialMag','fit');
+        hold on
+        
+        % Get current roi
+        roi = Body.Rotation.roi(i);
+
+        % roi in global frame
+        xG = roi.xPerimG;
+        yG = roi.yPerimG;
+        
+        % Body center
+        xC = Body.xCntr(i);
+        yC = Body.yCntr(i);
+        
+        % Other point (to show rotation)
+        xO = Body.xOther(i);
+        yO = Body.yOther(i);
+        
+        % Local FOR border
+        xL = [roi.xPerimL(1)+offVal roi.xPerimL(2)-offVal ...
+            roi.xPerimL(3)-offVal roi.xPerimL(4)+offVal ...
+            roi.xPerimL(5)+offVal];
+        yL = [roi.yPerimL(1)+offVal roi.yPerimL(2)+offVal ...
+            roi.yPerimL(3)-offVal roi.yPerimL(4)-offVal ...
+            roi.yPerimL(5)+offVal];
+        
+        % Stabilized image
+        imStable =  giveROI('stabilized',im,roi,0,Body.Rotation.tform(i));
+        
+        % Plot tracking
+        h(1) = line(xG,yG,'Color',[1 0 0 0.2],'LineWidth',3);
+        h(1) = line([xO xC],[yO yC],'Color',[1 0 0 0.2],'LineWidth',3);
+        %h(2) = plot(xC,yC,'r+');
+        
+        % Plot roi
+        subplot(1,2,2)
+        imshow(imStable,'InitialMag','fit')
+        hold on
+        line(xL,yL,'Color',[1 0 0 0.2],'LineWidth',4);
+        title(['Frame ' num2str(frames(i))])
+        
+        % Render and write frame
+        drawnow
+        imFrame = getframe(f);
+        writeVideo(vOut,imFrame);
+        
+        if imVis
+            pause(0.001);
+        else
+            disp(['aniData (' opType ') : ' num2str(i) ' of ' num2str(length(frames))])
+        end
+        
+        clear h im imStable roi xC yC x0 y0 xL yL 
+    end
+end
+
+
+%% Movie showing the codes tracking of individual feet 
+% ('Individual feet, local')
+
+if strcmp(opType,'Individual feet, local')
+    
+    % Level of alpha transparency
+    aLevel = 0.3;
+    
+    % Offset border
+    offVal = 2;
+
+    % Loop thru data
+    for i = 1:length(frames)
+        
+        % Get current frame
+        im = getFrame(vid_path,v,frames(i),imInvert,'gray',[],iC.r);
+        
+        % Stabilized image
+        imStable =  giveROI('stabilized',im,roi(i),0,tform(i),[],0);
+        
+        % Display frame
+        h = imshow(imStable,'InitialMag','fit');
+        
+        % Load B_ft data for current frame
+        load([data_path filesep 'foot_blobs' filesep ...
+            aData(iFile(i)).name])
+        
+        % Figure color
+        set(f,'Color',0.2.*[1 1 1])
+        
+        % Plot positions of feet (after post-processing)
+        for j = 1:length(x{i})
+            h = scatter(x{i}(j),y{i}(j),...
+                'MarkerEdgeColor','r','SizeData',1000,...
+                'MarkerEdgeAlpha',0.5,'LineWidth',4);
+        end
+        
+        % Create black local image
+        bw_im = imStable==300;
+        
+        % Identify all blobs for candidate tube feet
+        for j = 1:length(B_ft.propsL)
+            % Put white pixels where blobs exist
+            bw_im(B_ft.propsL(j).PixelIdxList) = 1;
+        end
+        
+        % Make a truecolor all-green image, make non-blobs invisible
+        green = cat(3, ones(size(imStable)), ones(size(imStable)), ...
+            zeros(size(imStable)));
+        h = imshow(green,'InitialMag','fit');
+        set(h, 'AlphaData', bw_im.*aLevel)
+        
+        % Place frame number
+        hold on
+        text(20,30,['Frame ' num2str(frames(i))],'Color','w','FontSize',24);
+        
+        % Render and write frame
+        drawnow
+        imFrame = getframe(gca);
+        writeVideo(vOut,imFrame);
+        
+        if imVis
+            pause(0.001);
+        else
+            disp(['aniData (' opType ') : ' num2str(i) ' of ' num2str(length(frames))])
+        end
+        
+        hold off
+        
+        clear h imStable B_ft green hTitle imFrame
+    end
+    
+    clear aLevel offVal i
+end
+
+
+%% loop thru frames (not 'blobs G&L')
+
+if ~strcmp(opType,'blobs G&L') && ~strcmp(opType,'Centroid & Rotation') && ...
+    ~strcmp(opType,'Individual feet, local') && ~strcmp(opType,'Centroid tracking')
+
+
+    % Loop thru data
+    for i = 1:5 %length(frames)
 
         if strcmp(opType,'no analysis') 
             im = getFrame(vid_path,v,frames(i),0,'color');
@@ -466,13 +680,33 @@ if ~strcmp(opType,'blobs G&L')
             im(:,:,2) = adapthisteq(im(:,:,2),'ClipLimit',imRange);
             im(:,:,3) = adapthisteq(im(:,:,3),'ClipLimit',imRange);
             
-        elseif strcmp(opType,'Individual feet, local')
-            % Current whole frame
-            im = getFrame(vid_path,v,frames(i),imInvert,'gray',[],iC.r);
- 
+            set(f,'Color',0.2.*[1 1 1])
+
+            h = text(round(size(im,2)/7)+20,round(size(im,2)/6),...
+                hTitle.String,'Color',0.8.*[1 1 1],'FontSize',18);
+      
+            % Plot positions of feet (after post-processing)
+            for j = 1:length(x{i})
+                h = scatter(x{i}(j),y{i}(j),...
+                    'MarkerEdgeColor','y','SizeData',150,...
+                    'MarkerEdgeAlpha',0.5,'LineWidth',1);
+            end
+            
+            h = scatter(xArm(i,:),yArm(i,:),...
+                    'MarkerEdgeColor','r','MarkerFaceColor','r',...
+                    'SizeData',20,'MarkerEdgeAlpha',0.8);
+           h = scatter(xCntr(i,:),yCntr(i,:),...
+                    'MarkerEdgeColor','r','MarkerFaceColor','r',...
+                    'SizeData',20,'MarkerEdgeAlpha',0.8);
+                ttt = 3;
+                
+           imFrame = getframe(gca);
+            
+            
         else
+
             % Current whole frame
-            im = getFrame(vid_path,v,frames(i),imInvert,'gray');
+%             im = getFrame(vid_path,v,frames(i),imInvert,'gray');
         end
         
         if strcmp(opType,'blobs L simple')
@@ -481,39 +715,15 @@ if ~strcmp(opType,'blobs G&L')
                 S.tform(:,:,i),imRoiMean);
         end
         
-        if strcmp(opType,'Centroid & Rotation')
-            subplot(1,2,1)
 
-            % Get current roi
-            roi = Body.Rotation.roi(i);
     
-        elseif strcmp(opType,'Feet')
+        if strcmp(opType,'Feet')
             
             subplot(3,1,1)
             
-        elseif strcmp(opType,'Centroid tracking')
- 
-            %roi = Body.roi(i);
-            if i ==1
-                totArea = size(im,1)*size(im,2);
-                areaMin = totArea/10^4;
-                areaMax = totArea/10^2;
-            end
         end
         
-        if strcmp(opType,'Individual feet, local')
-            % Stabilized image
-            imStable =  giveROI('stabilized',im,roi(i),0,tform(i),[],0);
-            
-            % Display frame
-            h = imshow(imStable,'InitialMag','fit');
-        else
-            % Display frame
-            h = imshow(im,'InitialMag','fit');
-        end
         
-        hold on
-        hTitle = title(['Frame ' num2str(frames(i))]);
         
         if strcmp(opType,'blobs G&L')
             
@@ -545,73 +755,7 @@ if ~strcmp(opType,'blobs G&L')
             
             clear props bw areas xB yB
          
-            
-        elseif strcmp(opType,'Centroid tracking')
-            
-            % roi in global frame
-            xG = Body.roi(i).xPerimG;
-            yG = Body.roi(i).yPerimG;
-            xC = Body.roi(i).xCntr;
-            yC = Body.roi(i).yCntr;
-            
-            % Overlay blobs
-            %[props,bw,areas,xB,yB] = findBlobs(im,iC.tVal,'area',areaMin,areaMax);
-            [props,bw,areas,xB,yB] = findBlobs(im,iC.tVal,'coord',xC,yC);
-            
-            % Make a truecolor all-green image, make non-blobs invisible
-            green = cat(3, zeros(size(im)), ones(size(im)), zeros(size(im)));
-            h = imshow(green,'InitialMag','fit');
-            set(h, 'AlphaData', bw*0.3)
-            
-            % Plot tracking
-            h(1) = line(xG,yG,'Color','k','LineWidth',1);
-            h(2) = plot(xC,yC,'k+');
-            
-            clear xB yB areas bw props     
-            
-        elseif strcmp(opType,'Centroid & Rotation')
-            
-            % Offset border
-            offVal = 2;
-            
-            % roi in global frame
-            xG = roi.xPerimG;
-            yG = roi.yPerimG;
-            
-            % Body center
-            xC = Body.xCntr(i);
-            yC = Body.yCntr(i);
-            
-            % Other point (to show rotation)
-            xO = Body.xOther(i);
-            yO = Body.yOther(i);
-            
-            % Local FOR border
-            xL = [roi.xPerimL(1)+offVal roi.xPerimL(2)-offVal ...
-                roi.xPerimL(3)-offVal roi.xPerimL(4)+offVal ...
-                roi.xPerimL(5)+offVal];
-            yL = [roi.yPerimL(1)+offVal roi.yPerimL(2)+offVal ...
-                roi.yPerimL(3)-offVal roi.yPerimL(4)-offVal ...
-                roi.yPerimL(5)+offVal];
-            
-            % Stabilized image
-            imStable =  giveROI('stabilized',im,roi,0,Body.Rotation.tform(i));
-            
-            % Plot tracking
-            h(1) = line(xG,yG,'Color',[1 0 0 0.2],'LineWidth',3);
-            h(1) = line([xO xC],[yO yC],'Color',[1 0 0 0.2],'LineWidth',3);
-            %h(2) = plot(xC,yC,'r+');
-            
-            % Plot roi
-            subplot(1,2,2)
-            imshow(imStable,'InitialMag','fit')
-            hold on
-            line(xL,yL,'Color',[1 0 0 0.2],'LineWidth',4);
-            
-            drawnow
-            pause(0.001)
-            
-            
+         
         elseif strcmp(opType,'Feet')
             
             set(f,'Color',0.2.*[1 1 1])
@@ -654,11 +798,7 @@ if ~strcmp(opType,'blobs G&L')
                     'MarkerEdgeColor',[1 1 0],'SizeData',300,...
                     'MarkerEdgeAlpha',0.5);
             end
-            
-            drawnow
-            pause(0.001)
-            
-            
+       
             
         elseif strcmp(opType,'Global feet')
             
@@ -683,86 +823,25 @@ if ~strcmp(opType,'blobs G&L')
             
             set(f,'Color',0.2.*[1 1 1])
             set(hTitle,'Color',0.8.*[1 1 1]);
+            imFrame = getframe(gca);
             
-            
-        elseif strcmp(opType,'Individual feet, local')
-            
-            % Level of alpha transparency
-            aLevel = 0.3;
-            
-             % Offset border
-            offVal = 2;
-            
-            % Load B_ft data for current frame
-            load([data_path filesep 'foot_blobs' filesep ...
-                  aData(iFile(i)).name])
-            
-            % Figure colors
-            set(f,'Color',0.2.*[1 1 1])
-            set(hTitle,'Color',0.8.*[1 1 1]);
-
-            % Plot positions of feet (after post-processing)
-            for j = 1:length(x{i})
-                  h = scatter(x{i}(j),y{i}(j),...
-                    'MarkerEdgeColor','r','SizeData',1000,...
-                    'MarkerEdgeAlpha',0.5,'LineWidth',4);
-            end
-            
-            % Create black local image
-            bw_im = imStable==300;
-            
-            % Identify all blobs for candidate tube feet
-            for j = 1:length(B_ft.propsL)
-                % Put white pixels where blobs exist
-                bw_im(B_ft.propsL(j).PixelIdxList) = 1;
-            end
-            
-             % Make a truecolor all-green image, make non-blobs invisible
-            green = cat(3, ones(size(imStable)), ones(size(imStable)), ...
-                           zeros(size(imStable)));
-            h = imshow(green,'InitialMag','fit');
-            set(h, 'AlphaData', bw_im.*aLevel)
-            
-%             h = scatter(xArm,yArm,...
-%                     'MarkerEdgeColor','r','MarkerFaceColor','r',...
-%                     'SizeData',20,'MarkerEdgeAlpha',0.8);
-                ttt=3;
-                
-        elseif strcmp(opType,'Individual feet, pretty')
-            
-
-              
-            set(f,'Color',0.2.*[1 1 1])
-            %set(hTitle,'Color',0.8.*[1 1 1]);
-            
-%             set(gca,'Units','normalized')
-            h = text(round(size(im,2)/7)+20,round(size(im,2)/6),...
-                hTitle.String,'Color',0.8.*[1 1 1],'FontSize',18);
-      
-            % Plot positions of feet (after post-processing)
-            for j = 1:length(x{i})
-                h = scatter(x{i}(j),y{i}(j),...
-                    'MarkerEdgeColor','y','SizeData',150,...
-                    'MarkerEdgeAlpha',0.5,'LineWidth',1);
-            end
-            
-            h = scatter(xArm(i,:),yArm(i,:),...
-                    'MarkerEdgeColor','r','MarkerFaceColor','r',...
-                    'SizeData',20,'MarkerEdgeAlpha',0.8);
-           h = scatter(xCntr(i,:),yCntr(i,:),...
-                    'MarkerEdgeColor','r','MarkerFaceColor','r',...
-                    'SizeData',20,'MarkerEdgeAlpha',0.8);
-                ttt = 3;
-                
         end
         
-        drawnow
-        hT = text(20,30,['Frame ' num2str(frames(i))],'Color','w','FontSize',24);
-        pause(0.001)  
+        % Run get frame
+        if strcmp(opType,'Centroid & Rotation')
+            drawnow
+            imFrame = getframe(f);
+        else
+            hT = text(20,30,['Frame ' num2str(frames(i))],'Color','w','FontSize',24);
+            drawnow
+            imFrame = getframe(gca);
+        end
+        
+%         pause(0.001)  
  
 %         imRect = [314  1300-974 1744 974];
 
-        imFrame = getframe(gca);
+        
 %         imFrame.cdata = imcrop(imFrame.cdata,imRect);
         writeVideo(vOut,imFrame);
         

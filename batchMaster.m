@@ -5,6 +5,9 @@ function batchMaster
 
 %% Execution control
 
+% Run (or re-run) centroid tracking
+do.centroid = 1;
+
 % Run acquisition of kinematics from bottom view
 do.acqBottom = 1;
 
@@ -16,6 +19,11 @@ do.visCentroids = 0;
 
 % Visualize centroid and rotation tracking
 do.visCentRot = 0;
+
+%TODO: Change to visualization code to use visMaster
+
+% Whether to report progress of individual frames
+echoFrames = 0;
 
 
 %% Manage paths and parameters
@@ -259,6 +267,28 @@ for i = 1:length(seq)
     clear currSide currBot    
 end
 
+
+%% Re-run centroid tracking (do.centroid)
+
+if do.centroid
+
+    % Loop thru sequences (use parfor for parallel processing)
+    parfor i = 1:length(seq)
+        
+        % Current directories
+        dataPath = [seq(i).dirName filesep 'bottom' filesep seq(i).fName_bot];
+        vidPath  = [seq(i).dirName filesep 'bottom' filesep seq(i).fName_bot  ...
+            '.' seq(i).ext];
+        
+        % Run analysis
+        acqMaster(dataPath,vidPath,'reacquire centroid',echoFrames)
+        
+        % Report progress
+        disp(['Centroid acquisition: Completed ' num2str(i) ' of ' num2str(length(seq))])
+    end
+end
+
+
 %% Run acquisition of bottom view
 
 if do.acqBottom
@@ -278,6 +308,7 @@ for i = 1:length(seq)
     ttt=3;
 end
 end
+
 
 %% Make movies for DeepLabCut
 

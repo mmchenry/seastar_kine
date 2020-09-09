@@ -48,9 +48,9 @@ if strcmp(method,'advanced')
      optimizer.MaximumStepLength = 5e-4;
     optimizer.MaximumIterations = 1500;
     optimizer.RelaxationFactor  = 0.2;
-    
-    % Maximum image size
-    maxSize = varargin{3};
+
+    % Display status of each analyzed frame
+    echoFrames = varargin{4};
 
 end
 
@@ -94,9 +94,8 @@ dSample = varargin{1};
 
 if length(varargin)>3
     visSteps      = varargin{2};
-    reRunRotation = varargin{3};
-    iminvert      = varargin{4};
-    maxSize       = varargin{5};
+    iminvert      = varargin{3};
+    maxSize       = varargin{4};
 else
     visSteps = 0;
     iminvert = 0;
@@ -271,18 +270,22 @@ while true
     end
     
     % Update status
-    disp(['trackRotation (' method ') : done frame ' num2str(Body.frames(iFrame)) ...
-          ' of ' num2str(max(Body.frames))])
+    if echoFrames
+        disp(['trackRotation (' method ') : done frame ' num2str(Body.frames(iFrame)) ...
+            ' of ' num2str(max(Body.frames))])
+    end
     
     %Visualize rotation, for debugging
     if visSteps
-
+        
+        fillColor = 255;
+        
         % Use roi from current frame
         %roiCurr = giveROI('define','rectangular',numroipts,r,Body.x(iFrame),Body.y(iFrame));
         
         %imStable = giveROI('stabilized',im,roi,dSample,tform,[],maxSize);
         imStable =  giveROI('stabilized',im,Body.Rotation.roi(iFrame),...
-                            dSample,Body.Rotation.tform(iFrame),[],maxSize);
+                            dSample,Body.Rotation.tform(iFrame),[],fillColor,maxSize);
         
         % Modify image
         %imStable = im_modify(imStable);
@@ -325,10 +328,7 @@ while true
         % Pause briefly to render
         pause(0.001)
     end
-    
-    
-    
-    
+
     
     % Visualize centroid, for debugging
     if 0
@@ -350,7 +350,7 @@ while true
         pause(0.001)
     end
     
-    %%  % Clear for next iteration
+    % Clear for next iteration
     clear im_roi tform_roi imStable xC yC h imMask im_roi t_txt
     
     if nSave > saveInterval
@@ -398,6 +398,7 @@ elseif strcmp(method,'visualize')
         varargout{1} = fig;
     end
 end
+
 
 function im = im_modify(im)
 

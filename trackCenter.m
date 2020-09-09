@@ -19,26 +19,34 @@ if strcmp(method,'threshold translation')
     iC     = varargin{2};
     
     % Frame numbers to analyze
-    if nargin<7 || isempty(varargin{3})  
+    if length(varargin)<3 || isempty(varargin{3})  
         frames = [v.UserData.FirstFrame:v.UserData.LastFrame]';
     else
         frames = varargin{3};
     end
     
+    % Whether to report individual frames
+    if length(varargin)<4
+        echoFrames = 1;
+    else
+        echoFrames = varargin{4};
+    end
+    
     % Mean image
-    if nargin<8
+    if length(varargin)<5
         imMean = [];
     else
-        imMean = varargin{4};
+        imMean = varargin{5};
     end
     
     % Mask coordinates image
-    if nargin>8
-        xMask = varargin{5};
-        yMask = varargin{6};
-    end
+    if length(varargin)>6
+        xMask = varargin{6};
+        yMask = varargin{7};
+    end  
     
-    erodedialate = 1;
+    % Whether to show the analysis as it is running
+    visSteps     = 1;
     
     
 elseif strcmp(method,'thresh trans advanced') || ...
@@ -134,16 +142,19 @@ elseif strcmp(method,'thresh trans advanced') || ...
 end
 
 
-
 %% Tracking object
 
 % Set up pool for parallel processing
-% parpool(8)
+[~,comname] = system('hostname');
+if length(comname)>10 && strcmp(comname(1:11),'system76-pc')
+    parpool(4)
+end
+clear comname
 
 nFrames = 1;
 
 % Loop thru frames
-parfor i = 1:length(frames)
+for i = 1:length(frames)
     
     % Current frame
     cFrame = frames(i);
@@ -177,28 +188,26 @@ parfor i = 1:length(frames)
     end
     
     % Update status
-    disp(['trackCenter (' method ') : done ' num2str(i) ' of ' num2str(length(frames))])   
-
-        
-    % Visualize centroid, for debugging 
-    if 0
-        
-        % Title text
-        t_txt = ['Frame ' num2str(cFrame) '/' num2str(frames(end))];
-
-        imshow(im,'InitialMag','fit')
-        if 1
-            brighten(-0.8)
-        end
-        % brighten(-0.7)
-        hold on
-        plot(cX,cY,'g+')
-        title(t_txt)
-        hold off
-        
-        % Pause briefly to render
-        pause(0.001)
+    if echoFrames
+        disp(['trackCenter (' method ') : done ' num2str(i) ' of ' ...
+              num2str(length(frames))])   
     end
+
+    % Visualize centroid, for debugging (comment-out when running in parallel)
+    if visSteps
+        imshow(im,'InitialMag','fit')
+        hold on
+        
+        % Make a truecolor all-green image, make non-blobs invisible
+        green = cat(3, zeros(size(im)), ones(size(im)), zeros(size(im)));
+        h = imshow(green,'InitialMag','fit');
+        set(h, 'AlphaData', bwOut*0.3)
+        
+        % Plot tracking
+        h = plot(x(i),y(i),'k+');
+        hold off
+    end
+    
 end
 
 % Store values
