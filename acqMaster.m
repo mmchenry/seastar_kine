@@ -242,7 +242,7 @@ if strcmp(action,'reacquire centroid') || ...
     save([currDataPath filesep 'Centroid'],'Centroid')
     
     % Visualize a bunch of frames to check results
-    surveyData(currVidPath,v,imInvert,'Centroid tracking',Centroid,iC,numVis);
+ %   surveyData(currVidPath,v,imInvert,'Centroid tracking',Centroid,iC,numVis);
      
     disp(' ')
     
@@ -418,8 +418,11 @@ end
 
 % Loop thru frames, track feet --------------------------------------------
 if strcmp(action,'reacquire feet completely') || ...
-        ~strcmp(action,'reacquire feet post-processing') || ...
+        strcmp(action,'reacquire feet post-processing') || ...
         ~isfolder([currDataPath filesep 'foot_blobs'])
+    
+     % Streak image duration in frames
+    strakDr_fr = round(streakDur * v.FrameRate);
     
     % Stores linked feet in B_ft, in 'foot_blobs' folder
     anaBlobs(currVidPath,v,'filter motion',currDataPath,strakDr_fr,Body,blobParam,...
@@ -439,7 +442,7 @@ end
 
 % Arm number assignment ------------------------------------------
 if strcmp(action,'reacquire feet completely') || ...
-        ~strcmp(action,'reacquire feet post-processing') || ...
+        strcmp(action,'reacquire feet post-processing') || ...
         ~isfile([currDataPath filesep 'post- arms.mat'])
     
     % Distance threshold for including feet
@@ -473,7 +476,7 @@ end
 
 % Connect blobs across frames --------------
 if strcmp(action,'reacquire feet completely')  || ...
-        ~strcmp(action,'reacquire feet post-processing') || ...
+        strcmp(action,'reacquire feet post-processing') || ...
         ~isfile([currDataPath filesep 'post- foot refined.mat'])
     
     % Load B2
@@ -499,23 +502,24 @@ if strcmp(action,'reacquire feet completely')  || ...
     % Save data
     save([currDataPath filesep 'post- foot refined'],'F')
     
-    clear F 
+
+    % Get listing of frame numbers
+    [a,frNums] = fileList([currDataPath filesep 'foot_blobs'],'foot_blobs');
+    
+    % Index for frames
+    iFrames = Body.frames>=frNums(1) & Body.frames<=frNums(end);
+    
+    % Save data
+    save([currDataPath filesep 'Frames used'],'iFrames')
+    
+    clear F
 end
 
 % Visualize result
 % surveyData(currVidPath,v,0,'Individual feet',Body,B_ft,numVis);
 
 
-%% Define frames used
 
-% Get listing of frame numbers
-[a,frNums] = fileList([currDataPath filesep 'foot_blobs'],'foot_blobs');
-
-% Index for frames
-iFrames = Body.frames>=frNums(1) & Body.frames<=frNums(end);
-
-% Save data
-save([currDataPath filesep 'Frames used'],'iFrames')
 
 
 

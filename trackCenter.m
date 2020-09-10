@@ -46,7 +46,7 @@ if strcmp(method,'threshold translation')
     end  
     
     % Whether to show the analysis as it is running
-    visSteps     = 1;
+    visSteps     = 0;
     
     
 elseif strcmp(method,'thresh trans advanced') || ...
@@ -154,7 +154,7 @@ clear comname
 nFrames = 1;
 
 % Loop thru frames
-for i = 1:length(frames)
+parfor i = 1:length(frames)
     
     % Current frame
     cFrame = frames(i);
@@ -193,20 +193,20 @@ for i = 1:length(frames)
               num2str(length(frames))])   
     end
 
-    % Visualize centroid, for debugging (comment-out when running in parallel)
-    if visSteps
-        imshow(im,'InitialMag','fit')
-        hold on
-        
-        % Make a truecolor all-green image, make non-blobs invisible
-        green = cat(3, zeros(size(im)), ones(size(im)), zeros(size(im)));
-        h = imshow(green,'InitialMag','fit');
-        set(h, 'AlphaData', bwOut*0.3)
-        
-        % Plot tracking
-        h = plot(x(i),y(i),'k+');
-        hold off
-    end
+%     % Visualize centroid, for debugging (comment-out when running in parallel)
+%     if visSteps
+%         imshow(im,'InitialMag','fit')
+%         hold on
+%         
+%         % Make a truecolor all-green image, make non-blobs invisible
+%         green = cat(3, zeros(size(im)), ones(size(im)), zeros(size(im)));
+%         h = imshow(green,'InitialMag','fit');
+%         set(h, 'AlphaData', bwOut*0.3)
+%         
+%         % Plot tracking
+%         h = plot(x(i),y(i),'k+');
+%         hold off
+%     end
     
 end
 
