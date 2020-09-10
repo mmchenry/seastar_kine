@@ -502,7 +502,7 @@ if strcmp(opType,'Centroid tracking')
         imFrame = getframe(gca);
         writeVideo(vOut,imFrame);
         
-        if ~imVis
+        if imVis
             pause(0.0001);
         else
             disp(['aniData (' opType ') : ' num2str(i) ' of ' num2str(length(frames))])
@@ -518,7 +518,7 @@ end
 if strcmp(opType,'Centroid & Rotation')
     
     % Loop thru data
-    for i = 1:length(frames)
+    for i = 1:150%length(frames)
         
         % Current whole frame
         im = getFrame(vid_path,v,frames(i),imInvert,'gray',[],iC.r);

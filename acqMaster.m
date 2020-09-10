@@ -273,7 +273,7 @@ if strcmp(action,'reacquire rotation') || ...
     save([currDataPath filesep 'Body.mat'],'-v7.3','Body')
     
     % Visualize a bunch of frames to check results
-    surveyData(currVidPath,v,imInvert,'Centroid & Rotation',Body,iC,numVis);
+    %surveyData(currVidPath,v,imInvert,'Centroid & Rotation',Body,iC,numVis);
     
     clear dSample 
     
@@ -429,7 +429,7 @@ if strcmp(action,'reacquire feet completely') || ...
     load([currDataPath filesep 'Initial conditions'])
 
     % Visualize a bunch of frames to check results
-    surveyData(currVidPath,v,0,'Feet',currDataPath,Body,numVis,iC);
+    %surveyData(currVidPath,v,0,'Feet',currDataPath,Body,numVis,iC);
     
     clear B B_ft imStack   
 end

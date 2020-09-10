@@ -177,13 +177,6 @@ nSave = 1;
 %iFrame = find(Body.frames,1,'first');
 
 
-
-%% Do a course pass on rotation, in series 
-
-
-% intCourse = 20;
-
-
 %% Tracking object
 
 % Loop thru frames

@@ -98,6 +98,9 @@ end
 
 if strcmp(action,'rotation movie') 
     
+    % Load 'Body'
+    load([currDataPath filesep 'Body.mat'])
+    
     % File name of movie to be created
     fName = 'Centroid and rotation';
     
