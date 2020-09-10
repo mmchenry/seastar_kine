@@ -9,7 +9,7 @@ function batchMaster
 do.centroid = 1;
 
 % Run acquisition of kinematics from bottom view
-do.acqBottom = 1;
+do.acqBottom = 0;
 
 % Generate movies for deepLabCut analysis
 do.deepLabCutMovies = 0;
@@ -273,7 +273,7 @@ end
 if do.centroid
 
     % Loop thru sequences (use parfor for parallel processing)
-    parfor i = 1:length(seq)
+    for i = 1:length(seq)
         
         % Current directories
         dataPath = [seq(i).dirName filesep 'bottom' filesep seq(i).fName_bot];
