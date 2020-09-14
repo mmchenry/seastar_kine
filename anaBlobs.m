@@ -37,6 +37,7 @@ if strcmp(opType,'G&L props')
     visSteps   = varargin{6};
     iC         = varargin{7};
     savePath   = varargin{8};
+    echoFrames = varargin{9};
     
     fName      = 'blobs';
  
@@ -50,6 +51,7 @@ elseif strcmp(opType,'filter motion')
 %     tVal      = varargin{5};
     visSteps  = varargin{5};
     imInvert  = varargin{6};
+    echoFrames = varargin{7};
     
     fName = 'foot_blobs';
     
@@ -63,23 +65,15 @@ elseif strcmp(opType,'filter motion')
     savePath = [currDataPath filesep 'foot_blobs'];
     
     dSample = 0;
-    
-%     % Check frame numbers
-%     for i = 1:length(B)
-%        B_fr(i,1) = B(i).fr_num;      
-%     end
-%     if sum(B_fr'-Body.frames)~=0
-%         error('Frame numbers do not match between B and Body');
-%     end
-%     
-%     clear B_fr
-    
+
 else
     error('opType not recognized');
 end
 
 S        = Body.Rotation;
 frames   = Body.frames;
+
+clear Body
 
 if visSteps
     f = figure;
@@ -96,11 +90,18 @@ end
 %% Loop thru frames ('G&L props')
 % Create local mask that excludes stationary objects 
 
+% Set up pool for parallel processing
+[~,comname] = system('hostname');
+if length(comname)>10 && strcmp(comname(1:11),'system76-pc')
+    parpool(6);
+end
+clear comname
+
 if strcmp(opType,'G&L props')
 
     % Loop thru frames
-     parfor i = 1:length(frames)
-        %  for i = 1:length(frames)
+      parfor i = 1:length(frames)
+%      for i = 1:length(frames)
         
         % Current frame
         cFrame = frames(i);
@@ -188,10 +189,15 @@ if strcmp(opType,'G&L props')
 
             pause(0.001)
             
-        else
+        elseif echoFrames
             disp(['anaBlobs (' opType ') : '  num2str(i) ' of ' num2str(length(frames))]);
         end
-    end   
+        
+        %clear B im bw* propsG props
+      end   
+    
+      % Close parallel pool
+      delete(gcp('nocreate'))
 end
 
 
@@ -304,14 +310,17 @@ if strcmp(opType,'filter motion')
         
         % Status report
         %         disp(' ')
-        disp(['anaBlobs (' opType ') : done ' num2str(i) ' of ' ...
-            num2str(length(frMotion))])
+        if echoFrames
+            disp(['anaBlobs (' opType ') : done ' num2str(i) ' of ' ...
+                num2str(length(frMotion))])
+        end
         %         disp(' ');
         
         %clear im_roi im bw_roi bw_im propsG propsL cName B_ft
     end
     
 end
+
 
 %% Outputs
 

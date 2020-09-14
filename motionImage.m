@@ -88,6 +88,8 @@ elseif strcmp(imType,'mean roi')
     
     iC        = varargin{6};
     
+    echoFrames = varargin{7};
+    
     clear Body
    
 elseif strcmp(imType,'im static') 
@@ -175,6 +177,11 @@ if isempty(fr_num)
         fr_num = v.UserData.FirstFrame:v.UserData.LastFrame;
     end
 end
+
+if ~exist('echoFrames','var')
+    echoFrames = 1;
+end
+
     
 % if strcmp(imType,'bw static')
 %     % Create sum image based on first frame
@@ -352,8 +359,10 @@ for i = 1:length(fr_num)
     clear imCurr currIm
     
     % Update status
-    disp(['      motionImage (' imType ') : ' num2str(i) ' of ' num2str(length(fr_num))])
-    
+    if echoFrames
+        disp(['      motionImage (' imType ') : ' num2str(i) ' of ' ...
+              num2str(length(fr_num))])
+    end
 end
 
 % Calculate mean image(s)

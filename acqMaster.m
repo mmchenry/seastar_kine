@@ -13,7 +13,8 @@ end
 if ~strcmp(action,'reacquire centroid') && ...
    ~strcmp(action,'reacquire rotation') && ...
    ~strcmp(action,'reacquire feet completely') && ...
-   ~strcmp(action,'reacquire feet post-processing')
+   ~strcmp(action,'reacquire feet post-processing') && ...
+   ~strcmp(action,'generate DLC videos') 
 
     error(['Do not recognize ' action])
 end
@@ -88,7 +89,11 @@ if ~isfolder(currDataPath)
 end
 
 % Load video info (v)
-v = defineVidObject(currVidPath);
+ v = defineVidObject(currVidPath);
+%     warning off
+%     % Adjust items to new 'v'
+%     v = VideoReader(currVidPath);
+%     warning on
 
 
 %% Select duration of analysis
@@ -280,9 +285,10 @@ if strcmp(action,'reacquire rotation') || ...
 end
 
 
-%% Foot tracking step 1: Create series of mean images in local FOR
+%% Create series of mean images in local FOR
 
-if strcmp(action,'reacquire feet completely')
+if strcmp(action,'reacquire feet completely') || ...
+       ~isfolder([currDataPath filesep 'mean_images'])
     
     % Downsample
     dSample = 0;
@@ -313,57 +319,72 @@ if strcmp(action,'reacquire feet completely')
     
     % Path for mean images
     mPath = [currDataPath filesep 'mean_images'];
-    
-    % Create mean images over regular interval of movie -----------
-    if do.rerunAcq || ~isfolder([currDataPath filesep 'mean_images'])
-        
-        % Make directory
-        if ~isfolder(mPath)
-            mkdir(mPath);
-        end
-        
-        % Loop thru intervals
-        for i = 1:(length(interval_fr)-1)
-            
-            % Update status
-            disp(['INTERVAL ' num2str(i) ' of ' num2str(length(interval_fr)-1)])
-            
-            % Interval of mean image
-            roiM.frStart = interval_fr(i);
-            roiM.frEnd   = interval_fr(i+1);
-            
-            % Range of frames
-            dFrame = round(range([roiM.frStart  roiM.frEnd])./numMean);
-            
-            % Frame numbers
-            roiM.frames = [roiM.frStart:dFrame:roiM.frEnd]';
-            
-            % Calc mean image
-            [imMean,imStd] = motionImage(currVidPath,v,'mean roi','none',imInvert,...
-                Body,dSample,roiM.frames,iC);
-            
-            % Store
-            roiM.im    = imMean;
-            roiM.imStd = imStd;
-            
-            % Strings for starting and ending frames
-            frStartStr = ['00000' num2str(roiM.frStart)];
-            frStartStr = frStartStr(end-5:end);
-            frEndStr   = ['00000' num2str(roiM.frEnd)];
-            frEndStr   = frEndStr(end-5:end);
-            
-            % Current filename
-            fName = ['mean_image_' frStartStr '_' frEndStr];
-            
-            % Save data
-            save([mPath filesep fName],'roiM');
-            
-            clear imMean imStd fName frStartStr frEndStr roiM
-        end
-        
-        clear dSample meanDr_fr interval_fr streakDur numMean mPath
-        
+
+    % Make directory
+    if ~isfolder(mPath)
+        mkdir(mPath);
+    else
+        delete([mPath filesep 'mean*mat'])
     end
+    
+    % Loop thru intervals
+    for i = 1:(length(interval_fr)-1)
+        
+        % Update status
+        if echoFrames
+            disp(['INTERVAL ' num2str(i) ' of ' num2str(length(interval_fr)-1)])
+        end
+        
+        % Interval of mean image
+        roiM.frStart = interval_fr(i);
+        roiM.frEnd   = interval_fr(i+1);
+        
+        % Range of frames
+        dFrame = round(range([roiM.frStart  roiM.frEnd])./numMean);
+        
+        % Frame numbers
+        roiM.frames = [roiM.frStart:dFrame:roiM.frEnd]';
+        
+        % Calc mean image
+        [imMean,imStd] = motionImage(currVidPath,v,'mean roi','none',imInvert,...
+            Body,dSample,roiM.frames,iC,echoFrames);
+        
+        % Store
+        roiM.im    = imMean;
+        roiM.imStd = imStd;
+        
+        % Strings for starting and ending frames
+        frStartStr = ['00000' num2str(roiM.frStart)];
+        frStartStr = frStartStr(end-5:end);
+        frEndStr   = ['00000' num2str(roiM.frEnd)];
+        frEndStr   = frEndStr(end-5:end);
+        
+        % Current filename
+        fName = ['mean_image_' frStartStr '_' frEndStr];
+        
+        % Save data
+        save([mPath filesep fName],'roiM');
+        
+        clear imMean imStd fName frStartStr frEndStr roiM
+    end
+    
+    clear dSample meanDr_fr interval_fr streakDur numMean mPath Body 
+end
+
+
+%% Generate videos for DLC ('generate DLC videos')
+
+if strcmp(action,'generate DLC videos')
+    
+    % Downsample
+    dSample = 0;
+    
+    % Load body kinematics (Body)
+    load([currDataPath filesep 'Body.mat'])
+    
+    generateArmMovies(currVidPath,currDataPath,v,imInvert,...
+            Body,iC,echoFrames)
+    
 end
 
 
@@ -371,7 +392,8 @@ end
 % Creates local mask that excludes stationary objects 
 
 if strcmp(action,'reacquire feet completely') || ...
-        ~isfolder([currDataPath filesep 'blobs']) 
+        ~isfolder([currDataPath filesep 'blobs']) || ...
+        ~isfolder([currDataPath filesep 'mask_static'])
       
     % Downsample
     dSample = 0;
@@ -380,20 +402,27 @@ if strcmp(action,'reacquire feet completely') || ...
     mPath = [currDataPath filesep 'mean_images'];
 
     % Load initial conditions (iC)
-    load([currDataPath filesep 'Initial conditions'])
+    if ~exist('iC','var')
+        load([currDataPath filesep 'Initial conditions'])
+    end
+    
+    % Load body kinematics (Body)
+    if ~exist('Body','var')
+        load([currDataPath filesep 'Body.mat'])
+    end
     
     % Path for saving blobs
     savePath = [currDataPath filesep 'blobs'];
     
+   % Streak image duration in frames
+    strakDr_fr = round(streakDur * v.FrameRate);
+    
     % Run blob analysis (generates B, saved in 'blobs' files)
     anaBlobs(currVidPath,v,'G&L props',Body,blobParam,imInvert,...
-        dSample,mPath,visSteps,iC,savePath);   
-end
+        dSample,mPath,visSteps,iC,savePath,echoFrames);   
 
-% Produce data for motion images im imStack
-if strcmp(action,'reacquire feet completely') || ...
-        ~isfolder([currDataPath filesep 'mask_static'])
-    
+    % Produce data for motion images im imStack ------------------
+
     % Path for motion images
     motionPath = [currDataPath filesep 'mask_static'];
     
@@ -407,29 +436,39 @@ if strcmp(action,'reacquire feet completely') || ...
     
     % Produce image stack (Creates series of blur images in mask_static)
     motionImageStack(currVidPath,v,'mask static',Body,blobPath, ...
-                   imInvert,iC,motionPath,strakDr_fr);
-    disp(' ');
-    disp(['Time (min) = ' num2str(toc(tStart)/60)])
- 
+                   imInvert,iC,motionPath,strakDr_fr,echoFrames);
+               
+   % Display output
+   if echoFrames
+       disp(' ');
+       disp(['Time (min) = ' num2str(toc(tStart)/60)])
+   end
+   
+   clear Body dSample mPath motionPath blobPath tStart 
 end
 
 
 %% Foot tracking step 3: Track feet
 
 % Loop thru frames, track feet --------------------------------------------
-if strcmp(action,'reacquire feet completely') || ...
-        strcmp(action,'reacquire feet post-processing') || ...
-        ~isfolder([currDataPath filesep 'foot_blobs'])
+ if strcmp(action,'reacquire feet completely') || ...
+         strcmp(action,'reacquire feet post-processing') || ...
+         ~isfolder([currDataPath filesep 'foot_blobs'])
+          
+    % Load body kinematics (Body)
+    if ~exist('Body','var')
+        load([currDataPath filesep 'Body.mat'])
+    end
     
      % Streak image duration in frames
     strakDr_fr = round(streakDur * v.FrameRate);
     
     % Stores linked feet in B_ft, in 'foot_blobs' folder
     anaBlobs(currVidPath,v,'filter motion',currDataPath,strakDr_fr,Body,blobParam,...
-        visSteps,imInvert);
+        visSteps,imInvert,echoFrames);
     
     % Load initial conditions (iC)
-    load([currDataPath filesep 'Initial conditions'])
+    %load([currDataPath filesep 'Initial conditions'])
 
     % Visualize a bunch of frames to check results
     %surveyData(currVidPath,v,0,'Feet',currDataPath,Body,numVis,iC);
@@ -441,9 +480,19 @@ end
 %% Foot tracking step 4: Post-processing
 
 % Arm number assignment ------------------------------------------
-if strcmp(action,'reacquire feet completely') || ...
+if  strcmp(action,'reacquire feet completely') || ...
         strcmp(action,'reacquire feet post-processing') || ...
-        ~isfile([currDataPath filesep 'post- arms.mat'])
+       ~isfile([currDataPath filesep 'post- arms.mat'])
+    
+    % Load body kinematics (Body)
+    if ~exist('Body','var')
+        load([currDataPath filesep 'Body.mat'])
+    end
+    
+    % Load initial conditions (iC)
+    if ~exist('iC','var')
+        load([currDataPath filesep 'Initial conditions'])
+    end
     
     % Distance threshold for including feet
     dist_thresh = 5;
@@ -465,7 +514,7 @@ if strcmp(action,'reacquire feet completely') || ...
     save([currDataPath filesep 'post- arms'],'-v7.3','B2')
     
     % Add arms and trajectory coordinate systems to body
-    Body = postProcess('Traj body system',Body);
+    Body = postProcess('Traj body system',Body,iC);
 
     % Save
     save([currDataPath filesep 'Body, post.mat'],'-v7.3','Body')
@@ -485,7 +534,12 @@ if strcmp(action,'reacquire feet completely')  || ...
     end
     
     % Load Body
-    load([currDataPath filesep 'Body, post.mat'])
+    if ~exist('Body','var')
+        load([currDataPath filesep 'Body, post.mat'])
+    end
+    
+    % Distance threshold for including feet
+    dist_thresh = 5;
     
     % Update status
     disp('postProcess: Connecting feet across frames . . .')
@@ -502,7 +556,6 @@ if strcmp(action,'reacquire feet completely')  || ...
     % Save data
     save([currDataPath filesep 'post- foot refined'],'F')
     
-
     % Get listing of frame numbers
     [a,frNums] = fileList([currDataPath filesep 'foot_blobs'],'foot_blobs');
     
@@ -514,11 +567,6 @@ if strcmp(action,'reacquire feet completely')  || ...
     
     clear F
 end
-
-% Visualize result
-% surveyData(currVidPath,v,0,'Individual feet',Body,B_ft,numVis);
-
-
 
 
 

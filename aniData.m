@@ -518,31 +518,34 @@ end
 if strcmp(opType,'Centroid & Rotation')
     
     % Loop thru data
-    for i = 1:150%length(frames)
+    for i = 1:length(frames)
         
         % Current whole frame
         im = getFrame(vid_path,v,frames(i),imInvert,'gray',[],iC.r);
         
+        
+        set(f,'Position',[1 1 500 500]);
+        
         % Plot frame
-        subplot(1,2,1)
-        h = imshow(im,'InitialMag','fit');
-        hold on
+%         subplot(1,2,1)
+%         h = imshow(im,'InitialMag','fit');
+%         hold on
         
         % Get current roi
         roi = Body.Rotation.roi(i);
 
         % roi in global frame
-        xG = roi.xPerimG;
-        yG = roi.yPerimG;
+%         xG = roi.xPerimG;
+%         yG = roi.yPerimG;
         
         % Body center
-        xC = Body.xCntr(i);
-        yC = Body.yCntr(i);
-        
-        % Other point (to show rotation)
-        xO = Body.xOther(i);
-        yO = Body.yOther(i);
-        
+%         xC = Body.xCntr(i);
+%         yC = Body.yCntr(i);
+%         
+%         % Other point (to show rotation)
+%         xO = Body.xOther(i);
+%         yO = Body.yOther(i);
+%         
         % Local FOR border
         xL = [roi.xPerimL(1)+offVal roi.xPerimL(2)-offVal ...
             roi.xPerimL(3)-offVal roi.xPerimL(4)+offVal ...
@@ -555,21 +558,25 @@ if strcmp(opType,'Centroid & Rotation')
         imStable =  giveROI('stabilized',im,roi,0,Body.Rotation.tform(i));
         
         % Plot tracking
-        h(1) = line(xG,yG,'Color',[1 0 0 0.2],'LineWidth',3);
-        h(1) = line([xO xC],[yO yC],'Color',[1 0 0 0.2],'LineWidth',3);
+%         h(1) = line(xG,yG,'Color',[1 0 0 0.2],'LineWidth',3);
+%         h(1) = line([xO xC],[yO yC],'Color',[1 0 0 0.2],'LineWidth',3);
         %h(2) = plot(xC,yC,'r+');
         
         % Plot roi
-        subplot(1,2,2)
+%         subplot(1,2,2)
         imshow(imStable,'InitialMag','fit')
         hold on
-        line(xL,yL,'Color',[1 0 0 0.2],'LineWidth',4);
+%         line(xL,yL,'Color',[1 0 0 0.2],'LineWidth',4);
         title(['Frame ' num2str(frames(i))])
+        
+        % Add frame number
+        text(40,40,['Frame ' num2str(frames(i))],'Color','k','FontSize',18);
         
         % Render and write frame
         drawnow
-        imFrame = getframe(f);
+        imFrame = getframe(gca);
         writeVideo(vOut,imFrame);
+        hold off
         
         if imVis
             pause(0.001);

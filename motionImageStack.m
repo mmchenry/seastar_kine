@@ -15,6 +15,7 @@ if strcmp(imType,'mask static')
     iC          = varargin{4};
     motionPath  = varargin{5};
     winLen      = varargin{6};
+    echoFrames  = varargin{7};
     
     imProcess = [];
     %imInvert = 0;
@@ -119,8 +120,10 @@ for i = 1:length(fr_num)
     end
     
     % Update status
-    disp(['      motionImageSeries (' imType ') : ' num2str(i) ' of ' num2str(length(fr_num))])   
-    
+    if echoFrames
+        disp(['      motionImageSeries (' imType ') : ' ...
+              num2str(i) ' of ' num2str(length(fr_num))])   
+    end
 end
 
 

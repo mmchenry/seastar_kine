@@ -49,6 +49,7 @@ elseif strcmp(pMode,'reorganize')
 elseif strcmp(pMode,'Traj body system')
     
     Body        = varargin{1};
+    iC          = varargin{2};
     
     % Duration of walking considered the 'start' (s)
     startDur    = 30;
@@ -98,6 +99,8 @@ cmap = cmap_vals;
 % Maximum size of an image dimension (for downsampling)
 % maxSize = 350;
 
+echoProcess = 0;
+
 
 %% Post-processing after rotataion tracking 
 
@@ -109,7 +112,7 @@ if strcmp(pMode,'post rotation')
     Body.t = Body.frames'./v.FrameRate;
     
     % Define local coordinates for arms
-%     Body.xArmL = iC.xArms' - Body.x(1) + Body.Rotation.roi(1).r;
+%   Body.xArmL = iC.xArms' - Body.x(1) + Body.Rotation.roi(1).r;
 %     Body.yArmL = iC.yArms' - Body.y(1) + Body.Rotation.roi(1).r;
     
     % Store raw Rotation data
@@ -179,9 +182,11 @@ end
 if strcmp(pMode,'package data')
     
     % LOAD DATA FROM B_ft files  ------------------------------------------
-    disp(' ')
-    disp('postProcess(package data)')
-    disp('     Loading B_ft files into B2 structure . . .')
+    if echoProcess
+        disp(' ')
+        disp('postProcess(package data)')
+        disp('     Loading B_ft files into B2 structure . . .')
+    end
     
     % Get listing of blob data files
     a = blobList(bPath,'foot_blobs');
@@ -233,8 +238,9 @@ if strcmp(pMode,'package data')
         end
     end
     
-    disp('                                                  . . . done.')
- 
+    if echoProcess
+        disp('                                                  . . . done.')
+    end
     clear n i a
     
     % Define output
@@ -248,8 +254,10 @@ end
 if strcmp(pMode,'find offset')
     
     % PAIR LOCAL AND GLOBAL COORDS ----------------------------------------
-    disp(' ')
-    disp('postProcess(find offset)')
+    if echoProcess
+        disp(' ')
+        disp('postProcess(find offset)')
+    end
 %     disp('     Loading B_ft files into B2 structure . . .')
     
     % Loop thru frames
@@ -672,9 +680,11 @@ end
 
 if strcmp(pMode,'add arms')
     
-disp(' ')
-disp('postProcess(add arms) . . .')    
- 
+if echoProcess
+    disp(' ')
+    disp('postProcess(add arms) . . .')
+end
+
 % Set up placeholders
 Body.xArmG = nan(length(Body.frames),5);
 Body.yArmG = nan(length(Body.frames),5);
@@ -852,8 +862,10 @@ end
 % Define output
 varargout{1} = Body;   
 varargout{2} = B2; 
-   
-disp('                                                  . . . done.')
+
+if echoProcess
+    disp('                                                  . . . done.')
+end
 end
 
 
@@ -1036,13 +1048,17 @@ if strcmp(pMode,'Traj body system')
     % Cntr points in trajectory FOR
     CntrPtsT = transCoord2d('xax G2L',pStart,pEnd,[Body.xCntr Body.yCntr]);
     
+    % Define local arm coordinates
+    Body.xArmL = iC.xArms' - Body.x(1) + Body.Rotation.roi(1).r;
+    Body.yArmL = iC.yArms' - Body.y(1) + Body.Rotation.roi(1).r;
+    
     Body.xArmT = nan(length(Body.frames),5);
     Body.yArmT = nan(length(Body.frames),5);
     Body.xArmTL = nan(length(Body.frames),5);
     Body.yArmTL = nan(length(Body.frames),5);
     
     % Loop trhu arm points, define in T system
-    for i = 1:size(Body.xArmL,2)
+    for i = 1:size(Body.xArmG,2)
         
         % Arm points in trajectory FOR
         ArmPtsT = transCoord2d('xax G2L',pStart,pEnd,...
@@ -1221,10 +1237,12 @@ if strcmp(pMode,'Remove bad feet')
             % Displacement in direction of trajectory 
             dispT = nF(i).xTL(1) - nF(i).xTL(end);
             
-            disp(['frames = ' num2str(length(nF(i).frames)) ...
-                ', dispT =' num2str(dispT) ...
-                ])
-            ttt=3;
+            if echoProcess
+                disp(['frames = ' num2str(length(nF(i).frames)) ...
+                    ', dispT =' num2str(dispT) ...
+                    ])
+            end
+            
         end
     end
     

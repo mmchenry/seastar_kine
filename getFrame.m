@@ -67,10 +67,10 @@ if isfield(v.UserData,'FileInfo')
 % Read frame from a movie file . . .
 else
   
-    warning off
-    % Adjust items to new 'v'
-    v = VideoReader(vid_path);
-    warning on
+%     warning off
+%     % Adjust items to new 'v'
+%     v = VideoReader(vid_path);
+%     warning on
     
     % Set current time to last frame
     if fr_num/v.FrameRate==v.Duration

@@ -147,7 +147,7 @@ end
 % Set up pool for parallel processing
 [~,comname] = system('hostname');
 if length(comname)>10 && strcmp(comname(1:11),'system76-pc')
-    parpool(4)
+    parpool(4);
 end
 clear comname
 
