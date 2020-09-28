@@ -80,6 +80,8 @@ paths = givePaths;
 % Paths for current sequence
 currDataPath = [paths.data filesep dataPath];
 currVidPath  = [paths.vid filesep vidPath];
+iSep         = find(vidPath==filesep,2,'last');
+currArmPath  = [paths.vid filesep vidPath(1:iSep(1)) 'arm_movies'];
 
 % Check video path 
 if ~isfile(currVidPath)
@@ -97,6 +99,8 @@ end
 %     % Adjust items to new 'v'
 %     v = VideoReader(currVidPath);
 %     warning on
+
+clear iSep
 
 
 %% Select duration of analysis
@@ -215,7 +219,7 @@ if datenum(a_iC.date)<cutDate
     save([currDataPath filesep 'Initial conditions'],'iC')
 end
 
-clear cutDate a_iC
+clear a_iC
 
 
 %% Track centroid coordinates
@@ -287,10 +291,25 @@ end
 
 %% Create series of mean images in local FOR
 
-if strcmp(action,'reacquire feet completely') || ...
-       ~isfolder([currDataPath filesep 'mean_images']) 
-       
+if  isfolder([currDataPath filesep 'mean_images']) && ...
+    ~isempty([currDataPath filesep 'mean_images' filesep '*.mat'])
     
+    % Grab the mean image data files
+    aMean = dir([currDataPath filesep 'mean_images' filesep '*.mat']);
+    
+    % If mean data is old
+    if datenum(aMean(1).date)<cutDate
+        runMean = 1;
+    else
+        runMean = 0;
+    end 
+else
+    runMean = 0;
+end
+    
+
+if strcmp(action,'reacquire feet completely') || runMean
+       
     % Downsample
     dSample = 0;
     
@@ -383,7 +402,7 @@ if strcmp(action,'generate DLC videos')
     % Load body kinematics (Body)
     load([currDataPath filesep 'Body.mat'])
     
-    generateArmMovies(currVidPath,currDataPath,v,imInvert,...
+    generateArmMovies(currVidPath,currDataPath,currArmPath,v,imInvert,...
             Body,iC,echoFrames)
     
 end

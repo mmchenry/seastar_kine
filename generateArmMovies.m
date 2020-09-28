@@ -1,4 +1,4 @@
-function generateArmMovies(vid_path,data_path,v,imInvert,varargin)
+function generateArmMovies(vid_path,data_path,arm_path,v,imInvert,varargin)
 % Exports movies of individual arms of sea stars that can be used for
 % tracking individual tube feet
 
@@ -29,7 +29,8 @@ mPath = [data_path filesep 'mean_images'];
 
 % Directory for arm videos
 iLast     = find(vid_path==filesep,1,'last');
-armDir    = [vid_path(1:(iLast-1)) filesep v.Name(1:(end-4)) '_arms'];
+%armDir    = [vid_path(1:(iLast-1)) filesep v.Name(1:(end-4)) '_arms'];
+armDir = [arm_path filesep v.Name(1:(end-4))];
 
 % Make folder, if not there
 if ~isfolder(armDir)
