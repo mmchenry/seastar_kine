@@ -37,7 +37,6 @@ if ~isfolder(armDir)
 end
 
 % Loop thru arms
-%TODO: Set this up for 5 arms
 for i = 1:5
     
     % File name of output videos
@@ -47,7 +46,8 @@ for i = 1:5
     outMovie{i}.fPath = [armDir filesep outMovie{i}.fName];
     
     % Set up output video file
-    outMovie{i}.v = VideoWriter([outMovie{i}.fPath '.avi'],'Motion JPEG AVI');
+    %outMovie{i}.v = VideoWriter([outMovie{i}.fPath '.avi'],'Motion JPEG AVI');
+    outMovie{i}.v = VideoWriter([outMovie{i}.fPath '.mp4'],'MPEG-4');
     outMovie{i}.v.Quality = 90;
     
     % Initialize video for writing
@@ -59,24 +59,20 @@ clear iLast armDir
 
 %% Add arms in global FOR
 
-
 % Add arm points
 %Body = addArms(Body,iC);
 
 
-
-
-
 %% Perform export for each frame
+
+% Get mean image for current frame
+imM = getMeanImage(mPath);
 
 % Loop thru frames
 for i = 1:length(frames)
     
     % Current frame
     cFrame = frames(i);
-    
-    % Get mean image for current frame
-    [imRoiMean,imRoiStd] = getMeanImage(cFrame,mPath);
     
     % Read current image
     im = getFrame(vid_path,v,cFrame,imInvert,'gray',[],iC.r);
@@ -87,9 +83,14 @@ for i = 1:length(frames)
     % Stabilized image
     imStable =  giveROI('stabilized',im,roi,0,S.tform(i));
     
+    % Define current mean image
+    iMean = find(imM.frStart<=cFrame & imM.frEnd>=cFrame);
+    imRoiMean = imM.mean{iMean};
+    
     % Brighten mean image
     imRoiMean = imadjust(imRoiMean,...
-                         [min(imRoiMean(:))/255; max(imRoiMean(:))/255],[50/255; 1]);
+                         double([min(imRoiMean(:))/255; ...
+                                 max(imRoiMean(:))/255]),[50/255; 1]);
     
     % Subtract mean image, adjust contrast
     imStable = adapthisteq(imsubtract(imRoiMean,imStable));
@@ -166,7 +167,7 @@ end
 
 
 
-function [imRoiMean,imRoiStd] = getMeanImage(cFrame,mPath)
+function imM = getMeanImage(mPath)
 
 % Listing of mean images
 a = dir([mPath filesep 'mean*']);
@@ -177,27 +178,19 @@ for i = 1:length(a)
     iSep = find(a(i).name=='_');
     
     % Get start frame
-    frStart = str2num(a(i).name((iSep(2)+1):(iSep(3)-1)));
+    imM.frStart(i) = str2num(a(i).name((iSep(2)+1):(iSep(3)-1)));
     
     % Get end frame
-    frEnd = str2num(a(i).name((iSep(3)+1):(end-4)));
+    imM.frEnd(i) = str2num(a(i).name((iSep(3)+1):(end-4)));
     
-    if cFrame>=frStart && cFrame<=frEnd
-        % Load imean image data
-        load([mPath filesep a(i).name])
-        
-        % Define 
-        imRoiMean = roiM.im;
-        imRoiStd  = roiM.imStd;
-
-        break
-    end
+    % Load imean image data
+    load([mPath filesep a(i).name])
+    
+    % Store images
+    imM.mean{i} = roiM.im;
+    imM.std{i}  = roiM.imStd;
 end
 
-% Check for definition
-if ~exist('imRoiMean','var')
-    error(['No match for cFrame = ' num2str(cFrame)])
-end
 
 
 

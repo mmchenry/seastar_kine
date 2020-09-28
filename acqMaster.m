@@ -69,6 +69,9 @@ visSteps = 0;
 % Maximum image size of ROI analyzed for rotation
 maxSize = 350;
 
+% Date: Sept. 9th
+cutDate = 738043.3373021;
+
 
 %% Manage paths 
    
@@ -194,9 +197,6 @@ end
 %% Expand radius of ROI
 % Expand roi by 5% for sequences of iC that were created before Sept. 9th
 
-% Date: Sept. 9th
-cutDate = 738043.3373021;
-
 % Path to iC
 a_iC = dir([currDataPath filesep 'Initial conditions.mat']);
 
@@ -288,7 +288,8 @@ end
 %% Create series of mean images in local FOR
 
 if strcmp(action,'reacquire feet completely') || ...
-       ~isfolder([currDataPath filesep 'mean_images'])
+       ~isfolder([currDataPath filesep 'mean_images']) 
+       
     
     % Downsample
     dSample = 0;

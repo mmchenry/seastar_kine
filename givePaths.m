@@ -16,14 +16,16 @@ elseif ~isempty(dir(['/Users/mmchenry/Documents/Matlab code']))
 
     % Path to root dir of video (CSULB project, external drive)
 %     vidPath = '/Users/mmchenry/Documents/Video/Chip sea stars/prelim video';
-    paths.vid = '/Users/mmchenry/Documents/Video/Chip sea stars/ControlWeightedFloats';
+%     paths.vid = '/Users/mmchenry/Documents/Video/Chip sea stars/ControlWeightedFloats';
+paths.vid = '';
+paths.data = '';
     
     % Location of video frames
     %vidFramePath = '/Users/mmchenry/Documents/Video/Chip sea stars/prelim video/video frames';
     
     % Path to root of data
 %     paths.data = '/Users/mmchenry/Documents/Projects/Chip sea stars/prelim data';
-    paths.data = '/Users/mmchenry/Documents/Projects/Chip sea stars/ControlWeightedFloats';
+%     paths.data = '/Users/mmchenry/Documents/Projects/Chip sea stars/ControlWeightedFloats';
 
 elseif isfolder('/flux/SeaStars/data/ControlWeightsFloats')
     
