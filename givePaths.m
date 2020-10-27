@@ -2,10 +2,15 @@ function paths = givePaths
 % Returns a structure of paths for running code
 
 % Lambda computers
-if ~isempty(dir('/flux/SeaStars'))
+if isfolder('/flux/SeaStars')
     paths.vid  = '/flux/SeaStars/video/ControlWeightsFloats';
     paths.data = '/flux/SeaStars/data/ControlWeightsFloats';
 
+% Mac directly conected to flux
+elseif ismac && isfolder('/Volumes/SeaStars/video/ControlWeightsFloats/control/bottom')
+    paths.vid     = '/Volumes/SeaStars/video/ControlWeightsFloats';
+    paths.data    = '/Volumes/SeaStars/data/ControlWeightsFloats';
+    
 % Matt's Linux box    
 elseif ~isempty(dir('/home/mmchenry/Documents/data/Chip_sea_stars/ControlWeightedFloats'))
     paths.vid = '/home/mmchenry/Documents/Video/Chip_sea_stars/ControlWeightedFloats';

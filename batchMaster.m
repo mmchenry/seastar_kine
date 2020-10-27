@@ -6,7 +6,7 @@ function batchMaster
 %% Execution control
 
 % Run (or re-run) centroid tracking
-do.centroid = 1;
+do.centroid = 0;
 
 % Run acquisition of kinematics from bottom view
 do.acqBottom = 0;
@@ -24,6 +24,9 @@ do.visCentRot = 0;
 
 % Whether to report progress of individual frames
 echoFrames = 0;
+
+% Generate arm movies
+do.makeArmMovies = 1;
 
 
 %% Manage paths and parameters
@@ -396,5 +399,25 @@ end
 end
 
 
+%% Generate arm movies
+
+if do.makeArmMovies
+    
+    % Loop thru sequences
+    for i = 1:length(seq)
+        
+        % Current directories
+        dataPath = [seq(i).dirName filesep ...
+            'bottom' filesep seq(i).fName_bot];
+        vidPath  = [seq(i).dirName filesep ...
+            'bottom' filesep seq(i).fName_bot '.' seq(i).ext];
+        
+        % Visualize a bunch of frames to check results
+        acqMaster(dataPath,vidPath,'generate DLC videos',0);
+        
+        disp(['makeArmMovies : Finished ' num2str(i) ' of ' num2str(length(seq)) ' :'])
+        disp(['      ' vidPath])
+    end
+end
 
 
