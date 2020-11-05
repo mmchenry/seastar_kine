@@ -292,7 +292,7 @@ end
 %% Create series of mean images in local FOR
 
 if  isfolder([currDataPath filesep 'mean_images']) && ...
-    ~isempty([currDataPath filesep 'mean_images' filesep '*.mat'])
+    isfile([currDataPath filesep 'mean_images' filesep '*.mat'])
     
     % Grab the mean image data files
     aMean = dir([currDataPath filesep 'mean_images' filesep '*.mat']);
