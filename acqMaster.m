@@ -14,7 +14,8 @@ if ~strcmp(action,'reacquire centroid') && ...
    ~strcmp(action,'reacquire rotation') && ...
    ~strcmp(action,'reacquire feet completely') && ...
    ~strcmp(action,'reacquire feet post-processing') && ...
-   ~strcmp(action,'generate DLC videos') 
+   ~strcmp(action,'generate DLC videos') && ...
+   ~strcmp(action,'generate moving mask') 
 
     error(['Do not recognize ' action])
 end
@@ -408,6 +409,7 @@ if strcmp(action,'generate DLC videos')
 end
 
 
+
 %% Foot tracking step 2: mask for feet applied to global FOR
 % Creates local mask that excludes stationary objects 
 
@@ -588,6 +590,21 @@ if strcmp(action,'reacquire feet completely')  || ...
     clear F
 end
 
+
+%% Generate movie with moving mask for DLC ('generate moving mask')
+
+if strcmp(action,'generate moving mask')
+    
+    % Downsample
+    dSample = 0;
+    
+    % Load body kinematics (Body)
+    load([currDataPath filesep 'Body, post.mat'])
+    
+    generateMaskMovie(currVidPath,currDataPath,v,imInvert,...
+            Body,iC,echoFrames)
+    
+end
 
 
 
