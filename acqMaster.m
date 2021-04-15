@@ -15,7 +15,9 @@ if ~strcmp(action,'reacquire centroid') && ...
    ~strcmp(action,'reacquire feet completely') && ...
    ~strcmp(action,'reacquire feet post-processing') && ...
    ~strcmp(action,'generate DLC videos') && ...
-   ~strcmp(action,'generate moving mask') 
+   ~strcmp(action,'generate moving mask') && ...
+   ~strcmp(action,'manual foot tracking') 
+
 
     error(['Do not recognize ' action])
 end
@@ -390,6 +392,36 @@ if strcmp(action,'reacquire feet completely') || runMean
     end
     
     clear dSample meanDr_fr interval_fr streakDur numMean mPath Body 
+end
+
+
+%% Manually track the feet
+
+if strcmp(action,'manual foot tracking')
+    
+    % Downsample
+    dSample = 0;
+    
+    % Load body kinematics (Body)
+    load([currDataPath filesep 'Body.mat'])
+
+    % Diameter of the ROI
+    roi_diam = 1.5*max([range(Body.xArmL) range(Body.yArmL)]);
+    
+    % marker color
+    mClr = [0 1 0];
+    
+    % Path for saving data
+    savePath = [dataPath filesep 'ManualFootData.mat'];
+    
+    if ~exist(savePath,'file')
+        H = [];
+    else
+        load(savePath)
+    end
+    
+    % Run acqusition GUI
+    videoGUI(vidPath,v,Body.frames,0,'simple',roi_diam,mClr,H,dataPath);
 end
 
 
