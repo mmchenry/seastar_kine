@@ -92,8 +92,13 @@ if ~isfile(currVidPath)
 end
 
 % Check data path 
+%if ~isfolder(currDataPath)
+    %error(['Data folder does not exist at ' currDataPath]);
+%end
+%Check data path and make data path if it is not there
 if ~isfolder(currDataPath)
-    error(['Data folder does not exist at ' currDataPath]);
+    warning(['Data folder does not exits at ' currDataPath 'making new directory']);
+    mkdir([currDataPath]);
 end
 
 % Load video info (v)
@@ -235,7 +240,10 @@ if strcmp(action,'reacquire centroid') || ...
     disp('')
 
     % Frames
+    v.UserData.FirstFrame = clipInfo.startFrame;
+    v.UserData.LastFrame = clipInfo.endFrame;
     frames = v.UserData.FirstFrame:v.UserData.LastFrame;
+    
     
     % Region of interest for first frame
     roi0 = giveROI('define','circular',numroipts,iC.r,iC.x,iC.y);
@@ -404,6 +412,10 @@ if strcmp(action,'manual foot tracking')
     
     % Load body kinematics (Body)
     load([currDataPath filesep 'Body.mat'])
+    
+    % % Define local coordinates for arms 
+    Body.xArmL = iC.xArms' - Body.x(1) + Body.Rotation.roi(1).r;
+    Body.yArmL = iC.yArms' - Body.y(1) + Body.Rotation.roi(1).r;
 
     % Diameter of the ROI
     roi_diam = 1.5*max([range(Body.xArmL) range(Body.yArmL)]);
@@ -445,9 +457,9 @@ end
 %% Foot tracking step 2: mask for feet applied to global FOR
 % Creates local mask that excludes stationary objects 
 
-if strcmp(action,'reacquire feet completely') || ...
-        ~isfolder([currDataPath filesep 'blobs']) || ...
-        ~isfolder([currDataPath filesep 'mask_static'])
+if strcmp(action,'reacquire feet completely') 
+%         ~isfolder([currDataPath filesep 'blobs']) || ...
+%         ~isfolder([currDataPath filesep 'mask_static'])
       
     % Downsample
     dSample = 0;
@@ -506,8 +518,8 @@ end
 
 % Loop thru frames, track feet --------------------------------------------
  if strcmp(action,'reacquire feet completely') || ...
-         strcmp(action,'reacquire feet post-processing') || ...
-         ~isfolder([currDataPath filesep 'foot_blobs'])
+         strcmp(action,'reacquire feet post-processing')
+%          ~isfolder([currDataPath filesep 'foot_blobs'])
           
     % Load body kinematics (Body)
     if ~exist('Body','var')
@@ -535,8 +547,8 @@ end
 
 % Arm number assignment ------------------------------------------
 if  strcmp(action,'reacquire feet completely') || ...
-        strcmp(action,'reacquire feet post-processing') || ...
-       ~isfile([currDataPath filesep 'post- arms.mat'])
+        strcmp(action,'reacquire feet post-processing')
+%        ~isfile([currDataPath filesep 'post- arms.mat'])
     
     % Load body kinematics (Body)
     if ~exist('Body','var')
@@ -579,8 +591,8 @@ end
 
 % Connect blobs across frames --------------
 if strcmp(action,'reacquire feet completely')  || ...
-        strcmp(action,'reacquire feet post-processing') || ...
-        ~isfile([currDataPath filesep 'post- foot refined.mat'])
+        strcmp(action,'reacquire feet post-processing')
+%         ~isfile([currDataPath filesep 'post- foot refined.mat'])
     
     % Load B2
     if ~exist('B2','var')
