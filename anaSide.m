@@ -6,88 +6,100 @@ function anaSide
 % Import DLC data again
 do.reImportData = 0;
 
+% Visualize events for all sequences
+do.visEvents = 0;
+
+% Visualize details of each sequence
+do.visSeqs = 0;
+
+% Plot summary boxpolot data
+do.summaryPlots = 1;
+
 
 %% Parameters
 
 % Get root paths
 paths = givePaths;
 
-% Extension for viode file names
+% Extension for video file names
 extVid = 'MOV';
-
-% Frame rate 
-%TODO: Read this from the spreadsheet
-fps = 24;
-
-% Get list of all side csv files
-dlc_path = [paths.data filesep 'data' filesep 'side_view' filesep '*.csv'];
-dlc_files = dir(dlc_path);
-
-% Check
-if isempty(dlc_files)
-    error(['No DLC csv files found in ' dlc_path]);
-end
 
 
 %% Read data from catalog spreadsheet
 
-% Throw error if spreadsheet not in place
-if exist([paths.data filesep 'Weights_experiments.xlsx'],'file')==0
-    error(['Missing spreadsheet: ' paths.data filesep ...
-           'Weights_experiments.xlsx'])
-end
-
-% Read table
-T = readtable([paths.data filesep 'Weights_experiments.xlsx']);
-
-j = 1;seq = [];
-
-% Step thru rows
-for i = 1:length(T.date)
+if do.reImportData
     
-    % If using video at all and currently analyzing
-%     if T.use_video(i)==1 && T.ana_video(i)==1 && T.complete_video(i)==0
-    if T.use_video(i)==1 
-       
-        seq(j).dateNum        = datenum(T.date(i));
-        seq(j).ext            = extVid;
-        seq(j).fName_side     = [T.side_filename{i}];
-        seq(j).fName_bot      = [T.bottom_filename{i}];
-        seq(j).fName_calSide  = [T.side_cal_filename{i}];
-        seq(j).fName_calBot   = [T.bot_cal_filename{i}];
-        seq(j).expType        = T.exp_type{i};
-        seq(j).indiv          = T.indiv_num(i);
-        seq(j).addMass        = T.added_mass(i);
-        seq(j).floatNum       = T.float_num(i);
-        seq(j).bodyMass       = T.body_mass(i);
-        seq(j).calConst       = T.cal(i);
+    % Get list of all side csv files
+    dlc_path = [paths.data filesep 'data' filesep 'side_view' filesep '*.csv'];
+    dlc_files = dir(dlc_path);
+    
+    % Check for dlc files
+    if isempty(dlc_files)
+        error(['No DLC csv files found in ' dlc_path]);
+    end
+    
+    % Throw error if spreadsheet not in place
+    if exist([paths.data filesep 'Weights_experiments.xlsx'],'file')==0
+        error(['Missing spreadsheet: ' paths.data filesep ...
+            'Weights_experiments.xlsx'])
+    end
+    
+    % Read table
+    T = readtable([paths.data filesep 'Weights_experiments.xlsx']);
+    
+    j = 1;seq = [];
+    
+    % Step thru rows
+    for i = 1:length(T.date)
         
-        % Check experiment type
-        if strcmp(seq(j).expType,'c')
-            seq(j).dirName = 'control';
-        elseif strcmp(seq(j).expType,'w')
-            seq(j).dirName = 'weights';
-        elseif strcmp(seq(j).expType,'f')
-            seq(j).dirName = 'floats';
-        else
-            error(['Do not recognize experiment type: ' seq(i).expType])
+        % If using video at all and currently analyzing
+        %     if T.use_video(i)==1 && T.ana_video(i)==1 && T.complete_video(i)==0
+        if T.use_video(i)==1
+            
+            seq(j).dateNum        = datenum(T.date(i));
+            seq(j).ext            = extVid;
+            seq(j).fName_side     = [T.side_filename{i}];
+            seq(j).fName_bot      = [T.bottom_filename{i}];
+            seq(j).fName_calSide  = [T.side_cal_filename{i}];
+            seq(j).fName_calBot   = [T.bot_cal_filename{i}];
+            seq(j).expType        = T.exp_type{i};
+            seq(j).indiv          = T.indiv_num(i);
+            seq(j).addMass        = T.added_mass(i);
+            seq(j).floatNum       = T.float_num(i);
+            seq(j).bodyMass       = T.body_mass(i);
+            seq(j).calConst       = T.cal_side(i);
+            seq(i).fps            = T.frame_rate_side(i);
+            seq(i).SW_percent     = T.percent_sw(i);
+            
+            % Check experiment type
+            if strcmp(seq(j).expType,'c')
+                seq(j).dirName = 'control';
+            elseif strcmp(seq(j).expType,'w')
+                seq(j).dirName = 'weights';
+            elseif strcmp(seq(j).expType,'f')
+                seq(j).dirName = 'floats';
+            else
+                error(['Do not recognize experiment type: ' seq(i).expType])
+            end
+            
+            j = j + 1;
         end
-        
-        j = j + 1;
-    end 
+    end
+    
+    % Check for seq
+    if isempty(seq)
+        error('No sequence data found from spreadsheet');
+    end
+    
+    clear j T
 end
-
-% Check for seq
-if isempty(seq)
-    error('No sequence data found from spreadsheet');
-end
-
-clear j T
 
 
 %% Import data
 
-if do.reImportData || ~isfile([paths.data filesep 'SideDataPooled.mat'])
+if do.reImportData || ...
+    (~isfile([paths.data filesep 'SideDataPooled.mat']) && ...
+     ~isfile([paths.data filesep 'SideDataPooled_events.mat']))
     
     iSeq = 1;
     
@@ -120,7 +132,7 @@ if do.reImportData || ~isfile([paths.data filesep 'SideDataPooled.mat'])
                        dlc_files(j).name],'HeaderLines',2);
         
         % Add time vector
-        T.t = [0:(1/fps):((length(T.x)-1)/fps)]';
+        T.t = [0:(1/seq(i).fps):((length(T.x)-1)/seq(i).fps)]';
         
         % Assume that y-value of the
         T.y = T.y-min(T.y);
@@ -151,6 +163,8 @@ if do.reImportData || ~isfile([paths.data filesep 'SideDataPooled.mat'])
             S(iSeq).indiv      = cSeq.indiv;
             S(iSeq).bodyMass   = cSeq.bodyMass;
             S(iSeq).calConst   = cSeq.calConst;
+            S(iSeq).SW_percent = cSeq.SW_percent;
+            S(iSeq).fps        = cSeq.fps;
             
             % Copy over coordinates
             S(iSeq).t       = T.t;
@@ -195,28 +209,14 @@ end
 
 %% Event finding
 
-if 1 %do.reImportData || ~isfile([paths.data filesep 'SideDataPooled.mat'])
+if do.reImportData || ~isfile([paths.data filesep 'SideDataPooled_events.mat'])
     
     % Load 'S' structure
     load([paths.data filesep 'SideDataPooled.mat'])
     
-    % Figure parameters
-    makeEventPlots = 1;
-    makeSeqPlots   = 0;
-    nPanels        = 6;
-    iPanel         = 1;
-    
     % Acceptable deviation from bounce amplitude and period
     yThresh  = 0.8;
     tThresh  = 0.8;
-    
-    if makeEventPlots
-        f = figure;
-    end
-    
-    if makeSeqPlots
-        f2 = figure;
-    end
     
     % Loop trhu sequences
     for i = 1:length(S)
@@ -253,13 +253,10 @@ if 1 %do.reImportData || ~isfile([paths.data filesep 'SideDataPooled.mat'])
             end
             
             if sum(idx)>3
-                
-                % Index for second half of power stroke
-                %             idx2 = idx;
-                %             idx2(1:round(length(idx2)/2)) = 0;
-                
+                % Range in y over bounce
                 yRange(j,1) = max(S(i).yRaw(idx)) - min(S(i).yRaw(idx));
                 
+                % Mean speed over bounce
                 meanSpd(j,1) = nanmean(xSpd(idx));
             else
                 yRange(j,1) = 0;
@@ -285,152 +282,281 @@ if 1 %do.reImportData || ~isfile([paths.data filesep 'SideDataPooled.mat'])
         S(i).propBounce         = sum(sPeriod(~iCrawl)) / range(S(i).t);
         S(i).meanBouncePeriod   = mean(sPeriod(~iCrawl));
         
+        clear tEvent yEvent xS yS iCrawl idx yRange meanSpd xSpd sPeriod
+    end
+    
+    % Save
+    save([paths.data filesep 'SideDataPooled_events'],'S');   
+    
+end
+
+
+%% Visualize event finding
+
+if do.visEvents
+    
+    if ~exist('S','var')
+        % Load 'S' structure
+        load([paths.data filesep 'SideDataPooled_events.mat'])
+    end
+    
+    % Figure parameters
+    nPanels        = 6;
+    iPanel         = 1;
+    
+    % Acceptable deviation from bounce amplitude and period
+    yThresh  = 0.8;
+    tThresh  = 0.8;
+    
+    if makeEventPlots
+        f = figure;
+    end
+    
+    % Loop trhu sequences
+    for i = 1:length(S)
         
-        % Plots
-        if makeSeqPlots
-            figure(f2)
-            subplot(3,1,1)
-            plot(S(i).t,S(i).yRaw .* S(i).calConst); hold on
-            plot(S(i).t,yS,'k-');
-            plot(S(i).tLand(~iCrawl),S(i).yLand(~iCrawl),'ro')
-            plot(S(i).tLand(iCrawl),S(i).yLand(iCrawl),'r+')
-            yL = ylim;
-            for j = 1:length(S(i).tLand)
-                plot(S(i).tLand(j).*[1 1],yL,'k-')
-            end
-            hold off
-            xlabel('t (s)'); ylabel('Y')
-            
-            subplot(3,1,2)
-            plot(S(i).t,S(i).xRaw.* S(i).calConst)
-            hold on
-            xlabel('t (s)'); ylabel('X (cm)')
-            yL = ylim;
-            for j = 1:length(S(i).tLand)
-                plot(S(i).tLand(j).*[1 1],yL,'k-')
-            end
-            hold off
-            
-            subplot(3,1,3)
-            plot(S(i).t,S(i).xSpd)
-            xlabel('t (s)'); ylabel('x-spd (cm)')
-            hold on
-            yL = ylim;
-            for j = 1:length(S(i).tLand)
-                plot(S(i).tLand(j).*[1 1],yL,'k-')
-            end
-            hold off
-            
-            title(['ExpType = ' S(i).expType ', ' S(i).fName_side])
-        end
+        figure(f)
+        subplot(nPanels,1,iPanel)
+        plot(S(i).t,S(i).yRaw .* S(i).calConst); hold on
+        plot(S(i).t,S(i).yS,'k-');
+        plot(S(i).tLand(~S(i).iCrawl),S(i).yLand(~S(i).iCrawl),'ro')
+        plot(S(i).tLand(S(i).iCrawl),S(i).yLand(S(i).iCrawl),'r+')
+        hold off
+        xlabel('t (s)'); ylabel('Y')
+        grid on
+        title(['ExpType = ' S(i).expType ', ' S(i).fName_side])
         
+        iPanel = iPanel + 1;
         
-        if makeEventPlots
-            figure(f)
-            subplot(nPanels,1,iPanel)
-            plot(S(i).t,S(i).yRaw .* S(i).calConst); hold on
-            plot(S(i).t,yS,'k-');
-            plot(S(i).tLand(~iCrawl),S(i).yLand(~iCrawl),'ro')
-            plot(S(i).tLand(iCrawl),S(i).yLand(iCrawl),'r+')
-            hold off
-            xlabel('t (s)'); ylabel('Y')
-            grid on
-            title(['ExpType = ' S(i).expType ', ' S(i).fName_side])
-            
-            iPanel = iPanel + 1;
-            
-            if iPanel>nPanels && i<length(S)
-                iPanel = 1;
-                f = figure;
-            end
+        if iPanel>nPanels && i<length(S)
+            iPanel = 1;
+            f = figure;
         end
         
         clear tEvent yEvent xS yS iCrawl idx yRange meanSpd xSpd sPeriod
     end
-    % Save
-    save([paths.data filesep 'SideDataPooled'],'S');
-    
-else
-    
-    % Load 'S' structure
-    load([paths.data filesep 'SideDataPooled.mat'])
-    
 end
 
 
-%% Summary box plots
+%% Visualize details on each sequence
 
-
-bouncePeriod = []; 
-propBounce   = []; 
-expType      = [];
-meanSpd      = [];
-bounceSpd    = [];
-crawlSpd     = [];
-
-for i = 1:length(S)
+if do.visSeqs
     
-    if S(i).expType=='w' && S(i).addMass==2.09
-        expType = [expType; 1];
-        
-    elseif S(i).expType=='w' && S(i).addMass==1.04
-        expType = [expType; 2];
-    
-    elseif S(i).expType=='c' 
-        expType = [expType; 3];
-        
-    elseif S(i).expType=='f' && S(i).floatNum==1
-        expType = [expType; 4];
-        
-    elseif S(i).expType=='f' && S(i).floatNum==2
-        expType = [expType; 5];
-        
-    else
-        error('Do not recognize experiment type');
+    if ~exist('S','var')
+        % Load 'S' structure
+        load([paths.data filesep 'SideDataPooled_events.mat'])
     end
-        
 
-    meanSpd         = [meanSpd;       mean(S(i).xSpd)];
-    bounceSpd       = [bounceSpd;     S(i).bounceSpd];
-    crawlSpd        = [crawlSpd;      S(i).crawlSpd];
+    % Acceptable deviation from bounce amplitude and period
+    yThresh  = 0.8;
+    tThresh  = 0.8;
     
-    bouncePeriod    = [bouncePeriod;  S(i).meanBouncePeriod];
-    propBounce      = [propBounce;    S(i).propBounce];
-
+    f2 = figure;
+    
+    % Loop trhu sequences
+    for i = 1:length(S)
+        
+        % Plots
+        figure(f2)
+        subplot(3,1,1)
+        plot(S(i).t,S(i).yRaw .* S(i).calConst); hold on
+        plot(S(i).t,S(i).yS,'k-');
+        plot(S(i).tLand(~S(i).iCrawl),S(i).yLand(~S(i).iCrawl),'ro')
+        plot(S(i).tLand(S(i).iCrawl),S(i).yLand(S(i).iCrawl),'r+')
+        yL = ylim;
+        for j = 1:length(S(i).tLand)
+            plot(S(i).tLand(j).*[1 1],yL,'k-')
+        end
+        hold off
+        xlabel('t (s)'); ylabel('Y')
+        
+        subplot(3,1,2)
+        plot(S(i).t,S(i).xRaw.* S(i).calConst)
+        hold on
+        xlabel('t (s)'); ylabel('X (cm)')
+        yL = ylim;
+        for j = 1:length(S(i).tLand)
+            plot(S(i).tLand(j).*[1 1],yL,'k-')
+        end
+        hold off
+        
+        subplot(3,1,3)
+        plot(S(i).t,S(i).xSpd)
+        xlabel('t (s)'); ylabel('x-spd (cm)')
+        hold on
+        yL = ylim;
+        for j = 1:length(S(i).tLand)
+            plot(S(i).tLand(j).*[1 1],yL,'k-')
+        end
+        hold off
+        
+        title(['ExpType = ' S(i).expType ', ' S(i).fName_side])
+        
+        
+        clear tEvent yEvent xS yS iCrawl idx yRange meanSpd xSpd sPeriod
+    end
 end
 
 
-figure;
+%% Plots of summary data
 
-subplot(1,3,1)
-boxplot(meanSpd,expType)
-ylabel('Mean speed (cm/s)')
-set(gca,'TickDir','out')
-ylim([0 3e-3])
+if do.summaryPlots
+    
+    if ~exist('S','var')
+        % Load 'S' structure
+        load([paths.data filesep 'SideDataPooled_events.mat'])
+    end
+    
+    bouncePeriod = [];
+    propBounce   = [];
+    expType      = [];
+    meanSpd      = [];
+    bounceSpd    = [];
+    crawlSpd     = [];
+    SW           = [];
+    
+    for i = 1:length(S)
+        
+        % Boxplot categories
+        if S(i).expType=='w' && S(i).addMass==2.09
+            expType = [expType; 5];
+            
+        elseif S(i).expType=='w' && S(i).addMass==1.04
+            expType = [expType; 4];
+            
+        elseif S(i).expType=='c'
+            expType = [expType; 3];
+            
+        elseif S(i).expType=='f' && S(i).floatNum==1
+            expType = [expType; 2];
+            
+        elseif S(i).expType=='f' && S(i).floatNum==2
+            expType = [expType; 1];
+            
+        else
+            error('Do not recognize experiment type');
+        end
+        
+        % Store submerged weight for scatterplot
+         SW =  [SW; (S(i).SW_percent./100) * (S(i).bodyMass./1000.*9.81)];
+        %TODO: This will probably need some adjustment when we run the
+        %analysis for real
+         
+         
+        % Store measurements
+        meanSpd         = [meanSpd;       mean(S(i).xSpd)];
+        bounceSpd       = [bounceSpd;     S(i).bounceSpd];
+        crawlSpd        = [crawlSpd;      S(i).crawlSpd];
+        
+        bouncePeriod    = [bouncePeriod;  S(i).meanBouncePeriod];
+        propBounce      = [propBounce;    S(i).propBounce];
+        
+    end
+    
+    % Box plots
+    figure;
+    
+    subplot(1,3,1)
+    boxplot(meanSpd./10,expType)
+    ylabel('Mean speed (cm/s)')
+    set(gca,'TickDir','out')
+     ylim([20 140])
+     axis square
+    
+    subplot(1,3,2)
+    boxplot(bounceSpd./10,expType)
+    ylabel('Bounce speed (cm/s)')
+    set(gca,'TickDir','out')
+     ylim([20 140])
+     axis square
+    
+    subplot(1,3,3)
+    boxplot(crawlSpd./10,expType)
+    ylabel('Crawl speed (cm/s)')
+    set(gca,'TickDir','out')
+     ylim([20 140])
+     axis square
+    
+    
+    figure;
+    subplot(1,2,2)
+    boxplot(bouncePeriod,expType)
+    ylabel('Bounce Period')
+    set(gca,'TickDir','out')
+    axis square
+    
+    subplot(1,2,1)
+    boxplot(propBounce,expType)
+    ylabel('Proportion of time bouncing')
+    set(gca,'TickDir','out')
+    axis square
+    
+    
+    % Scatterplots
+    
+    mSize = 75; % Marker size
+    
+    figure
 
-subplot(1,3,2)
-boxplot(bounceSpd,expType)
-ylabel('Bounce speed (cm/s)')
-set(gca,'TickDir','out')
-ylim([0 3e-3])
+    % Linear fit to bpunce period data
+    cMean     = polyfit(SW,meanSpd./10,1);
+    cBounce   = polyfit(SW,bounceSpd./10,1);
+    idx       = ~isnan(crawlSpd);
+    cCrawl    = polyfit(SW(idx),crawlSpd(idx)./10,1);
+    
+    subplot(1,3,1)
+    h = scatter(SW,meanSpd./10,mSize, 'k','filled');
+    hold on
+    plot(SW,polyval(cMean,SW),'k-')
+    hold off
+    axis square
+    xlabel('Submerged weight (N)')
+    ylabel('Mean speed (cm/s)');
+    set(gca,'TickDir','out')
+    
+    subplot(1,3,2)
+    h = scatter(SW,bounceSpd./10,mSize, 'k','filled');
+    hold on
+    plot(SW,polyval(cBounce,SW),'k-')
+    hold off
+    axis square
+    xlabel('Submerged weight (N)')
+    ylabel('Bounce speed (cm/s)');
+    set(gca,'TickDir','out')
+    
+    subplot(1,3,3)
+    h = scatter(SW,crawlSpd./10,mSize, 'k','filled');
+    hold on
+    plot(SW,polyval(cCrawl,SW),'k-')
+    hold off
+    axis square
+    xlabel('Submerged weight (N)')
+    ylabel('Crawl speed (cm/s)');
+    set(gca,'TickDir','out')
+    
+    figure
 
-subplot(1,3,3)
-boxplot(crawlSpd,expType)
-ylabel('Crawl speed (cm/s)')
-set(gca,'TickDir','out')
-ylim([0 3e-3])
-
-
-figure;
-subplot(1,2,2)
-boxplot(bouncePeriod,expType)
-ylabel('Bounce Period')
-set(gca,'TickDir','out')
-
-subplot(1,2,1)
-boxplot(propBounce,expType)
-ylabel('Proportion of time bouncing')
-set(gca,'TickDir','out')
+    % Linear fit to bpunce period data
+    c = polyfit(SW,bouncePeriod,1);
+    
+    subplot(1,2,1)
+    h = scatter(SW,bouncePeriod,mSize, 'k','filled');
+    hold on
+    plot(SW,polyval(c,SW),'k-')
+    hold off
+    axis square
+    xlabel('Submerged weight (N)')
+    ylabel('Bounce period (s)');
+    set(gca,'TickDir','out')
+    
+    subplot(1,2,2)
+    h = scatter(SW,propBounce,mSize, 'k','filled');
+    axis square
+    xlabel('Submerged weight (N)')
+    ylabel('Proportion of time bouncing');
+    set(gca,'TickDir','out')
+    
+end
 
 
 
