@@ -7,10 +7,10 @@ function anaSide
 do.reImportData = 0;
 
 % Visualize events for all sequences
-do.visEvents = 0;
+do.visEvents = 1;
 
 % Visualize details of each sequence
-do.visSeqs = 0;
+do.visSeqs = 1;
 
 % Plot summary boxpolot data
 do.summaryPlots = 1;
@@ -25,12 +25,23 @@ paths = givePaths;
 extVid = 'MOV';
 
 
+% Get list of all side csv files
+dlc_path = [paths.data filesep 'data' filesep 'side_view' filesep '*.csv'];
+dlc_files = dir(dlc_path);
+
+% Check
+%if isempty(dlc_files)
+    %error(['No DLC csv files found in ' dlc_path]);
+%end
+
+
 %% Read data from catalog spreadsheet
 
 if do.reImportData
     
     % Get list of all side csv files
-    dlc_path = [paths.data filesep 'data' filesep 'side_view' filesep '*.csv'];
+    %dlc_path = [paths.data filesep 'data' filesep 'side_view' filesep '*.csv'];
+    dlc_path = [paths.data filesep 'rawCSV' filesep '*.csv'];
     dlc_files = dir(dlc_path);
     
     % Check for dlc files
@@ -68,8 +79,8 @@ if do.reImportData
             seq(j).floatNum       = T.float_num(i);
             seq(j).bodyMass       = T.body_mass(i);
             seq(j).calConst       = T.cal_side(i);
-            seq(i).fps            = T.frame_rate_side(i);
-            seq(i).SW_percent     = T.percent_sw(i);
+            seq(j).fps            = T.frame_rate_side(i);
+            seq(j).SW_percent     = T.percent_sw(i);
             
             % Check experiment type
             if strcmp(seq(j).expType,'c')
@@ -97,9 +108,7 @@ end
 
 %% Import data
 
-if do.reImportData || ...
-    (~isfile([paths.data filesep 'SideDataPooled.mat']) && ...
-     ~isfile([paths.data filesep 'SideDataPooled_events.mat']))
+if  do.reImportData || ~isfile([paths.data filesep 'SideDataPooled.mat'])
     
     iSeq = 1;
     
@@ -128,8 +137,13 @@ if do.reImportData || ...
         % Compile data --------------------------------------------------------
         
         % Read current csv data
-        T = readtable([paths.data filesep 'data' filesep 'side_view' filesep ...
-                       dlc_files(j).name],'HeaderLines',2);
+%         T = readtable([paths.data filesep 'data' filesep 'side_view' filesep ...
+%                        dlc_files(j).name],'HeaderLines',2);
+          T = readtable([paths.data filesep 'rawCSV' filesep ...
+                         dlc_files(j).name],'HeaderLines',2);
+            
+          
+        
         
         % Add time vector
         T.t = [0:(1/seq(i).fps):((length(T.x)-1)/seq(i).fps)]';
@@ -165,6 +179,7 @@ if do.reImportData || ...
             S(iSeq).calConst   = cSeq.calConst;
             S(iSeq).SW_percent = cSeq.SW_percent;
             S(iSeq).fps        = cSeq.fps;
+            
             
             % Copy over coordinates
             S(iSeq).t       = T.t;
@@ -307,6 +322,8 @@ if do.visEvents
     % Acceptable deviation from bounce amplitude and period
     yThresh  = 0.8;
     tThresh  = 0.8;
+    
+    makeEventPlots = 1;
     
     if makeEventPlots
         f = figure;

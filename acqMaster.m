@@ -424,7 +424,7 @@ if strcmp(action,'manual foot tracking')
     mClr = [0 1 0];
     
     % Path for saving data
-    savePath = [dataPath filesep 'ManualFootData.mat'];
+    savePath = [currDataPath filesep 'ManualFootData.mat'];
     
     if ~exist(savePath,'file')
         H = [];
@@ -433,7 +433,7 @@ if strcmp(action,'manual foot tracking')
     end
     
     % Run acqusition GUI
-    videoGUI(vidPath,v,Body.frames,0,'simple',roi_diam,mClr,H,dataPath);
+    videoGUI(vidPath,v,Body.frames,0,'simple',roi_diam,mClr,H,savePath);
 end
 
 
