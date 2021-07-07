@@ -1079,6 +1079,10 @@ function update_fig(hFig, hAxes)
     
     % Get cropped image
     im2 = imcrop(frame, H.roi);
+    
+    % Store image data
+    H.im2_size = size(im2);
+    guidata(hAxes.axis1, H);
 
     if size(im2,2)/size(im2,1) ~= H.roi(3)./H.roi(4)
         beep;beep;
@@ -1204,7 +1208,7 @@ end
 function saveData(H)
 
 % If we have all three points . . .
-if (size(im2,2)/size(im2,1) == H.roi(3)./H.roi(4)) && ...
+if (H.im2_size(2)/H.im2_size(1) == H.roi(3)/H.roi(4)) && ...
    H.ft(end).choseContact==1 && ...
    H.ft(end).choseRelease==1 && ...
    sum(~isnan(H.ft(end).xBase))~=0
@@ -1217,7 +1221,7 @@ if (size(im2,2)/size(im2,1) == H.roi(3)./H.roi(4)) && ...
     save(H.savePath,'H')
     %H.v = v;
     
-elseif  size(im2,2)/size(im2,1) ~= H.roi(3)./H.roi(4)
+elseif  H.im2_size(2)/H.im2_size(1) ~= H.roi(3)/H.roi(4)
     
     warning(['Cannot save data b/c the cropped frame does not have the ' ...
              'same dimensions as the ROI. Please delete this foot, select ' ...
