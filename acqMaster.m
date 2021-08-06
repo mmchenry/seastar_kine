@@ -95,11 +95,31 @@ end
 %if ~isfolder(currDataPath)
     %error(['Data folder does not exist at ' currDataPath]);
 %end
+%give error if data path is already there. If re-doing files, comment out
 %Check data path and make data path if it is not there
 if ~isfolder(currDataPath)
-    warning(['Data folder does not exits at ' currDataPath 'making new directory']);
+    warning(['Data folder does not exits at ' currDataPath ' making new directory']);
     mkdir([currDataPath]);
+%Making sure the the user is aware that data folder already exists
+%elseif isfolder(currDataPath)
+      %answer = questdlg('Are you coming back to a file intentionally?','','Yes',...
+            %'No','Cancel','Yes');
+        
+        %if strcmp(answer,'Yes')
+            
+         %Do nothing. The code will proceed to the next step
+           
+         %elseif strcmp(answer,'No')
+            
+            % Prompt for frame intervals
+            %error(['Data folder already exists, please choose another video to analyze or double check the data folder name'])
+            
+        %else
+            %return
+        %end
+    
 end
+
 
 % Load video info (v)
  v = defineVidObject(currVidPath);

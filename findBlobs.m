@@ -239,6 +239,9 @@ end
 
 if strcmp(bMode,'area single')
     
+    % Blank image
+    bwOut = bw.*0~=0;
+    
     % If more than one blob
     if (length(areas)>1)
         dArea = abs(areas-areaTarget);
@@ -249,11 +252,14 @@ if strcmp(bMode,'area single')
         % Pass info only from best fit
         areas = areas(iBest);
         propOut = propOut(iBest);
+        
+        % Add image for single blob
+        bwOut(propOut.PixelIdxList) = 1;  
+    elseif isempty(areas)
+        error('The blob for the body cannot be found. Try adjusting the threshold.')
     end
     
-    % Make image for single blob
-    bwOut = bw.*0~=0;
-    bwOut(propOut.PixelIdxList) = 1;
+    
 end
         
 

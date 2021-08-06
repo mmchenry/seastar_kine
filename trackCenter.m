@@ -155,6 +155,7 @@ nFrames = 1;
 
 % Loop thru frames
 parfor i = 1:length(frames)
+%for i = 1:length(frames)
     
     % Current frame
     cFrame = frames(i);
@@ -179,7 +180,7 @@ parfor i = 1:length(frames)
         
         % Find blob at cX,cY
         [props,bwOut] = findBlobs(im,iC.tVal,'area single',minArea,maxArea,iC.area);
-
+        
          % Store results
          x(i,1) = props.Centroid(1);
          y(i,1) = props.Centroid(2);
