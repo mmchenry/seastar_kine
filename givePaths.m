@@ -36,7 +36,11 @@ elseif isfolder('/flux/SeaStars/data/ControlWeightsFloats')
     
     paths.vid = '/flux/SeaStars/video/ControlWeightsFloats';
     paths.data = '/flux/SeaStars/data/ControlWeightsFloats';
+
+elseif isfolder('/media/theopo/trackN')
     
+    paths.vid = '/media/theopo/trackN/video';
+    paths.data = '/media/theopo/trackN/data';
     
 elseif isfolder('C:\Users\tpo\Documents\seastar_kine')
     
