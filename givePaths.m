@@ -37,10 +37,17 @@ elseif isfolder('/flux/SeaStars/data/ControlWeightsFloats')
     paths.vid = '/flux/SeaStars/video/ControlWeightsFloats';
     paths.data = '/flux/SeaStars/data/ControlWeightsFloats';
 
+% Po's laptop
 elseif isfolder('/media/theopo/trackN')
     
     paths.vid = '/media/theopo/trackN/video';
     paths.data = '/media/theopo/trackN/data';
+    
+%Mac Mini in laser room    
+elseif isfolder('C:\Users\mmchenry\Documents\Matlab_code')
+    
+    paths.vid = '\\flux.local\SeaStars\video\ControlWeightsFloats';
+    paths.data = '\\flux.local\SeaStars\data\ControlWeightsFloats';
     
 elseif isfolder('C:\Users\tpo\Documents\seastar_kine')
     
