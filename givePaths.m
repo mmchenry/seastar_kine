@@ -49,6 +49,11 @@ elseif isfolder('C:\Users\mmchenry\Documents\Matlab_code')
     paths.vid = '\\flux.local\SeaStars\video\ControlWeightsFloats';
     paths.data = '\\flux.local\SeaStars\data\ControlWeightsFloats';
     
+elseif isfolder('C:\Users\mmchenry\Documents\Matlab_code\seastar_kine')
+    
+    paths.vid = 'D:\video\control\bottom';
+    paths.data = 'D:\data\control\bottom';
+    
 elseif isfolder('C:\Users\tpo\Documents\seastar_kine')
     
     % Path to root dir of video (CSULB project, external drive)
