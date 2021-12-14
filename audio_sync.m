@@ -1,4 +1,4 @@
-function delay = audio_sync(c_path,s_path)
+function [delay,info] = audio_sync(side_path,bot_path)
 % Save or load structure for syncing 3 video files from audio channels
 
 %% Code execution
@@ -6,8 +6,8 @@ function delay = audio_sync(c_path,s_path)
 % Plot data to verify correct sync
 plot_data = 1;
 
-% Choose a portion of the audio
-select_event = 1;
+% Audio channel(s) to monitor for syncing
+aChan = [3 4];
 
 
 %% Parameters
@@ -22,58 +22,62 @@ dur_eval = 1;
 %% Combine two signals
 
 % Get audioinfo
-aInfo_c = audioinfo(c_path);
-aInfo_s = audioinfo(s_path);
+aInfo_side = audioinfo(side_path);
+aInfo_bot = audioinfo(bot_path);
 
 % Extract audio
-[tmp_c,Fs_c] = audioread(aInfo_c.Filename);
-[tmp_s,Fs_s] = audioread(aInfo_s.Filename);
+[tmp_side,Fs_side] = audioread(aInfo_side.Filename);
+[tmp_bot,Fs_bot]   = audioread(aInfo_bot.Filename);
 
 % Choose channel with greater signal (canon)
-if mean(abs(tmp_c(:,1))) > mean(abs(tmp_c(:,2)))
-    y_c = tmp_c(:,1);
-else
-    y_c = tmp_c(:,2);
-end
+% if mean(abs(tmp_side(:,1))) > mean(abs(tmp_side(:,2)))
+%     y_side = tmp_side(:,1);
+% else
+%     y_side = tmp_side(:,2);
+% end
+y_side = mean(tmp_side(:,aChan),2);
 
-% Choose channel with greater signal (sony)
-aLevel = 0;
-for i = 1:size(tmp_s,2)
-    
-    cVal = mean(abs(tmp_s(:,i)));
-    
-    if cVal > aLevel
-        aLevel = cVal;
-        iChannel = i;
-    end
-end
+
+% % Choose channel with greater signal (sony)
+% aLevel = 0;
+% for i = 1:size(tmp_bot,2)
+%     
+%     cVal = mean(abs(tmp_bot(:,i)));
+%     
+%     if cVal > aLevel
+%         aLevel = cVal;
+%         iChannel = i;
+%     end
+% end
 
 % Store best channel
-y_s = tmp_s(:,iChannel);
+% y_bot = tmp_bot(:,iChannel);
+
+y_bot = mean(tmp_bot(:,aChan),2);
  
 % Normalize channels by maximum
-y_s = y_s./max(abs(y_s));
-y_c = y_c./max(abs(y_c));
+y_bot = y_bot./max(abs(y_bot));
+y_side = y_side./max(abs(y_side));
 
 % Time values
-t_c = [0:(length(y_c)-1)]'./Fs_c;
-t_s = [0:(length(y_s)-1)]'./Fs_s;
+t_side  = [0:(length(y_side)-1)]'./Fs_side;
+t_bot   = [0:(length(y_bot)-1)]'./Fs_bot;
 
 % Index of values
-idx = 1:min([length(t_c) length(t_s)]);
+idx = 1:min([length(t_side) length(t_bot)]);
 
 % Audio matrix
-y = [y_c(idx) y_s(idx)];
+y = [y_side(idx) y_bot(idx)];
 
 % Time matrix
-if (Fs_c==Fs_s)
-    t = t_c(idx);
-    Fs = Fs_c;
+if (Fs_side==Fs_bot)
+    t = t_side(idx);
+    Fs = Fs_side;
 else
     error('Unequal sample rates');
 end
     
-clear Fs_s Fs_c t_s t_c y_s y_c tmp_c tmp_s aInfo_c aInfo_s idx iChannel cVal
+clear Fs_bot Fs_side t_bot t_side y_bot y_side tmp_side tmp_bot aInfo_side aInfo_bot idx iChannel cVal
     
 
 %% Find interval with max signal
@@ -95,13 +99,13 @@ clear Fs_s Fs_c t_s t_c y_s y_c tmp_c tmp_s aInfo_c aInfo_s idx iChannel cVal
 % iTime = find(yMean==max(yMean),1,'first');
 % 
 % % Start time
-% t_start = tMean(iTime) - 1.5*dur_eval;
+% t_bottart = tMean(iTime) - 1.5*dur_eval;
 % 
 % % End time
 % t_end = tMean(iTime) + 1.5*dur_eval;
 % 
 % % Index of values to interrogate
-% idx = (t>=t_start) & (t<t_end);
+% idx = (t>=t_bottart) & (t<t_end);
 % 
 % % Trim to duration to be considered
 % y = y(idx,:);
@@ -125,36 +129,36 @@ if 0
     play(aud_player)
 end
 
-% VISUALIZE RESULTS ---------------------------------------------------
-
-figure;
-%     subplot(3,1,1)
-%     plot(tMean,yMean);
-%     xlabel('t (s)')
-%     ylabel('Mean audio (V)');
-
-subplot(2,1,1)
-plot(t,y);
-xlabel('t (s)')
-ylabel('Audio intensity');
-title('Raw audio')
-legend('Canon','Sony')
-
-
-subplot(2,1,2)
-plot(t,y(:,1),'-',...
-    t-delay,y(:,2),'-');
-xlabel('t (s)')
-ylabel('Audio intensity');
-title('Corrected for delay')
-
 if delay>0
-    disp(['Sony follows Canon by ' num2str(delay) ' s'])
+    info = ['Bottom follows Side by ' num2str(delay) ' s'];
 else
-    disp(['Canon follows Sony by ' num2str(-delay) ' s'])
+    info = ['Side follows Bottom by ' num2str(-delay) ' s'];
 end
 
-pause(0.1)
+% VISUALIZE RESULTS ---------------------------------------------------
+if plot_data
+    figure;
+    %     subplot(3,1,1)
+    %     plot(tMean,yMean);
+    %     xlabel('t (s)')
+    %     ylabel('Mean audio (V)');
+
+    subplot(2,1,1)
+    plot(t,y);
+    xlabel('t (s)')
+    ylabel('Audio intensity');
+    title('Raw audio')
+    legend('Canon','Sony')
+
+
+    subplot(2,1,2)
+    plot(t,y(:,1),'-',...
+        t-delay,y(:,2),'-');
+    xlabel('t (s)')
+    ylabel('Audio intensity');
+    title('Corrected for delay')
+    pause(0.1)
+end
 
 % Capture graphs
 %I = getframe(gcf);

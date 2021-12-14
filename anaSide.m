@@ -6,14 +6,17 @@ function anaSide
 % Import DLC data again
 do.reImportData = 0;
 
+% Analyze audio data to sync the timing of videos
+do.anaAudioSync = 1;
+
 % Visualize events for all sequences
-do.visEvents = 1;
+do.visEvents = 0;
 
 % Visualize details of each sequence
-do.visSeqs = 1;
+do.visSeqs = 0;
 
 % Plot summary boxpolot data
-do.summaryPlots = 1;
+do.summaryPlots = 0;
 
 
 %% Parameters
@@ -23,7 +26,6 @@ paths = givePaths;
 
 % Extension for video file names
 extVid = 'MOV';
-
 
 % Get list of all side csv files
 dlc_path = [paths.data filesep 'data' filesep 'side_view' filesep '*.csv'];
@@ -37,10 +39,10 @@ dlc_files = dir(dlc_path);
 
 %% Read data from catalog spreadsheet
 
-if do.reImportData
+if do.reImportData || do.anaAudioSync
     
     % Get list of all side csv files
-    %dlc_path = [paths.data filesep 'data' filesep 'side_view' filesep '*.csv'];
+%     dlc_path = [paths.data filesep 'data' filesep 'side_view' filesep '*.csv'];
     dlc_path = [paths.data filesep 'rawCSV' filesep '*.csv'];
     dlc_files = dir(dlc_path);
     
@@ -65,7 +67,7 @@ if do.reImportData
         
         % If using video at all and currently analyzing
         %     if T.use_video(i)==1 && T.ana_video(i)==1 && T.complete_video(i)==0
-        if T.use_video(i)==1
+        if T.use_video(i)==1 && T.ana_video(i)==1
             
             seq(j).dateNum        = datenum(T.date(i));
             seq(j).ext            = extVid;
@@ -222,6 +224,40 @@ if  do.reImportData || ~isfile([paths.data filesep 'SideDataPooled.mat'])
 end
 
 
+%% Analyze audio sync
+
+if do.anaAudioSync
+% Loop thru sequences to be analyzed
+for i = 1:length(seq)
+    
+    % Video paths
+    vPath_side = [paths.vid filesep seq(i).dirName filesep 'side' ...
+                  filesep seq(i).fName_side '.' seq(i).ext];
+    vPath_bot  = [paths.vid filesep seq(i).dirName filesep 'bottom' ...
+                  filesep seq(i).fName_bot '.' seq(i).ext];
+    
+    dPath_save = [paths.data filesep 'data' filesep ...
+                  seq(i).dirName filesep 'bottom' filesep seq(i).fName_bot];
+
+    % Update status
+    disp(['Analyzing audio sync for ' seq(i).fName_side ' and ' seq(i).fName_bot])
+    
+    % Find delay
+    [delay,info] = audio_sync(vPath_side,vPath_bot);
+
+    % Store results
+    aud.delay = delay;
+    aud.info  = info;
+
+    % Report 
+    disp(['     ' info])
+
+    % Save
+    save([dPath_save filesep 'audio_delay'],'delay');   
+end
+end %do.anaAudioSync
+
+
 %% Event finding
 
 if do.reImportData || ~isfile([paths.data filesep 'SideDataPooled_events.mat'])
@@ -302,13 +338,14 @@ if do.reImportData || ~isfile([paths.data filesep 'SideDataPooled_events.mat'])
     
     % Save
     save([paths.data filesep 'SideDataPooled_events'],'S');   
-    
 end
 
 
 %% Visualize event finding
 
 if do.visEvents
+    
+    makeEventPlots = 1;
     
     if ~exist('S','var')
         % Load 'S' structure
@@ -332,7 +369,8 @@ if do.visEvents
     % Loop trhu sequences
     for i = 1:length(S)
         
-        figure(f)
+         figure(f)
+% figure
         subplot(nPanels,1,iPanel)
         plot(S(i).t,S(i).yRaw .* S(i).calConst); hold on
         plot(S(i).t,S(i).yS,'k-');
