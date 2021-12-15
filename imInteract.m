@@ -241,13 +241,13 @@ elseif strcmp(action,'threshold')
     % Up arrow
     i = i + 1;
     B{i}.key = 30;
-    B{i}.dostr = 'tVal = min([tVal+0.02 1]);';
+    B{i}.dostr = 'tVal = min([tVal+0.01 1]);';
     B{i}.info = 'Up arrow: increase threshold';
     
     % Down arrow
     i = i + 1;
     B{i}.key = 31;
-    B{i}.dostr = 'tVal = max([tVal-0.02 0]);';
+    B{i}.dostr = 'tVal = max([tVal-0.01 0]);';
     B{i}.info = 'Down arrow: decrease threshold';
     
 % Hue mode
