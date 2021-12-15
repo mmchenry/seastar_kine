@@ -235,9 +235,13 @@ for i = 1:length(seq)
                   filesep seq(i).fName_side '.' seq(i).ext];
     vPath_bot  = [paths.vid filesep seq(i).dirName filesep 'bottom' ...
                   filesep seq(i).fName_bot '.' seq(i).ext];
-    
-    dPath_save = [paths.data filesep 'data' filesep ...
-                  seq(i).dirName filesep 'bottom' filesep seq(i).fName_bot];
+    if ~isdir('/Volumes/SeaStars/')
+        dPath_save = [paths.data filesep 'data' filesep ...
+                      seq(i).dirName filesep 'bottom' filesep seq(i).fName_bot];
+    else
+       dPath_save = [paths.data filesep seq(i).dirName filesep ...
+           'bottom' filesep 'matlabData2021' filesep seq(i).fName_bot]; 
+    end
 
     % Update status
     disp(['Analyzing audio sync for ' seq(i).fName_side ' and ' seq(i).fName_bot])

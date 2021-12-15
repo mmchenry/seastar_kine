@@ -4,7 +4,7 @@ function [delay,info] = audio_sync(side_path,bot_path)
 %% Code execution
 
 % Plot data to verify correct sync
-plot_data = 1;
+plot_data = 0;
 
 % Audio channel(s) to monitor for syncing
 aChan = [3 4];
