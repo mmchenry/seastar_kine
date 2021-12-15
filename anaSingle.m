@@ -2,8 +2,10 @@ function anaSingle(fileName)
 % Runs analysis of data on indvidual sequence 
 
 
-
 %% Code execution
+
+% Analyze foot kinematics from manual tracking
+do.anaManTrack = 1;
 
 % Draw trajectory
 do.drawTraj = 0;
@@ -15,13 +17,10 @@ do.drawAllT = 0;
 do.rosePlot = 0;
 
 % Gait diagram
-do.gaitDiagram = 1;
+do.gaitDiagram = 0;
 
 % Create animation of foot contacts
 do.footContactMovie = 0;
-
-
-%% Verify deleting data
 
 
 %% General parameters
@@ -32,38 +31,8 @@ clr{1} = 0.5.*[1 1 1];
 
 plotclr = plotclrs;
 
-%% Manage paths (need to modify for new PC)
-   
-if ~isempty(dir(['/Users/mmchenry/Documents/Matlab code']))
-
-    % Path to root dir of video (CSULB project, external drive)
-    vidPath = '/Users/mmchenry/Documents/Video/Chip sea stars/prelim video';
-    
-    % Path to root of data
-    dataPath = '/Users/mmchenry/Documents/Projects/Chip sea stars/prelim data';
-
-elseif isfolder('C:\Users\tpo\Documents\seastar_kine')
-    
-    % Path to root dir of video (CSULB project, external drive)
-    vidPath = 'C:\Users\tpo\Documents\Video\Chip sea stars\prelim video';
-
-    % Path to root of data
-    dataPath = 'C:\Users\tpo\Documents\Chip sea star data\prelim data';
-    
-else
-    
-    error('Do not recognize computer')
-    
-end
-
-
+% Paths 
 paths = givePaths;
-
-
-
-%% Catalog sequence videos
-
-
 
 
 %% Catalog sequence videos
@@ -76,7 +45,8 @@ if nargin<1
 % cList.fName = 'S005_S001_T011';
     %cList.fName = 'STUDIO0_S009_S001_T020';
 %      cList.fName = ['weights' filesep 'STUDIO0_S009_S001_T009'];
-     cList.fName = ['floats' filesep 'STUDIO0_S009_S001_T020'];
+%      cList.fName = ['floats' filesep 'STUDIO0_S009_S001_T020'];
+    cList.fName = ['']
 else
     
     cList.fName = fileName;
@@ -316,6 +286,15 @@ elseif strcmp(cList.fName,'S006_S001_T015')
 
 end
 
+
+
+%% Analyze manually-tracked foot kinematics
+
+if do.anaManTrack 
+
+ttt = 3;
+
+end %do.anaManTrack 
 
 %% Visualize trajectory
 

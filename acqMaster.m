@@ -438,7 +438,7 @@ if strcmp(action,'manual foot tracking')
     Body.yArmL = iC.yArms' - Body.y(1) + Body.Rotation.roi(1).r;
 
     % Diameter of the ROI
-    roi_diam = 1.5*max([range(Body.xArmL) range(Body.yArmL)]);
+    roi_diam = 1.2*max([range(Body.xArmL) range(Body.yArmL)]);
     
     % marker color
     mClr = [0 1 0];

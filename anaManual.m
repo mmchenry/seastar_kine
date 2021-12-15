@@ -7,7 +7,14 @@ function anaManual
 
 %% Read data from catalog spreadsheet
 
-if do.reImportData || do.anaAudioSync
+% Get root paths
+paths = givePaths;
+
+% Extension for video file names
+extVid = 'MOV';
+
+
+% if do.reImportData || do.anaAudioSync
     
     % Get list of all side csv files
 %     dlc_path = [paths.data filesep 'data' filesep 'side_view' filesep '*.csv'];
@@ -49,7 +56,8 @@ if do.reImportData || do.anaAudioSync
             seq(j).floatNum       = T.float_num(i);
             seq(j).bodyMass       = T.body_mass(i);
             seq(j).calConst       = T.cal_side(i);
-            seq(j).fps            = T.frame_rate_side(i);
+            seq(j).fps_side       = T.frame_rate_side(i);
+            seq(j).fps_bot        = T.frame_rate_bottom(i);
             seq(j).SW_percent     = T.percent_sw(i);
             
             % Check experiment type
@@ -73,4 +81,82 @@ if do.reImportData || do.anaAudioSync
     end
     
     clear j T
+% end
+
+%% Load data
+
+% Loop thru sequences
+for i = 1:length(seq)
+
+% Load audio sync data (aud)
+load([paths.data filesep seq(i).dirName filesep 'bottom' filesep ...
+      'matlabData2021' filesep seq(i).fName_bot filesep 'audio_delay.mat']);
+
+% Load side kinematics data (S)
+load([paths.data filesep 'SideDataPooled.mat'])
+
+% Load bottom manual data (H)
+load([paths.data filesep seq(i).dirName filesep 'bottom' filesep ...
+      'matlabData2021' filesep seq(i).fName_bot filesep 'ManualFootData.mat'])
+
+% Load frame rates (frRate)
+% load([paths.data filesep seq(i).dirName filesep 'bottom' filesep ...
+%       'matlabData2021' filesep seq(i).fName_bot filesep 'frame_rate.mat'])
+
+% Load initial conditions (iC)
+% load([paths.data filesep seq(i).dirName filesep 'bottom' filesep ...
+%       'matlabData2021' filesep seq(i).fName_bot filesep 'Initial conditions.mat'])
+
+% Find matching data from compiled side data
+iMatch = nan;
+for j = 1:length(S)
+
+    if strcmp(S(j).fName_bot,seq(i).fName_bot)
+        iMatch = j;
+        break
+    end
 end
+
+% Check index
+if isnan(iMatch), error('No match in the compiled side view data'); end
+
+% Time vectors, taking audio sync into account
+t_B = (H.frames-min(H.frames)) ./ seq(i).fps_bot;
+t_S = S(iMatch).t-min(S(iMatch).t) + aud.delay;
+
+% Side view coordinates
+xSide  = S(iMatch).xRaw;
+zSide  = S(iMatch).yRaw;
+
+%TODO: coordinate transform side coordinates 
+
+% Loop thru feet
+for j = 1:length(H.ft)
+    
+    % Current foot coordinates
+    xBase = H.ft(j).xBase;
+    yBase = H.ft(j).yBase;
+    xTip  = H.ft(j).xTip;
+    yTip  = H.ft(j).yTip;
+
+    % Index for power stroke
+    iPwr = ~isnan(xBase);
+
+    ttt = 3;
+
+    %TODO: Use linear interpolation to match the foot and side coordinate data 
+    
+end
+
+ttt = 3;
+
+end % for
+
+
+
+
+
+
+
+
+
