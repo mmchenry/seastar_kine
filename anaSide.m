@@ -143,10 +143,7 @@ if  do.reImportData || ~isfile([paths.data filesep 'SideDataPooled.mat'])
 %                        dlc_files(j).name],'HeaderLines',2);
           T = readtable([paths.data filesep 'rawCSV' filesep ...
                          dlc_files(j).name],'HeaderLines',2);
-            
-          
-        
-        
+
         % Add time vector
         T.t = [0:(1/seq(i).fps):((length(T.x)-1)/seq(i).fps)]';
         
@@ -235,13 +232,10 @@ for i = 1:length(seq)
                   filesep seq(i).fName_side '.' seq(i).ext];
     vPath_bot  = [paths.vid filesep seq(i).dirName filesep 'bottom' ...
                   filesep seq(i).fName_bot '.' seq(i).ext];
-    if ~isdir('/Volumes/SeaStars/')
-        dPath_save = [paths.data filesep 'data' filesep ...
-                      seq(i).dirName filesep 'bottom' filesep seq(i).fName_bot];
-    else
-       dPath_save = [paths.data filesep seq(i).dirName filesep ...
-           'bottom' filesep 'matlabData2021' filesep seq(i).fName_bot]; 
-    end
+    
+    % Define where to save the data
+    dPath_save = [paths.data filesep seq(i).dirName filesep ...
+        'bottom' filesep 'matlabData2021' filesep seq(i).fName_bot];
 
     % Update status
     disp(['Analyzing audio sync for ' seq(i).fName_side ' and ' seq(i).fName_bot])
@@ -253,11 +247,20 @@ for i = 1:length(seq)
     aud.delay = delay;
     aud.info  = info;
 
-    % Report 
+    % Report info on audio
     disp(['     ' info])
 
+    % Video objects
+    v_side = VideoReader(vPath_side);
+    v_bot  = VideoReader(vPath_bot);
+
+    % Store frame rates
+    frRate.side = v_side.FrameRate;
+    frRate.bot  = v_side.FrameRate;
+
     % Save
-    save([dPath_save filesep 'audio_delay'],'delay');   
+    save([dPath_save filesep 'audio_delay'],'aud');   
+    save([dPath_save filesep 'frame_rate'],'frRate');   
 end
 end %do.anaAudioSync
 
