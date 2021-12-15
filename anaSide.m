@@ -4,10 +4,10 @@ function anaSide
 %% Execution control
 
 % Import DLC data again
-do.reImportData = 0;
+do.reImportData = 1;
 
 % Analyze audio data to sync the timing of videos
-do.anaAudioSync = 1;
+do.anaAudioSync = 0;
 
 % Visualize events for all sequences
 do.visEvents = 0;
@@ -67,7 +67,7 @@ if do.reImportData || do.anaAudioSync
         
         % If using video at all and currently analyzing
         %     if T.use_video(i)==1 && T.ana_video(i)==1 && T.complete_video(i)==0
-        if T.use_video(i)==1 && T.ana_video(i)==1
+        if T.use_video(i)==1 %&& T.ana_video(i)==1
             
             seq(j).dateNum        = datenum(T.date(i));
             seq(j).ext            = extVid;
@@ -256,7 +256,7 @@ for i = 1:length(seq)
 
     % Store frame rates
     frRate.side = v_side.FrameRate;
-    frRate.bot  = v_side.FrameRate;
+    frRate.bot  = v_bot.FrameRate;
 
     % Save
     save([dPath_save filesep 'audio_delay'],'aud');   
