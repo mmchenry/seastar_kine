@@ -19,7 +19,10 @@ do.visSeqs = 0;
 do.summaryPlots = 0;
 
 % Plot data that keeps track of individuals
-do.indivPlots = 1;
+do.indivPlots = 0;
+
+% Annotate dataset manually
+do.manAnnotate = 1;
 
 % Marker and line colors
 mClr = 0.5.*[1 1 1];
@@ -275,7 +278,7 @@ end %do.anaAudioSync
 
 %% Event finding
 
-if 1 %do.reImportData || ~isfile([paths.data filesep 'SideDataPooled_events.mat'])
+if do.reImportData || ~isfile([paths.data filesep 'SideDataPooled_events.mat'])
     
     % Load 'S' structure
     load([paths.data filesep 'SideDataPooled.mat'])
@@ -349,16 +352,16 @@ if 1 %do.reImportData || ~isfile([paths.data filesep 'SideDataPooled_events.mat'
         S(i).xS                 = xS;
         S(i).yS                 = yS;
         S(i).xSpd               = xSpd;
-        S(i).crawlSpd           = nanmean(meanSpd(iCrawl));
-        S(i).bounceSpd          = nanmean(meanSpd(~iCrawl));
+%         S(i).crawlSpd           = nanmean(meanSpd(iCrawl));
+%         S(i).bounceSpd          = nanmean(meanSpd(~iCrawl));
         S(i).tLand              = tEvent;
         S(i).yLand              = yEvent;
-        S(i).yBounceAmp         = mean(yRange(~iCrawl)); 
+%         S(i).yBounceAmp         = mean(yRange(~iCrawl)); 
         S(i).iCrawl             = iCrawl;
-        S(i).stepPeriod         = sPeriod;
-        S(i).propBounce         = sum(sPeriod(~iCrawl)) / range(S(i).t);
-        S(i).meanBouncePeriod   = mean(sPeriod(~iCrawl));
-        S(i).tFirstBounce       = tFirstBounce;
+%         S(i).stepPeriod         = sPeriod;
+%         S(i).propBounce         = sum(sPeriod(~iCrawl)) / range(S(i).t);
+%         S(i).meanBouncePeriod   = mean(sPeriod(~iCrawl));
+%         S(i).tFirstBounce       = tFirstBounce;
 
         % Visual check
         if 0
@@ -376,6 +379,149 @@ if 1 %do.reImportData || ~isfile([paths.data filesep 'SideDataPooled_events.mat'
     
     % Save
     save([paths.data filesep 'SideDataPooled_events'],'S');   
+end
+
+%% Manually annotate data
+
+if do.manAnnotate
+
+% Load data (S)
+if isfile([paths.data filesep 'SideDataPooled_eventsManual.mat'])
+    load([paths.data filesep 'SideDataPooled_eventsManual'])
+else
+    % Load pooled data with events identified automatically
+    load([paths.data filesep 'SideDataPooled_events'])
+end
+
+f = figure;
+
+disp(' ')
+% disp('Select points, press RETURN (or double-click, or right-click) when done')
+disp('Select a time value to modify, press RETURN when done with seq')
+disp('   Press z to zoom (or unzoom)')
+disp(' ')
+
+xL = []; h = [];
+
+% Loop trhu sequences
+for i = 1:length(S)
+
+    % Check of annotated
+    if ~isfield(S(i),'annotated') || isempty(S(i).annotated)
+
+        while true
+        
+            % Plot time series
+            figure(f)
+            ax = subplot(2,1,1);
+            plot(S(i).t,S(i).yS,'k-');hold on
+            h1 = plot(S(i).tLand(~S(i).iCrawl),S(i).yLand(~S(i).iCrawl),'ro');
+            h2 = plot(S(i).tLand(S(i).iCrawl),S(i).yLand(S(i).iCrawl),'r+');
+            title([S(i).fName_side])
+            hold off
+
+            if ~isempty(xL)
+                set(ax,'XLim',xL);
+            end
+
+            % Prompt for coordinates
+            [x,~,b] = ginput(1);
+
+            if ~isempty(x) && b==122
+
+                if isempty(h) 
+                    h = zoom;
+                    h.Motion = 'horizontal';
+                    h.Enable = 'on';
+
+                    disp('Unclick the magnifying glass when done')
+
+                    waitfor(h,'Enable','off')
+
+                    xL = get(ax,'XLim');
+                else
+                    xL = [];
+                    h  = [];
+                end
+
+            elseif ~isempty(x)
+
+                ButtonName = questdlg('What type of point?', ...
+                         ' ', 'Switch type', 'New bounce peak', 'Nevermind', ...
+                         'Switch type');
+
+                switch ButtonName
+
+                case 'Switch type'
+                    
+                    % Difference in time
+                    tDiff = abs(x-S(i).tLand);
+                    
+                    % Closest peak
+                    iClose = find(tDiff==min(tDiff),1,'first');
+
+                    % Toggle crawl/bounce
+                    S(i).iCrawl(iClose) = abs(S(i).iCrawl(iClose)-1);
+
+                case 'New bounce peak'
+                    
+                    % Indicies around x
+                    iBefore = find(S(i).tLand<x,1,'last');
+                    iAfter  = find(S(i).tLand>x,1,'first');
+
+                    % Interpolate for y
+                    yLand = interp1(S(i).t,S(i).yS,x);
+
+                    % Store new point
+                    if isnan(yLand)
+                        warning('You need to select a point within the time series')
+                        
+                    elseif isempty(iBefore)
+                        S(i).tLand  = [x; S(i).tLand];
+                        S(i).yLand  = [yLand; S(i).yLand];
+                        S(i).iCrawl = [false; S(i).iCrawl];
+                    elseif isempty(iAfter)
+                        S(i).tLand   = [S(i).tLand; x];
+                        S(i).yLand   = [S(i).yLand; yLand];
+                        S(i).iCrawl  = [S(i).iCrawl; false];
+                    else
+                        S(i).tLand   = [S(i).tLand(1:iBefore); x; ...
+                                        S(i).tLand(iAfter:end)];
+                        S(i).yLand   = [S(i).yLand(1:iBefore); yLand; ...
+                                        S(i).yLand(iAfter:end)];
+                        S(i).iCrawl  = [S(i).iCrawl(1:iBefore); false; ...
+                                        S(i).iCrawl(iAfter:end)];
+                    end
+
+                case 'Nevermind'
+                    % Do nothing
+
+                end % switch
+
+            % If RETURN pressed . . .
+            else
+                ButtonName = questdlg('Save data?', ...
+                         ' ', 'Yes', 'No, stop for now', 'Yes');
+                switch ButtonName
+                    case 'Yes'
+                        S(i).annotated = 1;
+                        save([paths.data filesep 'SideDataPooled_eventsManual'],'S'); 
+                        break
+
+                    case 'No, stop for now'
+                        return
+                end
+            end
+        end
+    end
+
+
+    ttt= 1;
+
+end
+
+
+
 end
 
 
