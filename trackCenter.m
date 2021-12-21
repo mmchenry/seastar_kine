@@ -154,8 +154,8 @@ clear comname
 nFrames = 1;
 
 % Loop thru frames
-parfor i = 1:length(frames)
-%for i = 1:length(frames)
+% parfor i = 1:length(frames)
+for i = 1:length(frames)
     
     % Current frame
     cFrame = frames(i);

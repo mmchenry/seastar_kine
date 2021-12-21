@@ -1,4 +1,4 @@
-function videoGUI(vid_path,v,frames,imInvert,acqMode,varargin)
+    function videoGUI(vid_path,v,frames,imInvert,acqMode,varargin)
 % Interactive acquisition of coordinate points from a video 
 % 
 

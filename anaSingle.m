@@ -5,7 +5,7 @@ function anaSingle(fileName)
 %% Code execution
 
 % Analyze foot kinematics from manual tracking
-do.anaManTrack = 1;
+do.anaManTrack = 0;
 
 % Draw trajectory
 do.drawTraj = 0;

@@ -39,7 +39,7 @@ function im = getFrame(vid_path,v,fr_num,imInvert,clrMode,imMean,padLen)
     iFrame = fr_num-v.UserData.FirstFrame + 1;
     %iFrame = fr_num;
     
-    if isfield(v.UserData,'FileInfo');
+    if isfield(v.UserData,'FileInfo')
         % Get filename and extension
         fName = v.UserData.FileInfo(iFrame).name;
         ext   = fName(find(fName=='.')+1:end);
