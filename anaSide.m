@@ -22,7 +22,7 @@ do.summaryPlots = 0;
 do.indivPlots = 0;
 
 % Annotate dataset manually
-do.manAnnotate = 1;
+do.manAnnotate = 0;
 
 % Marker and line colors
 mClr = 0.5.*[1 1 1];
@@ -381,6 +381,7 @@ if do.reImportData || ~isfile([paths.data filesep 'SideDataPooled_events.mat'])
     save([paths.data filesep 'SideDataPooled_events'],'S');   
 end
 
+
 %% Manually annotate data
 
 if do.manAnnotate
@@ -514,13 +515,84 @@ for i = 1:length(S)
             end
         end
     end
+end
+end %manAnnotate
+
+%% Calculate bounce kinematics
+
+if 1 %~isfile([paths.data filesep 'bounceData.mat'])
+
+% Load 'S' structure
+load([paths.data filesep 'SideDataPooled_eventsManual.mat'])
+
+% Loop trhu sequences
+for i = 1:length(S)
+
+    % Forward speed
+    xSpd = abs(diff(S(i).xS))./diff(S(i).t);
+    xSpd = [xSpd; xSpd(end)];
+    
+    % Mean period
+    tau = mean(diff(S(i).tLand));
+    
+    % Individual step period
+    sPeriod = diff([0;S(i).tLand]);
+    
+    % Loop trhu events
+    for j = 1:length(S(i).tLand)
+        
+        % Current interval, and y range
+        if j==1
+            idx = S(i).t<=S(i).tLand(j);
+        else
+            idx = (S(i).t>S(i).tLand(j-1)) & (S(i).t<=S(i).tLand(j));
+        end
+        
+        if sum(idx)>3
+            % Range in y over bounce
+            yRange(j,1) = max(S(i).yRaw(idx)) - min(S(i).yRaw(idx));
+            
+            % Mean speed over bounce
+            meanSpd(j,1) = nanmean(xSpd(idx));
+        else
+            yRange(j,1) = 0;
+            meanSpd(j,1) = nan;
+        end
+        
+    end
 
 
-    ttt= 1;
+    % Time to first bounce
+    tFirstBounce = S(i).tLand(find(~S(i).iCrawl,1,'first'));
+    if isempty(tFirstBounce)
+        tFirstBounce = nan;
+    end
 
+    % Store
+    S(i).crawlSpd           = nanmean(meanSpd(S(i).iCrawl));
+    S(i).bounceSpd          = nanmean(meanSpd(~S(i).iCrawl));
+    S(i).yBounceAmp         = mean(yRange(~S(i).iCrawl)); 
+    S(i).stepPeriod         = sPeriod;
+    S(i).propBounce         = sum(sPeriod(~S(i).iCrawl)) / range(S(i).t);
+    S(i).meanBouncePeriod   = mean(sPeriod(~S(i).iCrawl));
+    S(i).tFirstBounce       = tFirstBounce;
+
+    % Visual check
+    if 0
+        subplot(2,1,1)
+        plot(S(i).t,S(i).yS,'k-');hold on
+        plot(S(i).tLand(~S(i).iCrawl),S(i).yLand(~S(i).iCrawl),'ro')
+        plot(S(i).tLand(S(i).iCrawl),S(i).yLand(S(i).iCrawl),'r+')
+        hold off
+        xlabel('t (s)'); ylabel('Y')
+        grid on
+    end
+
+    clear tEvent yEvent xS yS iCrawl idx yRange meanSpd xSpd sPeriod
 end
 
-
+% Save
+% save([paths.data filesep 'bounceData'],'S');  
 
 end
 
