@@ -24,6 +24,9 @@ do.indivPlots = 0;
 % Annotate dataset manually
 do.manAnnotate = 0;
 
+% Run statistics
+do.stats = 1;
+
 % Marker and line colors
 mClr = 0.5.*[1 1 1];
 lClr = [0 0 0];
@@ -93,6 +96,8 @@ if do.reImportData || do.anaAudioSync
             seq(j).calConst       = T.cal_side(i);
             seq(j).fps            = T.frame_rate_side(i);
             seq(j).SW_percent     = T.percent_sw(i);
+            seq(j).trial          = T.trial_number(i);
+            seq(i).propBounce     = T.prop_bounce(i);
             
             % Check experiment type
             if strcmp(seq(j).expType,'c')
@@ -157,7 +162,7 @@ if  do.reImportData || ~isfile([paths.data filesep 'SideDataPooled.mat'])
                 dlc_files(j).name],'HeaderLines',2);
 
             % Add time vector
-            T.t = [0:(1/seq(i).fps):((length(T.x)-1)/seq(i).fps)]';
+            T.t = [0:(1/cSeq.fps):((length(T.x)-1)/cSeq.fps)]';
 
             % Assume that y-value of the
             T.y = T.y-min(T.y);
@@ -188,7 +193,8 @@ if  do.reImportData || ~isfile([paths.data filesep 'SideDataPooled.mat'])
                 S(iSeq).calConst   = cSeq.calConst;
                 S(iSeq).SW_percent = cSeq.SW_percent;
                 S(iSeq).fps        = cSeq.fps;
-
+                S(iSeq).trial      = cSeq.trial;
+                S(iSeq).propBounce = cSeq.propBounce;
 
                 % Copy over coordinates
                 S(iSeq).t       = T.t;
@@ -352,16 +358,9 @@ if do.reImportData || ~isfile([paths.data filesep 'SideDataPooled_events.mat'])
         S(i).xS                 = xS;
         S(i).yS                 = yS;
         S(i).xSpd               = xSpd;
-%         S(i).crawlSpd           = nanmean(meanSpd(iCrawl));
-%         S(i).bounceSpd          = nanmean(meanSpd(~iCrawl));
         S(i).tLand              = tEvent;
         S(i).yLand              = yEvent;
-%         S(i).yBounceAmp         = mean(yRange(~iCrawl)); 
         S(i).iCrawl             = iCrawl;
-%         S(i).stepPeriod         = sPeriod;
-%         S(i).propBounce         = sum(sPeriod(~iCrawl)) / range(S(i).t);
-%         S(i).meanBouncePeriod   = mean(sPeriod(~iCrawl));
-%         S(i).tFirstBounce       = tFirstBounce;
 
         % Visual check
         if 0
@@ -518,15 +517,35 @@ for i = 1:length(S)
 end
 end %manAnnotate
 
+
 %% Calculate bounce kinematics
 
-if 1 %~isfile([paths.data filesep 'bounceData.mat'])
-
+% Load S 
+load([paths.data filesep 'SideDataPooled.mat'])
+Sup = S;
+clear S
+    
 % Load 'S' structure
 load([paths.data filesep 'SideDataPooled_eventsManual.mat'])
 
 % Loop trhu sequences
 for i = 1:length(S)
+    
+    % Find match to Sup
+    iMatch = [];
+    for j = 1:length(Sup)
+        if strcmp(Sup(j).fName_side,S(i).fName_side)
+            iMatch = j;
+            break
+        end
+    end
+    if isempty(iMatch), error('No match here');end
+
+    % Update fields in S
+    S(i).trial      = Sup(iMatch).trial;
+    S(i).t          = Sup(iMatch).t;
+    S(i).fps        = Sup(iMatch).fps;
+    S(i).propBounce = Sup(iMatch).propBounce;
 
     % Forward speed
     xSpd = abs(diff(S(i).xS))./diff(S(i).t);
@@ -557,10 +576,8 @@ for i = 1:length(S)
         else
             yRange(j,1) = 0;
             meanSpd(j,1) = nan;
-        end
-        
+        end        
     end
-
 
     % Time to first bounce
     tFirstBounce = S(i).tLand(find(~S(i).iCrawl,1,'first'));
@@ -572,7 +589,7 @@ for i = 1:length(S)
     S(i).crawlSpd           = nanmean(meanSpd(S(i).iCrawl));
     S(i).bounceSpd          = nanmean(meanSpd(~S(i).iCrawl));
     S(i).yBounceAmp         = mean(yRange(~S(i).iCrawl)); 
-    S(i).stepPeriod         = sPeriod;
+    S(i).stepPeriod         = mean(sPeriod);
     S(i).propBounce         = sum(sPeriod(~S(i).iCrawl)) / range(S(i).t);
     S(i).meanBouncePeriod   = mean(sPeriod(~S(i).iCrawl));
     S(i).tFirstBounce       = tFirstBounce;
@@ -591,10 +608,6 @@ for i = 1:length(S)
     clear tEvent yEvent xS yS iCrawl idx yRange meanSpd xSpd sPeriod
 end
 
-% Save
-% save([paths.data filesep 'bounceData'],'S');  
-
-end
 
 
 %% Visualize event finding
@@ -605,7 +618,7 @@ if do.visEvents
     
     if ~exist('S','var')
         % Load 'S' structure
-        load([paths.data filesep 'SideDataPooled_events.mat'])
+        load([paths.data filesep 'SideDataPooled_eventsManual.mat'])
     end
     
     % Figure parameters
@@ -655,7 +668,7 @@ if do.visSeqs
     
     if ~exist('S','var')
         % Load 'S' structure
-        load([paths.data filesep 'SideDataPooled_events.mat'])
+        load([paths.data filesep 'SideDataPooled_eventsManual.mat'])
     end
 
     % Acceptable deviation from bounce amplitude and period
@@ -715,8 +728,10 @@ end
 
 if do.indivPlots
     
-% Load 'S' structure
-load([paths.data filesep 'SideDataPooled_events.mat'])
+if ~exist('S','var')
+    % Load 'S' structure
+    load([paths.data filesep 'SideDataPooled_eventsManual.mat'])
+end
 
 % Loop thru sequences, collect data
 for i = 1:length(S)
@@ -767,7 +782,7 @@ for i = 1:length(indNums)
     end
 
     % Bounce period
-    subplot(4,2,1)
+    subplot(2,2,1)
     ePlot(SWs,BPeriod_mean,BPeriod_std,lClr(i,:),lClr(i,:))
     ylabel('Bounce period')
     xlabel('Percent submerged weight')
@@ -776,7 +791,7 @@ for i = 1:length(indNums)
     xlim([40 175])
 
     % Bounce speed
-    subplot(4,2,2)
+    subplot(2,2,2)
     ePlot(SWs,Bspd_mean,Bspd_std,lClr(i,:),lClr(i,:))
     ylabel('Bounce speed (m/s)')
     xlabel('Percent submerged weight')
@@ -785,7 +800,7 @@ for i = 1:length(indNums)
     xlim([40 175])
 
     % Time to first bounce
-    subplot(4,2,3)
+    subplot(2,2,3)
     ePlot(SWs,BtFirst_mean,BtFirst_std,lClr(i,:),lClr(i,:))
     ylabel('Time to first bounce (s)')
     xlabel('Percent submerged weight')
@@ -793,8 +808,8 @@ for i = 1:length(indNums)
     hold on
     xlim([40 175])
 
-    % Time to first bounce
-    subplot(4,2,4)
+    % Boucne amplitude
+    subplot(2,2,4)
     ePlot(SWs,Bamp_mean,Bamp_std,lClr(i,:),lClr(i,:))
     ylabel('Y Amplitude')
     xlabel('Percent submerged weight')
@@ -815,7 +830,7 @@ if do.summaryPlots
     
     if ~exist('S','var')
         % Load 'S' structure
-        load([paths.data filesep 'SideDataPooled_events.mat'])
+        load([paths.data filesep 'SideDataPooled_eventsManual.mat'])
     end
     
     bouncePeriod = [];
@@ -970,6 +985,59 @@ if do.summaryPlots
     
 end
 
+
+%% Run statistics
+
+if do.stats
+
+% Put data into vectors
+for i = 1:length(S)
+
+    SW(i,1)         = S(i).SW_percent;
+    indiv(i,1)      = S(i).indiv;
+    trial(i,1)      = S(i).trial;
+    propBounce(i,1) = S(i).propBounce;
+    stepPeriod(i,1) = S(i).stepPeriod;
+end
+
+glme = mixedModel(stepPeriod,SW,trial,indiv,'Step_period','SW_percent');
+
+glme
+
+end %stats
+
+%% FUNCTIONS --------------------------------------
+
+
+function glme = mixedModel(Y,X1,trial,indiv_num,Yname,X1name)
+% Runs a generalized linear mixed-effects model
+% Y is the dependent variale
+% X1 is a continuous independent variable
+% X2-X3 are categorical variables
+% indiv - individual number (random effect)
+
+% Factors 
+
+% Package school numbers into cells
+for i = 1:length(indiv_num)
+    indiv{i,1}   = num2str(indiv_num(i));
+%     trial{i,1}   = num2str(tr_num(i));
+end
+    
+% School number is a random variable
+% trial = categorical(trial);
+indiv = categorical(indiv);
+
+% Table with data
+tbl = table(Y,X1,trial,indiv, 'VariableNames',{Yname,X1name,'trial','indiv'});
+
+% Model in Wilkinson notation
+modelspec = [Yname ' ~ 1 + ' X1name ' + trial + (1|indiv)'];
+
+% Run generalized linear mixed-effects model
+glme = fitglme(tbl,modelspec,'Distribution','normal');
+    
+ttt = 3;
 
 function ePlot(xVal,mVal,sVal,mClr,lClr)
 
