@@ -9,6 +9,9 @@ do.reImportData = 0;
 % Analyze audio data to sync the timing of videos
 do.anaAudioSync = 0;
 
+% Annotate dataset manually
+do.manAnnotate = 0;
+
 % Visualize events for all sequences
 do.visEvents = 0;
 
@@ -19,13 +22,13 @@ do.visSeqs = 0;
 do.summaryPlots = 0;
 
 % Plot data that keeps track of individuals
-do.indivPlots = 0;
+do.indivPlots = 1;
 
-% Annotate dataset manually
-do.manAnnotate = 0;
+% Plot wrt trial number
+do.trialPlot = 0;
 
 % Run statistics
-do.stats = 1;
+do.stats = 0;
 
 % Marker and line colors
 mClr = 0.5.*[1 1 1];
@@ -97,7 +100,8 @@ if do.reImportData || do.anaAudioSync
             seq(j).fps            = T.frame_rate_side(i);
             seq(j).SW_percent     = T.percent_sw(i);
             seq(j).trial          = T.trial_number(i);
-            seq(i).propBounce     = T.prop_bounce(i);
+            seq(j).propBounce     = T.prop_bounce(i);
+            seq(j).SW_tot         = T.tot_sw(i);
             
             % Check experiment type
             if strcmp(seq(j).expType,'c')
@@ -195,6 +199,7 @@ if  do.reImportData || ~isfile([paths.data filesep 'SideDataPooled.mat'])
                 S(iSeq).fps        = cSeq.fps;
                 S(iSeq).trial      = cSeq.trial;
                 S(iSeq).propBounce = cSeq.propBounce;
+                S(iSeq).SW_tot     = cSeq.SW_tot;
 
                 % Copy over coordinates
                 S(iSeq).t       = T.t;
@@ -546,6 +551,11 @@ for i = 1:length(S)
     S(i).t          = Sup(iMatch).t;
     S(i).fps        = Sup(iMatch).fps;
     S(i).propBounce = Sup(iMatch).propBounce;
+    S(i).SW_tot     = Sup(iMatch).SW_tot;
+
+    if isempty(S(i).propBounce)
+        S(i).propBounce = nan;
+    end
 
     % Forward speed
     xSpd = abs(diff(S(i).xS))./diff(S(i).t);
@@ -569,7 +579,7 @@ for i = 1:length(S)
         
         if sum(idx)>3
             % Range in y over bounce
-            yRange(j,1) = max(S(i).yRaw(idx)) - min(S(i).yRaw(idx));
+            yRange(j,1) = max(S(i).yS(idx)) - min(S(i).yS(idx));
             
             % Mean speed over bounce
             meanSpd(j,1) = nanmean(xSpd(idx));
@@ -589,8 +599,8 @@ for i = 1:length(S)
     S(i).crawlSpd           = nanmean(meanSpd(S(i).iCrawl));
     S(i).bounceSpd          = nanmean(meanSpd(~S(i).iCrawl));
     S(i).yBounceAmp         = mean(yRange(~S(i).iCrawl)); 
-    S(i).stepPeriod         = mean(sPeriod);
-    S(i).propBounce         = sum(sPeriod(~S(i).iCrawl)) / range(S(i).t);
+    S(i).stepPeriod         = mean(sPeriod(~S(i).iCrawl));   
+    S(i).propTimeBounce     = sum(sPeriod(~S(i).iCrawl)) / range(S(i).t);
     S(i).meanBouncePeriod   = mean(sPeriod(~S(i).iCrawl));
     S(i).tFirstBounce       = tFirstBounce;
 
@@ -607,7 +617,6 @@ for i = 1:length(S)
 
     clear tEvent yEvent xS yS iCrawl idx yRange meanSpd xSpd sPeriod
 end
-
 
 
 %% Visualize event finding
@@ -740,8 +749,10 @@ for i = 1:length(S)
     meanBPeriod(i,1)    = S(i).meanBouncePeriod; 
     SW_percent(i,1)     = S(i).SW_percent;
     beat_spd(i,1)       = S(i).bounceSpd;
+    crawl_spd(i,1)      = S(i).crawlSpd;
     tFirstB(i,1)        = S(i).tFirstBounce;
     yAmpB(i,1)          = S(i).yBounceAmp;
+    propBounce(i,1)     = S(i).propBounce;
 end
 
 indNums = unique(indiv);
@@ -749,14 +760,11 @@ indNums = unique(indiv);
 
 f = figure;
 
+% Line colors
 lClr = lines(length(indNums));
 
+% Loop thru individuals
 for i = 1:length(indNums)
-    
-    % Placeholder for data
-%     nanPlace       = nan(sum(indiv==indNums(i)),1);
-%     BPeriod_mean   = nanPlace;
-%     BPeriod_std    = nanPlace;
 
     % Index of values for current individual
     iIdx = indiv==indNums(i);
@@ -764,25 +772,29 @@ for i = 1:length(indNums)
     % Unique SW values
     SWs = unique(SW_percent(iIdx));
 
-    
     % Loop thru SW values
     for j = 1:length(SWs)
 
          % Index for current values
          idx = iIdx & SW_percent==SWs(j);
          
-         BPeriod_mean(j)  = nanmean(meanBPeriod(idx));
-         BPeriod_std(j)   = nanstd(meanBPeriod(idx));
-         Bspd_mean(j)     = nanmean(beat_spd(idx));
-         Bspd_std(j)      = nanstd(beat_spd(idx));
-         BtFirst_mean(j)  = nanmean(tFirstB(idx));
-         BtFirst_std(j)   = nanstd(tFirstB(idx));
-         Bamp_mean(j)     = nanmean(yAmpB(idx));
-         Bamp_std(j)      = nanstd(yAmpB(idx));
+         % Log data
+         BPeriod_mean(j)    = nanmean(meanBPeriod(idx));
+         BPeriod_std(j)     = nanstd(meanBPeriod(idx));
+         Bspd_mean(j)       = nanmean(beat_spd(idx));
+         Bspd_std(j)        = nanstd(beat_spd(idx));
+         BtFirst_mean(j)    = nanmean(tFirstB(idx));
+         BtFirst_std(j)     = nanstd(tFirstB(idx));
+         Bamp_mean(j)       = nanmean(yAmpB(idx));
+         Bamp_std(j)        = nanstd(yAmpB(idx));
+         Bcrawlspd_mean(j)  = nanmean(crawl_spd(idx));
+         Bcrawlspd_std(j)   = nanstd(crawl_spd(idx));
+         Bprop_mean(j)      = nanmean(propBounce(idx));
+         Bprop_std(j)       = nanstd(propBounce(idx));
     end
 
     % Bounce period
-    subplot(2,2,1)
+    subplot(3,2,1)
     ePlot(SWs,BPeriod_mean,BPeriod_std,lClr(i,:),lClr(i,:))
     ylabel('Bounce period')
     xlabel('Percent submerged weight')
@@ -791,7 +803,7 @@ for i = 1:length(indNums)
     xlim([40 175])
 
     % Bounce speed
-    subplot(2,2,2)
+    subplot(3,2,2)
     ePlot(SWs,Bspd_mean,Bspd_std,lClr(i,:),lClr(i,:))
     ylabel('Bounce speed (m/s)')
     xlabel('Percent submerged weight')
@@ -800,7 +812,7 @@ for i = 1:length(indNums)
     xlim([40 175])
 
     % Time to first bounce
-    subplot(2,2,3)
+    subplot(3,2,3)
     ePlot(SWs,BtFirst_mean,BtFirst_std,lClr(i,:),lClr(i,:))
     ylabel('Time to first bounce (s)')
     xlabel('Percent submerged weight')
@@ -809,9 +821,27 @@ for i = 1:length(indNums)
     xlim([40 175])
 
     % Boucne amplitude
-    subplot(2,2,4)
+    subplot(3,2,4)
     ePlot(SWs,Bamp_mean,Bamp_std,lClr(i,:),lClr(i,:))
     ylabel('Y Amplitude')
+    xlabel('Percent submerged weight')
+    axis square
+    hold on
+    xlim([40 175])
+
+    % Crawl speed
+    subplot(3,2,5)
+    ePlot(SWs,Bcrawlspd_mean,Bcrawlspd_std,lClr(i,:),lClr(i,:))
+    ylabel('Crawl speed')
+    xlabel('Percent submerged weight')
+    axis square
+    hold on
+    xlim([40 175])
+
+    % Proportion of tube feet
+    subplot(3,2,6)
+    ePlot(SWs,Bprop_mean,Bprop_std,lClr(i,:),lClr(i,:))
+    ylabel('Proportion of feet in pwr stroke')
     xlabel('Percent submerged weight')
     axis square
     hold on
@@ -822,6 +852,131 @@ end
 
 
 end %do.indivPlots
+
+%% Plot effects of trial number
+
+if do.trialPlot
+
+
+if ~exist('S','var')
+    % Load 'S' structure
+    load([paths.data filesep 'SideDataPooled_eventsManual.mat'])
+end
+
+% Loop thru sequences, collect data
+for i = 1:length(S)
+    indiv(i,1)          = S(i).indiv;
+    trial(i,1)          = S(i).trial;
+    meanBPeriod(i,1)    = S(i).meanBouncePeriod; 
+    SW_percent(i,1)     = S(i).SW_percent;
+    beat_spd(i,1)       = S(i).bounceSpd;
+    crawl_spd(i,1)      = S(i).crawlSpd;
+    tFirstB(i,1)        = S(i).tFirstBounce;
+    yAmpB(i,1)          = S(i).yBounceAmp;
+    expType(i,1)        = S(i).expType;
+end
+
+indNums = unique(indiv);
+
+expts = ['f','c','w'];
+
+f = figure;
+lClr = lines(length(trial));
+
+
+% Step trhu individuals
+for i = 1:length(indNums)
+    
+    % Loop thru experiment types
+    for k = 1:3
+
+        % Index of values for current individual
+        iIdx = indiv==indNums(i) & expType==expts(k);
+
+        % Unique trial numbers
+        trials = unique(trial(iIdx));
+
+        % Loop thru trial numbers
+        for j = 1:length(trials)
+
+            % Index for current values
+            idx = iIdx & trial==trials(j);
+
+            BPeriod_mean(j)  = nanmean(meanBPeriod(idx));
+            BPeriod_std(j)   = nanstd(meanBPeriod(idx));
+            Bspd_mean(j)     = nanmean(beat_spd(idx));
+            Bspd_std(j)      = nanstd(beat_spd(idx));
+            BtFirst_mean(j)  = nanmean(tFirstB(idx));
+            BtFirst_std(j)   = nanstd(tFirstB(idx));
+            Bamp_mean(j)     = nanmean(yAmpB(idx));
+            Bamp_std(j)      = nanstd(yAmpB(idx));
+        end
+
+        % Bounce period
+        subplot(4,3,k)
+        ePlot(trials,BPeriod_mean,BPeriod_std,lClr(i,:),lClr(i,:))
+        ylabel('Bounce period')
+        xlabel('Trial number')
+        axis square
+        hold on
+        title([expts(k) ' type experiment'])
+        xlim([0 200])
+        ylim([2 10])
+
+        % Bounce speed
+        subplot(4,3,k+3)
+        ePlot(trials,Bspd_mean,Bspd_std,lClr(i,:),lClr(i,:))
+        ylabel('Bounce speed (m/s)')
+        xlabel('Trial number')
+        axis square
+        hold on
+        xlim([0 200])
+        ylim([0 3.5e-3])
+
+        % Time to first bounce
+        subplot(4,3,k+6)
+        ePlot(trials,BtFirst_mean,BtFirst_std,lClr(i,:),lClr(i,:))
+        ylabel('Time to first bounce (s)')
+        xlabel('Trial number')
+        axis square
+        hold on
+        xlim([0 200])
+        ylim([0 180])
+
+        % Boucne amplitude
+        subplot(4,3,k+9)
+        ePlot(trials,Bamp_mean,Bamp_std,lClr(i,:),lClr(i,:))
+        ylabel('Y Amplitude')
+        xlabel('Trial number')
+        axis square
+        hold on
+        xlim([0 200])
+        ylim([0 2.5e-3])
+
+        clear SWs B*
+    end
+end
+
+if 1
+    figure
+%     subplot(2,2,1)
+    idx = expType=='f';
+    scatter(crawl_spd(idx),beat_spd(idx),50,'b','filled')
+    hold on
+    idx = expType=='c';
+    scatter(crawl_spd(idx),beat_spd(idx),50,'r','filled')
+    idx = expType=='w';
+    scatter(crawl_spd(idx),beat_spd(idx),50,'g','filled')
+    hold off
+    axis equal
+    xlabel('Crawl spd'); ylabel('Bounce Spd')
+    legend('f','c','w')
+end
+
+
+
+end %do.trialPlot
+
 
 
 %% Plots of summary data
@@ -993,23 +1148,62 @@ if do.stats
 % Put data into vectors
 for i = 1:length(S)
 
-    SW(i,1)         = S(i).SW_percent;
-    indiv(i,1)      = S(i).indiv;
-    trial(i,1)      = S(i).trial;
-    propBounce(i,1) = S(i).propBounce;
-    stepPeriod(i,1) = S(i).stepPeriod;
+    SW(i,1)             = S(i).SW_percent;
+    SW_tot(i,1)         = S(i).SW_tot;
+    indiv(i,1)          = S(i).indiv;
+    trial(i,1)          = S(i).trial;
+    propFtBounce(i,1)   = S(i).propBounce;
+    propTimeBounce(i,1) = S(i).propTimeBounce;
+    stepPeriod(i,1)     = S(i).stepPeriod;
+    bounceSpd(i,1)      = S(i).bounceSpd;
+    crawlSpd(i,1)       = S(i).crawlSpd;
+    tBounce(i,1)        = S(i).tFirstBounce;
+    bounceAmp(i,1)      = S(i).yBounceAmp;
 end
 
-glme = mixedModel(stepPeriod,SW,trial,indiv,'Step_period','SW_percent');
+disp('-------------------------------------------------------------------')
+disp('STEP PERIOD -------------------------------------------------------')
+disp('-------------------------------------------------------------------')
+idx = indiv>1;
+glme = mixedModel(stepPeriod,SW,SW_tot,trial,indiv,'Step_period',...
+                  'SW_percent','SW_tot');
 
-glme
+disp('-------------------------------------------------------------------')
+disp('BOUNCE SPEED ------------------------------------------------------')
+disp('-------------------------------------------------------------------')
+glme = mixedModel(bounceSpd,SW,SW_tot,trial,indiv,'Bounce_spd','SW_percent','SW_tot');
+
+disp('-------------------------------------------------------------------')
+disp('CRAWL SPEED -------------------------------------------------------')
+disp('-------------------------------------------------------------------')
+glme = mixedModel(crawlSpd,SW,SW_tot,trial,indiv,'Crawl_spd','SW_percent','SW_tot');
+
+disp('-------------------------------------------------------------------')
+disp('TIME TO FIRST BOUNCE ----------------------------------------------')
+disp('-------------------------------------------------------------------')
+glme = mixedModel(stepPeriod,SW,SW_tot,trial,indiv,'tFirst_bounce','SW_percent','SW_tot');
+
+disp('-------------------------------------------------------------------')
+disp('BOUNCE AMPLITUDE --------------------------------------------------')
+disp('-------------------------------------------------------------------')
+glme = mixedModel(bounceAmp,SW,SW_tot,trial,indiv,'Bounce_amp','SW_percent','SW_tot');
+
+disp('-------------------------------------------------------------------')
+disp('PROPORTION OF FEET IN BOUNCES -------------------------------------')
+disp('-------------------------------------------------------------------')
+idx = ~isnan(propFtBounce);
+glme = mixedModel(propFtBounce(idx),SW(idx),SW_tot(idx),trial(idx),indiv(idx),'Prop_feet',...
+    'SW_percent','SW_tot');
+
+
+
 
 end %stats
 
 %% FUNCTIONS --------------------------------------
 
 
-function glme = mixedModel(Y,X1,trial,indiv_num,Yname,X1name)
+function glme = mixedModel(Y,X1,X2,trial,indiv_num,Yname,X1name,X2name)
 % Runs a generalized linear mixed-effects model
 % Y is the dependent variale
 % X1 is a continuous independent variable
@@ -1028,30 +1222,56 @@ end
 % trial = categorical(trial);
 indiv = categorical(indiv);
 
-% Table with data
+% Table with data (2 independent continuous variables_
+%tbl = table(Y,X1,X2,trial,indiv, 'VariableNames',{Yname,X1name,X2name,'trial','indiv'});
+
 tbl = table(Y,X1,trial,indiv, 'VariableNames',{Yname,X1name,'trial','indiv'});
 
+
 % Model in Wilkinson notation
+% modelspec = [Yname ' ~ 1 + ' X1name '+' X2name ' + trial + (1|indiv)'];
 modelspec = [Yname ' ~ 1 + ' X1name ' + trial + (1|indiv)'];
 
 % Run generalized linear mixed-effects model
 glme = fitglme(tbl,modelspec,'Distribution','normal');
-    
-ttt = 3;
+
+disp(glme)
+
+
+
+
 
 function ePlot(xVal,mVal,sVal,mClr,lClr)
 
-errorbar(xVal,mVal,sVal,sVal,'Color',lClr)
+eAlpha = 0.2;
+lAlpha = 1;
+
+for i = 1:length(xVal)
+    h(i) = line(xVal(i).*[1 1],[mVal(i)-sVal(i) mVal(i)+sVal(i)],...
+            'Color',[lClr eAlpha],'LineWidth',3);
+    hold on
+end
+% h = errorbar(xVal,mVal,sVal,sVal,'Color',lClr);
+% set(h,'LineStyle','none')
 hold on
-h = scatter(xVal,mVal,50,mClr,'MarkerFaceColor',mClr,...
-    'MarkerEdgeColor',lClr);
+h = scatter(xVal,mVal,65,mClr,'MarkerFaceColor',mClr,...
+    'MarkerEdgeColor','w');
 hold off
 
+c = polyfit(xVal,mVal,1);
+
+line([min(xVal) max(xVal)],polyval(c,[min(xVal) max(xVal)]),...
+    'Color',[lClr lAlpha],'LineWidth',2);
+
 % Set x-axis
-xL = xlim;
-xlim([xL(1)-0.1*range(xL) xL(2)+0.1*range(xL)])
+% xL = xlim;
+% xlim([xL(1)-0.1*range(xL) xL(2)+0.1*range(xL)])
 
 set(gca,'TickDir','out')
+
+
+
+
 
 
 function [xRot,yRot] = rotCoords(xRaw,yRaw)
