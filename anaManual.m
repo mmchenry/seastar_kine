@@ -168,8 +168,10 @@ if length(Body.frames) ~= length(H.frames) || ...
     error('Frame vectors do not match up')
 end
 
+% Translate tip and base points into local FOR
 H = addLocalFeet(H,Body.xCntr,Body.yCntr,Body.Rotation.rot_ang);
 
+% Visualize feet onto video frames
 visBotCoords(paths,seq,H,Body,iC)
 
 
@@ -284,97 +286,83 @@ function H = addLocalFeet(H,xCntr,yCntr,ang)
 % Loop thru tube feet
 for k = 1:length(H.ft)
 
-    % Loop trhu frames
-    for j = 1:length(H.frames)
+    % Fill out fields with nans
+    H.ft(k).xBaseL = nan(length(H.frames),1);
+    H.ft(k).yBaseL = nan(length(H.frames),1);
+    H.ft(k).xTipL  = nan(length(H.frames),1);
+    H.ft(k).yTipL  = nan(length(H.frames),1);
 
-        %         % Index for current frame for manual data
-        %         iH = find(H.frames==frames(j),1,'first');
-        %
-        %         % Transfer data
-        %         S.ft(k).xBase(j,1)   = H.ft(k).xBase(iH);
-        %         S.ft(k).yBase(j,1)   = H.ft(k).yBase(iH);
-        %
-        % If base point is a nan . . .
-        if isnan(H.ft(k).xBase(j))
+    % Index of non-nan frames
+    iFrame = find(~isnan(H.ft(k).xBase));
 
-            H.ft(k).xBaseL(j,1)  = nan;
-            H.ft(k).yBaseL(j,1)  = nan;
-            %             S.ft(k).xBaseLT(j,1) = nan;
-            %             S.ft(k).yBaseLT(j,1) = nan;
-            %
-            % If there is a tip point
-        else
-            %
-            % Current origin
-            cOrigin = [xCntr(j) yCntr(j)];
+    % Loop trhu frames for the base coordinates
+    for j = 1:length(iFrame)
 
-            % Current base point
-            baseG = [H.ft(k).xBase(j) H.ft(k).yBase(j)];
+        % Current origin
+        cOrigin = [xCntr(iFrame(j)) yCntr(iFrame(j))];
 
-            %             % Base points in trajectory FOR
-            %             baseT = transCoord2d('xax G2L',S.pStart,S.pEnd,baseG);
+        % Current base point
+        baseG = [H.ft(k).xBase(iFrame(j)) H.ft(k).yBase(iFrame(j))];
 
-            % Local base point
-            baseL = transCoord2d('ang G2L',cOrigin,-ang(j)/180*pi,baseG);
+        %             % Base points in trajectory FOR
+        %             baseT = transCoord2d('xax G2L',S.pStart,S.pEnd,baseG);
 
-            % Local tip point wrt traj
-            %             baseLT = transCoord2d('ang G2L',[0 0],meanAng,baseL);
+        % Local base point
+        baseL = transCoord2d('ang G2L',cOrigin,-ang(iFrame(j))/180*pi,baseG);
 
-            % Store local coordinates
-            H.ft(k).xBaseL(j,1)   = baseL(1);
-            H.ft(k).yBaseL(j,1)   = baseL(2);
-            %             S.ft(k).xBaseT(j,1)   = baseT(1);
-            %             S.ft(k).yBaseT(j,1)   = baseT(2);
-            %             S.ft(k).xBaseLT(j,1)  = baseLT(1);
-            %             S.ft(k).yBaseLT(j,1)  = baseLT(2);
-            %
-            %             clear baseL baseLT
-        end
+        % Local tip point wrt traj
+        %             baseLT = transCoord2d('ang G2L',[0 0],meanAng,baseL);
+
+        % Store local coordinates for base
+        H.ft(k).xBaseL(iFrame(j),1)   = baseL(1);
+        H.ft(k).yBaseL(iFrame(j),1)   = baseL(2);
+        %             S.ft(k).xBaseT(j,1)   = baseT(1);
+        %             S.ft(k).yBaseT(j,1)   = baseT(2);
+        %             S.ft(k).xBaseLT(j,1)  = baseLT(1);
+        %             S.ft(k).yBaseLT(j,1)  = baseLT(2);
+
+    end % j loop
+
+    % Index of non-nan frames
+    iFrame = find(~isnan(H.ft(k).xTip));
+
+    % Loop trhu frames for the tip coordinates
+    for j = 1:length(iFrame)
+
         %
         %         % Transfer data
         %         S.ft(k).xTip(j,1)    = H.ft(k).xTip(iH);
         %         S.ft(k).yTip(j,1)    = H.ft(k).yTip(iH);
 
-        % If tip point is a nan . . .
-        if isnan(H.ft(k).xTip(j))
-            %
-            S.ft(k).xTipL(j,1)   = nan;
-            S.ft(k).yTipL(j,1)   = nan;
-            % %             S.ft(k).xTipLT(j,1)  = nan;
-            % %             S.ft(k).yTipLT(j,1)  = nan;
-            %
-            % If there is a tip point
-        elseif ~isnan(H.ft(k).xTip(j))
 
-            % Current origin
-            cOrigin = [xCntr(j) yCntr(j)];
+        % Current origin
+        cOrigin = [xCntr(iFrame(j)) yCntr(iFrame(j))];
 
-            % Current tip point
-            tipG = [H.ft(k).xTip(j) H.ft(k).yTip(j)];
+        % Current tip point
+        tipG = [H.ft(k).xTip(iFrame(j)) H.ft(k).yTip(iFrame(j))];
 
-            % Local tip point
-            %tipL = G2L(cOrigin,-S.ang(j)/180*pi,tipG);
-            tipL = transCoord2d('ang G2L',cOrigin,-ang(j)/180*pi,tipG);
+        % Local tip point
+        %tipL = G2L(cOrigin,-S.ang(iFrame(j))/180*pi,tipG);
+        tipL = transCoord2d('ang G2L',cOrigin,-ang(iFrame(j))/180*pi,tipG);
 
-            %             % Tip points in trajectory FOR
-            %             tipT = transCoord2d('xax G2L',S.pStart,S.pEnd,tipG);
-            %
-            %             % Local tip point wrt traj
-            %             tipLT = transCoord2d('ang G2L',[0 0],meanAng,tipL);
+        %             % Tip points in trajectory FOR
+        %             tipT = transCoord2d('xax G2L',S.pStart,S.pEnd,tipG);
+        %
+        %             % Local tip point wrt traj
+        %             tipLT = transCoord2d('ang G2L',[0 0],meanAng,tipL);
 
 
-            % Store local coordinates
-            H.ft(k).xTipL(j,1)    = tipL(1);
-            H.ft(k).yTipL(j,1)    = tipL(2);
-            %             S.ft(k).xTipT(j,1)    = tipT(1);
-            %             S.ft(k).yTipT(j,1)    = tipT(2);
-            %             S.ft(k).xTipLT(j,1)   = tipLT(1);
-            %             S.ft(k).yTipLT(j,1)   = tipLT(2);
+        % Store local coordinates
+        H.ft(k).xTipL(iFrame(j),1)    = tipL(1);
+        H.ft(k).yTipL(iFrame(j),1)    = tipL(2);
+        %             S.ft(k).xTipT(iFrame(j),1)    = tipT(1);
+        %             S.ft(k).yTipT(iFrame(j),1)    = tipT(2);
+        %             S.ft(k).xTipLT(iFrame(j),1)   = tipLT(1);
+        %             S.ft(k).yTipLT(iFrame(j),1)   = tipLT(2);
 
-            clear tipL tipG tipLT
-        end
+        clear tipL tipG tipLT
 
-    end
+    end % j loop
 end
 
 % FILL OUT BASE COORDINATES FROM LOCAL COORDINATES --------------------
@@ -384,9 +372,6 @@ for j = 1:length(H.ft)
 
     % Loop trhu frames
 %     for j = 1:length(H.frames)
-
-
-
 
         % Find indicies for contact and release
         H.ft(j).iStart = find(~isnan(H.ft(j).xTip),1,'first');
@@ -421,7 +406,7 @@ for j = 1:length(H.ft)
 
                     % Calcuate the global position of the base
                     %baseG = G2L(cOrigin,-H.ang(k)/180*pi,baseL);
-                    baseG = transCoord2d('ang L2G',cOrigin,-ang(j)/180*pi,baseL);
+                    baseG = transCoord2d('ang L2G',cOrigin,-ang(k)/180*pi,baseL);
 
                     % Overwrite the global position
                     H.ft(j).xBase(k,1)   = baseG(1);
@@ -435,7 +420,7 @@ for j = 1:length(H.ft)
                 end
             end
 
-            % If no base point . . .
+        % If no base point . . .
         elseif sum(~isnan(H.ft(j).xTip))>0
             warning(['    Foot ' num2str(j) ' in does not have a base, ' ...
                 'but does have tip coordinates'])
