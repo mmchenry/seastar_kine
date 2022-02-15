@@ -7,7 +7,7 @@ function anaSide
 do.reImportData = 0;
 
 % Analyze audio data to sync the timing of videos
-do.anaAudioSync = 0;
+do.anaAudioSync = 1;
 
 % Annotate dataset manually
 do.manAnnotate = 0;
@@ -22,7 +22,7 @@ do.visSeqs = 0;
 do.summaryPlots = 0;
 
 % Plot data that keeps track of individuals
-do.indivPlots = 1;
+do.indivPlots = 0;
 
 % Plot wrt trial number
 do.trialPlot = 0;
@@ -98,6 +98,7 @@ if do.reImportData || do.anaAudioSync
             seq(j).bodyMass       = T.body_mass(i);
             seq(j).calConst       = T.cal_side(i);
             seq(j).fps            = T.frame_rate_side(i);
+            seq(j).fps_bot        = T.frame_rate_bottom(i);
             seq(j).SW_percent     = T.percent_sw(i);
             seq(j).trial          = T.trial_number(i);
             seq(j).propBounce     = T.prop_bounce(i);
@@ -246,6 +247,7 @@ end
 %% Analyze audio sync
 
 if do.anaAudioSync
+    
 % Loop thru sequences to be analyzed
 for i = 1:length(seq)
     
@@ -259,6 +261,8 @@ for i = 1:length(seq)
     dPath_save = [paths.data filesep seq(i).dirName filesep ...
         'bottom' filesep 'matlabData2021' filesep seq(i).fName_bot];
 
+    
+
     % Update status
     disp(['Analyzing audio sync for ' seq(i).fName_side ' and ' seq(i).fName_bot])
     
@@ -268,6 +272,109 @@ for i = 1:length(seq)
     % Store results
     aud.delay = delay;
     aud.info  = info;
+
+    % Number of points to trim from edges
+    eTrim = 30;
+
+    % Load body data (Body)
+    load([paths.data filesep seq(i).dirName filesep 'bottom' filesep ...
+        'matlabData2021' filesep seq(i).fName_bot filesep 'Body.mat'])
+
+    % Load side kinematics data (S)
+    load([paths.data filesep 'SideDataPooled_eventsManual2.mat']);
+
+    % Find matching data from compiled side data
+    iMatch = nan;
+    for j = 1:length(S)
+
+        if strcmp(S(j).fName_bot,seq(i).fName_bot)
+            iMatch = j;
+            break
+        end
+    end
+
+    % Check index
+    if isnan(iMatch), error('No match in the compiled side view data'); end
+
+    % Extract current S
+    S = S(iMatch);
+
+    %
+    t_B = (Body.frames'-min(Body.frames)) ./ seq(i).fps_bot ;
+    t_S = S.t-min(S.t) + aud.delay;
+
+    % Extract x-values, smooth
+    x_S = smooth(S.xRaw - min(S.xRaw),50);
+    x_B = smooth(Body.xCntr - min(Body.xCntr),50);
+
+    % Trim edges
+    t_B   = t_B(eTrim:(end-eTrim));
+    t_S   = t_S(eTrim:(end-eTrim));
+    x_B   = x_B(eTrim:(end-eTrim));
+    x_S   = x_S(eTrim:(end-eTrim));
+
+    % Adjust starting position
+    x_B  = x_B - x_B(1);
+    x_S  = x_S - x_S(1);
+
+    % Trim data wrt time
+    tMin    = max([min(t_B) min(t_S)]);
+    tMax    = min([max(t_B) max(t_S)]);
+    iB      = t_B>=tMin & t_B<=tMax;
+    iS      = t_S>=tMin & t_S<=tMax;
+    t_B     = t_B(iB);
+    t_S     = t_S(iS);
+    x_B     = x_B(iB);
+    x_S     = x_S(iS);
+
+    % Resample data by interpolation
+    if seq(i).fps > seq(i).fps_bot
+        x_B = interp1(t_B,x_B,t_S);
+        t = t_S;
+        fps = seq(i).fps;
+    elseif seq(i).fps < seq(i).fps_bot
+        x_S = interp1(t_S,x_S,t_B);
+        t = t_B;
+        fps = seq(i).fps_bot;
+    end
+    clear t_B t_S tMin tMax iB iS
+
+    % Check lengths
+    if length(x_S)~=length(x_B)
+        error('These should be equal here')
+    end
+
+    % Normalize by range
+    x_S = x_S ./range(x_S);
+    x_B = x_B ./ range(x_B);
+
+    % Find derivative
+    s_S = diff(x_S)./diff(t);
+    s_B = diff(x_B)./diff(t);
+
+    % Normalize speeds
+    s_S = (s_S-min(s_S)) ./ range(s_S);
+    s_B = (s_B-min(s_B)) ./ range(s_B);
+
+    [C,lags] = xcorr(s_B,s_S);
+
+    iMax = find(C==max(C),1,'first');
+    lag = lags(iMax)./fps;
+
+    % Add lag to delay
+    aud.delay = delay + lag;
+
+    if 0
+        figure
+        subplot(2,1,1)
+        plot(t+lag,x_S,'-',t,x_B,'-')
+        grid on
+        subplot(2,1,2)
+        plot(t(2:end)+lag,s_S,'-',t(2:end),s_B,'-')
+        grid on
+
+        ttt = 3;
+    end
 
     % Report info on audio
     disp(['     ' info])
@@ -284,6 +391,7 @@ for i = 1:length(seq)
     save([dPath_save filesep 'audio_delay'],'aud');   
     save([dPath_save filesep 'frame_rate'],'frRate');   
 end
+
 end %do.anaAudioSync
 
 
@@ -525,11 +633,14 @@ end %manAnnotate
 
 %% Calculate bounce kinematics
 
+% Run this code, if it hasn't been already
+if ~isfile([paths.data filesep 'SideDataPooled_eventsManual2.mat'])
+
 % Load S 
 load([paths.data filesep 'SideDataPooled.mat'])
 Sup = S;
 clear S
-    
+   
 % Load 'S' structure
 load([paths.data filesep 'SideDataPooled_eventsManual.mat'])
 
@@ -577,14 +688,17 @@ for i = 1:length(S)
             idx = (S(i).t>S(i).tLand(j-1)) & (S(i).t<=S(i).tLand(j));
         end
         
+        % If the interval has sufficient duration . . .
         if sum(idx)>3
             % Range in y over bounce
             yRange(j,1) = max(S(i).yS(idx)) - min(S(i).yS(idx));
             
             % Mean speed over bounce
             meanSpd(j,1) = nanmean(xSpd(idx));
+
+        % Skip, if too short
         else
-            yRange(j,1) = 0;
+            yRange(j,1)  = 0;
             meanSpd(j,1) = nan;
         end        
     end
@@ -618,6 +732,16 @@ for i = 1:length(S)
     clear tEvent yEvent xS yS iCrawl idx yRange meanSpd xSpd sPeriod
 end
 
+% Save S
+save([paths.data filesep 'SideDataPooled_eventsManual2.mat'],'S')
+
+else
+
+% Load S structure
+load([paths.data filesep 'SideDataPooled_eventsManual2.mat'])
+
+end
+
 
 %% Visualize event finding
 
@@ -627,7 +751,7 @@ if do.visEvents
     
     if ~exist('S','var')
         % Load 'S' structure
-        load([paths.data filesep 'SideDataPooled_eventsManual.mat'])
+        load([paths.data filesep 'SideDataPooled_eventsManual2.mat'])
     end
     
     % Figure parameters
@@ -677,7 +801,7 @@ if do.visSeqs
     
     if ~exist('S','var')
         % Load 'S' structure
-        load([paths.data filesep 'SideDataPooled_eventsManual.mat'])
+        load([paths.data filesep 'SideDataPooled_eventsManual2.mat'])
     end
 
     % Acceptable deviation from bounce amplitude and period
@@ -739,7 +863,7 @@ if do.indivPlots
     
 if ~exist('S','var')
     % Load 'S' structure
-    load([paths.data filesep 'SideDataPooled_eventsManual.mat'])
+    load([paths.data filesep 'SideDataPooled_eventsManual2.mat'])
 end
 
 % Loop thru sequences, collect data
@@ -860,7 +984,7 @@ if do.trialPlot
 
 if ~exist('S','var')
     % Load 'S' structure
-    load([paths.data filesep 'SideDataPooled_eventsManual.mat'])
+    load([paths.data filesep 'SideDataPooled_eventsManual2.mat'])
 end
 
 % Loop thru sequences, collect data
@@ -985,7 +1109,7 @@ if do.summaryPlots
     
     if ~exist('S','var')
         % Load 'S' structure
-        load([paths.data filesep 'SideDataPooled_eventsManual.mat'])
+        load([paths.data filesep 'SideDataPooled_eventsManual2.mat'])
     end
     
     bouncePeriod = [];

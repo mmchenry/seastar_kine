@@ -1,5 +1,15 @@
 function F = anaManual(seq,S,H,aud,Body,iC)
 % Analyzes manually collected data
+% Running without inputs ('anaManual' at the command line) executes batchMode, 
+% which attempts to analyze all
+% sequences where ana_video==1 from Weights_experiments.xlsx.
+%
+% The analysis of individual sequences draws from the audio syncing data,
+% bottom manual data, initial conditions, and body data (from automated
+% tracking) to do a 3D reconstrcution of the kinematics of individual tube
+% feet
+
+% TODO: Finish 3D reconstruction code
 
 
 %% Define mode
@@ -18,6 +28,11 @@ end
 paths = givePaths;
 
 set(0,'DefaultFigureWindowStyle','docked')
+
+%% Execution control
+
+% Animate the manually-selected bottom-view data on video frames
+do.visBottom = 0;
 
 
 %% Read data from catalog spreadsheet
@@ -67,6 +82,7 @@ for i = 1:length(T.date)
         seq(j).floatNum       = T.float_num(i);
         seq(j).bodyMass       = T.body_mass(i);
         seq(j).calConst       = T.cal_side(i);
+%         seq(j).calConst_bot   = T.cal_bottom(i); % Note: do not use this cal constant
         seq(j).fps_side       = T.frame_rate_side(i);
         seq(j).fps_bot        = T.frame_rate_bottom(i);
         seq(j).SW_percent     = T.percent_sw(i);
@@ -101,7 +117,10 @@ end % Batch mode
 if batchMode
 
 % Load side kinematics data (S)
-load([paths.data filesep 'SideDataPooled.mat'])
+% load([paths.data filesep 'SideDataPooled.mat'])
+load([paths.data filesep 'SideDataPooled_eventsManual2.mat']);
+
+disp('Batch mode --------------')
 
 % Loop thru sequences
 for i = 1:length(seq)
@@ -141,75 +160,270 @@ for i = 1:length(seq)
 
     % Run present function
     F(i) = anaManual(seq(i),S(iMatch),H,aud,Body,iC);
+
+    disp(['    Done ' num2str(i) ' of ' num2str(length(seq))])
 end
+
+% Save data 
+save([paths.data filesep 'footData.mat'],'F')
+
+F = [];
 
 end % batchMode
 
+%% Visualize bottom data
 
-%% Load data
-
-% Run for single sequence
-if ~batchMode
-
-% Time vectors, taking audio sync into account
-t_B = (H.frames-min(H.frames)) ./ seq.fps_bot;
-t_S = S.t-min(S.t) + aud.delay;
-
-% Side view coordinates
-xSide  = S.xRaw;
-zSide  = S.yRaw;
-
-%TODO: coordinate transform side coordinates 
-
-% Check for matching frame vectors
-if length(Body.frames) ~= length(H.frames) || ...
-          Body.frames(1)~=H.frames(1) || ...
-          Body.frames(end)~=H.frames(end)       
-    error('Frame vectors do not match up')
-end
-
-% Translate tip and base points into local FOR
+if do.visBottom
+% Translate tip and base points into local and global FOR
 H = addLocalFeet(H,Body.xCntr,Body.yCntr,Body.Rotation.rot_ang);
 
 % Visualize feet onto video frames
 visBotCoords(paths,seq,H,Body,iC)
 
+end %do.visBottom
 
 
-ttt=3;
+%% Calculate podium length and angle
 
-return
+% Run for single sequence
+if ~batchMode
 
+visCheck = 0;
 
-% Loop thru feet
+% Number of points to trim from edges for range calibration
+eTrim = 30;
+
+% Time vectors, taking audio sync and kinematics cross-correlation into account
+t_B = (H.frames'-min(H.frames)) ./ seq.fps_bot;
+t_S = S.t-min(S.t) + aud.delay;
+
+% Check for matching frame vectors
+if length(Body.frames) ~= length(H.frames) || ...
+          Body.frames(1)~=H.frames(1) || ...
+          Body.frames(end)~=H.frames(end)       
+    error('Frame vectors do not match up between body and tube feet')
+end
+
+% Adjust scaling of coordinates 
+tMin        = max([min(t_B(2:end))+eTrim/seq.fps_bot ...
+                   min(t_S)+eTrim/seq.fps_side]);
+tMax        = min([max(t_B)-eTrim/seq.fps_bot ...
+                   max(t_S)-eTrim/seq.fps_side]);
+iB          = t_B>tMin & t_B<tMax;
+iS          = t_S>tMin & t_S<tMax;
+x_B         = Body.xCntr;
+x_S         = S.xRaw;
+
+% Range calibration 
+rangeCal = range(x_S(iS)) / range(x_B(iB));
+
+% Visual check on x-axis from two dimensions
+if 0
+    % Zero wrt minumum values
+    x_B = smooth(x_B(iB)-min(x_B(iB)),50).*rangeCal;
+    x_S = smooth(x_S(iS)-min(x_S(iS)),50);
+
+    % Zero wrt minumum values
+    s_B = diff(x_B)./diff(t_B(t_B>tMin & t_B<tMax));
+    s_S = diff(x_S)./diff(t_S(t_S>tMin & t_S<tMax));
+    ts_B    = t_B(iB);
+    ts_S    = t_S(iS);
+    ts_B    = ts_B(2:end);
+    ts_S    = ts_S(2:end);
+
+    figure
+    subplot(2,1,1)
+    plot(t_B(t_B>tMin & t_B<tMax),x_B,'-',...
+         t_S(t_S>tMin & t_S<tMax),x_S,'-')
+    title('raw')
+    grid on
+    subplot(2,1,2)
+    plot(ts_B,s_B,'-',ts_S,s_S,'-')
+    ylabel('Speeds')
+    grid on
+end
+
+% Restate the timing of landmarks
+tLand = S.tLand-min(S.t) + aud.delay;
+
+% Side view coordinates
+xSide  = S.xRaw ./ S.calConst;
+zSide  = S.yRaw ./ S.calConst;
+
+% Translate tip and base points into local and global FOR
+H = addLocalFeet(H,Body.xCntr,Body.yCntr,Body.Rotation.rot_ang);
+
+% Make figure windows
+if visCheck
+    f1 = figure;
+    f2 = figure;
+    f3 = figure;
+end
+
+% Extract the range of indicies for the power stroke among all tube feet
+iStart = inf; iEnd = 0;
+for i = 1:length(H.ft)  
+    if H.ft(i).iStart<iStart
+        iStart = H.ft(i).iStart;
+    end
+    if H.ft(i).iEnd>iEnd
+        iEnd = H.ft(i).iEnd;
+    end
+end
+
+% Index for side-view kinematics that span the power strokes
+iS_s = t_S >= tLand(find(tLand<t_B(iStart),1,'last')) & ...
+       t_S <= tLand(find(tLand>t_B(iEnd),1,'first'));
+
+% Restate z-coordinates relative to current power stroke
+zSide = zSide - nanmin(zSide(iS_s));
+
+% Store in F
+F            = H;
+F.rangeCal   = rangeCal;
+F.calConst_s = S.calConst;
+F.seq        = seq;
+
+% Loop thru feet, each with one pwr stroke
 for i = 1:length(H.ft)
-    
-    % Current foot coordinates
-    xBase = H.ft(i).xBase;
-    yBase = H.ft(i).yBase;
-    xTip  = H.ft(i).xTip;
-    yTip  = H.ft(i).yTip;
 
-    % Index for power stroke
-    iPwr = ~isnan(xTip);
-
-    % Identify multiple power strokes
+    % Flag if there are multiple power strokes
+    iPwr = find(~isnan(H.ft(i).xTip));
     if max(diff(find(iPwr)))>1
         error('multiple power strokes for this foot')
     end
 
-    ttt = 3;
+    % Index for power stroke in bottom view
+    iB = H.ft(i).iStart:H.ft(i).iEnd;
 
-    %TODO: Use linear interpolation to match the foot and side coordinate data 
+    % Index for power stroke in side view
+    iS = t_S>=t_B(H.ft(i).iStart) & t_S<=t_B(H.ft(i).iEnd);
+
+    % Time values for current pwr stroke
+    tPwr = t_B(iB);
+
+    % Current foot coordinates
+    xBase = H.ft(i).xBase(iB) .* rangeCal/S.calConst;
+    yBase = H.ft(i).yBase(iB) .* rangeCal/S.calConst;
+    xTip  = H.ft(i).xTip(iB)  .* rangeCal/S.calConst;
+    yTip  = H.ft(i).yTip(iB)  .* rangeCal/S.calConst;
+
+    % Interpolate wrt time to get z-coordinates for foot
+    zTip  = 0.*yTip; 
+    zBase = interp1(t_S,zSide,tPwr);
+
+    % Restate coordinates, using tip coordinates as origin
+    origin = [mean(xTip) mean(yTip)];
+
+    % Transform coords relative to the plane of the power stroke
+    c      = polyfit(xBase,yBase,1);
+    xL     = max([range(xBase) range(yBase)])/2;
+    xaxis  = [origin(1)+xL c(1)*(origin(1)+xL)+(origin(2)-c(1)*origin(1))];
+    C      = defineSystem2d('x-axis',origin,xaxis);
+    coordL = transCoord2d('G2L',C.tform,[xBase yBase]);
+    xBaseL = coordL(:,1);
+    yBaseL = coordL(:,2);
     
-    % Find body-coordinate transformation code to find base coordinates for
-    % the whole power stroke
+     % Podium length
+    pod_len = hypot(xBaseL,yBaseL);
 
+    % Podium angle
+    theta = atan2(zBase,xBaseL);
+
+    if visCheck
+
+        figure(f1);
+
+        subplot(3,2,1)
+        plot(xBase,yBase,'ko',xBase,polyval(c,xBase),'r-',...
+             origin(1),origin(2),'r+',xaxis(1),xaxis(2),'go')
+        xlabel('xG');ylabel('yG')
+        axis equal
+
+        subplot(3,2,2)
+        plot3(xBaseL,yBaseL,zBase,'ko')
+        hold on
+        for j = 1:length(xBaseL)
+            plot3([0 xBaseL(j)],[0 yBaseL(j)],[0 zBase(j)],'k-')
+        end
+        axis equal
+        xlabel('X_L');ylabel('Y_L');zlabel('Z_L')
+        view([0 0])
+        hold off
+
+        subplot(3,2,[3:4])
+        plot(tPwr,pod_len,'-')
+        xlabel('t');ylabel('pod len');
+
+        subplot(3,2,[5:6])
+        plot(tPwr,theta.*180/pi,'-')
+        xlabel('t');ylabel('\theta');
+
+        figure(f2)
+        subplot(2,1,1)
+        plot3(xBase,yBase,zBase,'ko')
+        hold on
+        for j = 1:length(xBaseL)
+            plot3([origin(1) xBase(j)],[origin(2) yBase(j)],[0 zBase(j)],'k-')
+        end
+        axis equal
+        xlabel('X_L');ylabel('Y_L');zlabel('Z_L')
+        title('raw-ish')
+        grid on
+        hold off
+
+        subplot(2,1,2)
+        plot3(xBaseL,yBaseL,zBase,'ko')
+        hold on
+        for j = 1:length(xBaseL)
+            plot3([0 xBaseL(j)],[0 yBaseL(j)],[0 zBase(j)],'k-')
+        end
+        axis equal
+        xlabel('X_L');ylabel('Y_L');zlabel('Z_L')
+        title('transformed')
+        grid on
+        hold off
+
+        figure(f3)
+        subplot(4,1,1)
+        plot(t_S,xSide,'k',t_S(iS),xSide(iS),'r-',...
+             t_S(find(iS,1,'first')),xSide(find(iS,1,'first')),'r+',...
+             t_S(find(iS,1,'last')),xSide(find(iS,1,'last')),'r+')
+        xlabel('t');ylabel('X')
+
+        subplot(4,1,2)
+        plot(tPwr,xBase-min(xBase),'b',t_S(iS),xSide(iS)-min(xSide(iS)),'r')
+        xlabel('t');ylabel('X')
+        legend('manual','dlc')
+
+        subplot(4,1,3)
+        plot(t_S,zSide,'k',t_S(iS),zSide(iS),'r-',...
+             t_S(find(iS,1,'first')),zSide(find(iS,1,'first')),'r+',...
+             t_S(find(iS,1,'last')),zSide(find(iS,1,'last')),'r+')
+        xlabel('t');ylabel('Z')
+
+        subplot(4,1,4)
+        plot(tPwr,zBase,'b',t_S(iS),zSide(iS),'r')
+        xlabel('t');ylabel('Z')
+    end
+
+    clear coordL tform xaxis c C
+
+    % Store results
+    F.ftL(i).xBase      = xBaseL;
+    F.ftL(i).yBase      = yBaseL;
+    F.ftL(i).zBase      = zBase;
+    F.ftL(i).theta      = theta;
+    F.ftL(i).pod_len    = pod_len;
 end
 
-ttt = 3;
+% Save new version of 'H'
+% disp(' ')
+% disp(['Saving tube foot length and angle data for ' seq.fName_bot])
+% save([paths.data filesep seq.dirName filesep 'bottom' filesep ...
+%         'matlabData2021' filesep seq.fName_bot filesep 'ManualFootData_len_ang.mat'],'H')
 
-end %for
+end %if ~batchMode
 
 
 end %anaManual

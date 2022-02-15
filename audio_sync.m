@@ -132,7 +132,7 @@ end
 if delay>0
     info = ['Bottom follows Side by ' num2str(delay) ' s'];
 else
-    info = ['Side follows Bottom by ' num2str(-delay) ' s'];
+    info = ['Side follows Bottom by ' num2str(delay) ' s'];
 end
 
 % VISUALIZE RESULTS ---------------------------------------------------
@@ -152,8 +152,8 @@ if plot_data
 
 
     subplot(2,1,2)
-    plot(t,y(:,1),'-',...
-        t-delay,y(:,2),'-');
+    plot(t+delay,y(:,1),'-',...
+        t,y(:,2),'-');
     xlabel('t (s)')
     ylabel('Audio intensity');
     title('Corrected for delay')

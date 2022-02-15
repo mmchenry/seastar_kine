@@ -1,0 +1,7 @@
+2022-02-08: Fixed a bug in anaManual that was messing up the position of the foot base coordinates
+
+2022-02-09: Made progress on calculating podium length and angle in anaManual. Made additions to anaSide so that it now saves the latest version of the side view to 'SideDataPooled_eventsManual2.mat'.
+
+2022-02-10: Continued progress working with anaManual on tube foot length and angle.  Should require one more round.  Need to make sure that the spatial calibration from the two perspectives match.  I plan to do this by comparing the displacement of the animal from the two views along the x-axis.
+
+2022-02-15: Syncing and 3D reconstruction look good. Need to run anaSide on all sequences before running anaManual
