@@ -4,7 +4,7 @@ function anaSide
 %% Execution control
 
 % Import DLC data again
-do.reImportData = 0;
+do.reImportData = 1;
 
 % Analyze audio data to sync the timing of videos
 do.anaAudioSync = 1;
@@ -28,7 +28,7 @@ do.indivPlots = 0;
 do.trialPlot = 0;
 
 % Run statistics
-do.stats = 0;
+do.stats = 1;
 
 % Marker and line colors
 mClr = 0.5.*[1 1 1];
@@ -85,24 +85,46 @@ if do.reImportData || do.anaAudioSync
         %     if T.use_video(i)==1 && T.ana_video(i)==1 && T.complete_video(i)==0
         if T.use_video(i)==1 && T.ana_video(i)==1
             
-            seq(j).dateNum        = datenum(T.date(i));
-            seq(j).ext            = extVid;
-            seq(j).fName_side     = [T.side_filename{i}];
-            seq(j).fName_bot      = [T.bottom_filename{i}];
-            seq(j).fName_calSide  = [T.side_cal_filename{i}];
-            seq(j).fName_calBot   = [T.bot_cal_filename{i}];
-            seq(j).expType        = T.exp_type{i};
-            seq(j).indiv          = T.indiv_num(i);
-            seq(j).addMass        = T.added_mass(i);
-            seq(j).floatNum       = T.float_num(i);
-            seq(j).bodyMass       = T.body_mass(i);
-            seq(j).calConst       = T.cal_side(i);
-            seq(j).fps            = T.frame_rate_side(i);
-            seq(j).fps_bot        = T.frame_rate_bottom(i);
-            seq(j).SW_percent     = T.percent_sw(i);
-            seq(j).trial          = T.trial_number(i);
-            seq(j).propBounce     = T.prop_bounce(i);
-            seq(j).SW_tot         = T.tot_sw(i);
+%             seq(j).dateNum        = datenum(T.date(i));
+%             seq(j).ext            = extVid;
+%             seq(j).fName_side     = [T.side_filename{i}];
+%             seq(j).fName_bot      = [T.bottom_filename{i}];
+%             seq(j).fName_calSide  = [T.side_cal_filename{i}];
+%             seq(j).fName_calBot   = [T.bot_cal_filename{i}];
+%             seq(j).expType        = T.exp_type{i};
+%             seq(j).indiv          = T.indiv_num(i);
+%             seq(j).addMass        = T.added_mass(i);
+%             seq(j).floatNum       = T.float_num(i);
+%             seq(j).bodyMass       = T.body_mass(i);
+%             seq(j).calConst       = T.cal_side(i);
+%             seq(j).fps            = T.frame_rate_side(i); 
+%             seq(j).SW_percent     = T.percent_sw(i);
+%             seq(j).trial          = T.trial_number(i);
+%             seq(j).propBounce     = T.prop_bounce(i);
+%             seq(j).SW_tot         = T.tot_sw(i);
+
+            seq(j).dateNum         = datenum(T.date(i));
+            seq(j).ext             = extVid;
+            seq(j).fName_side      = [T.side_filename{i}];
+            seq(j).fName_bot       = [T.bottom_filename{i}];
+            seq(j).fName_calSide   = [T.side_cal_filename{i}];
+            seq(j).fName_calBot    = [T.bot_cal_filename{i}];
+            seq(j).expType         = T.exp_type{i};
+            seq(j).indiv           = T.indiv_num(i);
+            seq(j).addMass         = T.added_mass(i);
+            seq(j).floatNum        = T.float_num(i);
+            seq(j).bodyMass        = T.body_mass(i);
+            seq(j).calConst        = T.cal_side(i);
+            seq(j).fps             = T.frame_rate_side(i); 
+            seq(j).SW_percent      = T.percent_sw(i);
+            seq(j).trial           = T.trial_number(i);
+            seq(j).numFtCon1       = T.prop_bounce1(i);
+            seq(j).numFtCon2       = T.prop_bounce2(i);
+            seq(j).numFtCon3       = T.prop_bounce3(i);
+            seq(j).numFtCon4       = T.prop_bounce4(i);
+            seq(j).numFtCon5       = T.prop_bounce5(i);
+            seq(j).totFt           = T.tot_ft(i);
+            seq(j).SW_tot          = T.tot_sw(i);
             
             % Check experiment type
             if strcmp(seq(j).expType,'c')
@@ -188,19 +210,38 @@ if  do.reImportData || ~isfile([paths.data filesep 'SideDataPooled.mat'])
             if max(T.t)>30
 
                 % Sequence info
-                S(iSeq).fName_side = cSeq.fName_side;
-                S(iSeq).fName_bot  = cSeq.fName_bot;
-                S(iSeq).expType    = cSeq.expType;
-                S(iSeq).addMass    = cSeq.addMass;
-                S(iSeq).floatNum   = cSeq.floatNum;
-                S(iSeq).indiv      = cSeq.indiv;
-                S(iSeq).bodyMass   = cSeq.bodyMass;
-                S(iSeq).calConst   = cSeq.calConst;
-                S(iSeq).SW_percent = cSeq.SW_percent;
-                S(iSeq).fps        = cSeq.fps;
-                S(iSeq).trial      = cSeq.trial;
-                S(iSeq).propBounce = cSeq.propBounce;
-                S(iSeq).SW_tot     = cSeq.SW_tot;
+%                 S(iSeq).fName_side = cSeq.fName_side;
+%                 S(iSeq).fName_bot  = cSeq.fName_bot;
+%                 S(iSeq).expType    = cSeq.expType;
+%                 S(iSeq).addMass    = cSeq.addMass;
+%                 S(iSeq).floatNum   = cSeq.floatNum;
+%                 S(iSeq).indiv      = cSeq.indiv;
+%                 S(iSeq).bodyMass   = cSeq.bodyMass;
+%                 S(iSeq).calConst   = cSeq.calConst;
+%                 S(iSeq).SW_percent = cSeq.SW_percent;
+%                 S(iSeq).fps        = cSeq.fps;
+%                 S(iSeq).trial      = cSeq.trial;
+%                 S(iSeq).propBounce = cSeq.propBounce;
+%                 S(iSeq).SW_tot     = cSeq.SW_tot;
+
+                S(iSeq).fName_side  = cSeq.fName_side;
+                S(iSeq).fName_bot   = cSeq.fName_bot;
+                S(iSeq).expType     = cSeq.expType;
+                S(iSeq).addMass     = cSeq.addMass;
+                S(iSeq).floatNum    = cSeq.floatNum;
+                S(iSeq).indiv       = cSeq.indiv;
+                S(iSeq).bodyMass    = cSeq.bodyMass;
+                S(iSeq).calConst    = cSeq.calConst;
+                S(iSeq).SW_percent  = cSeq.SW_percent;
+                S(iSeq).fps         = cSeq.fps;
+                S(iSeq).trial       = cSeq.trial;
+                S(iSeq).numFtCon1   = cSeq.numFtCon1;
+                S(iSeq).numFtCon2   = cSeq.numFtCon2;
+                S(iSeq).numFtCon3   = cSeq.numFtCon3;
+                S(iSeq).numFtCon4   = cSeq.numFtCon4;
+                S(iSeq).numFtCon5   = cSeq.numFtCon5;
+                S(iSeq).totFt       = cSeq.totFt;
+                S(iSeq).SW_tot      = cSeq.SW_tot;
 
                 % Copy over coordinates
                 S(iSeq).t       = T.t;
@@ -658,15 +699,48 @@ for i = 1:length(S)
     if isempty(iMatch), error('No match here');end
 
     % Update fields in S
-    S(i).trial      = Sup(iMatch).trial;
-    S(i).t          = Sup(iMatch).t;
-    S(i).fps        = Sup(iMatch).fps;
-    S(i).propBounce = Sup(iMatch).propBounce;
-    S(i).SW_tot     = Sup(iMatch).SW_tot;
+%     S(i).trial      = Sup(iMatch).trial;
+%     S(i).t          = Sup(iMatch).t;
+%     S(i).fps        = Sup(iMatch).fps;
+%     S(i).propBounce = Sup(iMatch).propBounce;
+%     S(i).SW_tot     = Sup(iMatch).SW_tot;
+    
+    S(i).trial       = Sup(iMatch).trial;
+    S(i).t           = Sup(iMatch).t;
+    S(i).fps         = Sup(iMatch).fps;
+    S(i).numFtCon1   = Sup(iMatch).numFtCon1;
+    S(i).numFtCon2   = Sup(iMatch).numFtCon2;
+    S(i).numFtCon3   = Sup(iMatch).numFtCon3;
+    S(i).numFtCon4   = Sup(iMatch).numFtCon4;
+    S(i).numFtCon5   = Sup(iMatch).numFtCon5;
+    S(i).totFt       = Sup(iMatch).totFt;
+    S(i).SW_tot      = Sup(iMatch).SW_tot;
+    
 
-    if isempty(S(i).propBounce)
-        S(i).propBounce = nan;
-    end
+%     if isempty(S(i).propBounce)
+%         S(i).propBounce = nan;
+%     end
+    
+    
+      if isempty(S(i).numFtCon1)
+          S(i).numFtCon1 = nan;
+      end
+      
+      if isempty(S(i).numFtCon2)
+          S(i).numFtCon2 = nan;
+      end
+      
+      if isempty(S(i).numFtCon3)
+          S(i).numFtCon3 = nan;
+      end
+      
+      if isempty(S(i).numFtCon4)
+          S(i).numFtCon4 = nan;
+      end
+
+      if isempty(S(i).numFtCon5)
+          S(i).numFtCon5 = nan;
+      end
 
     % Forward speed
     xSpd = abs(diff(S(i).xS))./diff(S(i).t);
@@ -677,6 +751,8 @@ for i = 1:length(S)
     
     % Individual step period
     sPeriod = diff([0;S(i).tLand]);
+    
+    % 
     
     % Loop trhu events
     for j = 1:length(S(i).tLand)
@@ -792,6 +868,34 @@ if do.visEvents
         
         clear tEvent yEvent xS yS iCrawl idx yRange meanSpd xSpd sPeriod
     end
+    
+        for i = 1:length(S)
+        
+         figure(f)
+% figure
+        subplot(nPanels,1,iPanel)
+%         plot(S(i).t,S(i).yRaw .* S(i).calConst); hold on
+% smooth x and y ? knock off last value. and have 1/2 of each time pt
+        spd        = sqrt(diff(S(i).xS).^2 + diff(S(i).yS)).^2./diff(S(i).t);
+        spdSmooth  = smooth(spd,100);
+        timeMinus1 = (S(i).t(1:end-1,:));
+        plot(timeMinus1,spdSmooth,'b-');hold on
+        %plot(S(i).tLand(~S(i).iCrawl),S(i).yLand(~S(i).iCrawl),'ro')
+        %plot(S(i).tLand(S(i).iCrawl),S(i).yLand(S(i).iCrawl),'r+')
+        hold off
+        xlabel('t (s)'); ylabel('Velocity')
+        grid on
+        title(['ExpType = ' S(i).expType ', ' S(i).fName_side])
+        
+        iPanel = iPanel + 1;
+        
+        if iPanel>nPanels && i<length(S)
+            iPanel = 1;
+            f = figure;
+        end
+        
+        clear tEvent yEvent xS spd spdSmooth timeMinus1 yS iCrawl idx yRange meanSpd xSpd sPeriod
+        end
 end
 
 
@@ -867,18 +971,37 @@ if ~exist('S','var')
 end
 
 % Loop thru sequences, collect data
-for i = 1:length(S)
+% for i = 1:length(S)
+% 
+%     indiv(i,1)          = S(i).indiv;
+%     meanBPeriod(i,1)    = S(i).meanBouncePeriod; 
+%     SW_percent(i,1)     = S(i).SW_percent;
+%     beat_spd(i,1)       = S(i).bounceSpd;
+%     crawl_spd(i,1)      = S(i).crawlSpd;
+%     tFirstB(i,1)        = S(i).tFirstBounce;
+%     yAmpB(i,1)          = S(i).yBounceAmp;
+%     propBounce(i,1)     = S(i).propBounce;
+% end
 
-    indiv(i,1)          = S(i).indiv;
-    meanBPeriod(i,1)    = S(i).meanBouncePeriod; 
-    SW_percent(i,1)     = S(i).SW_percent;
-    beat_spd(i,1)       = S(i).bounceSpd;
-    crawl_spd(i,1)      = S(i).crawlSpd;
-    tFirstB(i,1)        = S(i).tFirstBounce;
-    yAmpB(i,1)          = S(i).yBounceAmp;
-    propBounce(i,1)     = S(i).propBounce;
-end
-
+ for i = 1:length(S)
+ 
+     indiv(i,1)       = S(i).indiv;
+     meanBPeriod(i,1) = S(i).meanBouncePeriod; % column vector
+     SW_percent(i,1)  = S(i).SW_percent;
+     beat_spd(i,1)    = S(i).bounceSpd;
+     crawl_spd(i,1)   = S(i).crawlSpd;
+     tFirstB(i,1)     = S(i).tFirstBounce;
+     yAmpB(i,1)       = S(i).yBounceAmp;
+     numFtCon(i,1)    = S(i).numFtCon1;% number of feet in contact in PS1
+     numFtCon(i,2)    = S(i).numFtCon2;
+     numFtCon(i,3)    = S(i).numFtCon3;
+     numFtCon(i,4)    = S(i).numFtCon4;
+     numFtCon(i,5)    = S(i).numFtCon5;% number of feet in contact in PS5
+     totFt(i,1)       = S(i).totFt; % total number of feet of the sea star
+   
+ end
+ 
+ 
 indNums = unique(indiv);
 
 
@@ -897,12 +1020,25 @@ for i = 1:length(indNums)
     SWs = unique(SW_percent(iIdx));
 
     % Loop thru SW values
-    for j = 1:length(SWs)
+    for j = 1:length(SWs) % each row for the matrix and std of that row
 
          % Index for current values
          idx = iIdx & SW_percent==SWs(j);
          
          % Log data
+%          BPeriod_mean(j)    = nanmean(meanBPeriod(idx));
+%          BPeriod_std(j)     = nanstd(meanBPeriod(idx));
+%          Bspd_mean(j)       = nanmean(beat_spd(idx));
+%          Bspd_std(j)        = nanstd(beat_spd(idx));
+%          BtFirst_mean(j)    = nanmean(tFirstB(idx));
+%          BtFirst_std(j)     = nanstd(tFirstB(idx));
+%          Bamp_mean(j)       = nanmean(yAmpB(idx));
+%          Bamp_std(j)        = nanstd(yAmpB(idx));
+%          Bcrawlspd_mean(j)  = nanmean(crawl_spd(idx));
+%          Bcrawlspd_std(j)   = nanstd(crawl_spd(idx));
+%          Bprop_mean(j)      = nanmean(propBounce(idx));
+%          Bprop_std(j)       = nanstd(propBounce(idx));
+         
          BPeriod_mean(j)    = nanmean(meanBPeriod(idx));
          BPeriod_std(j)     = nanstd(meanBPeriod(idx));
          Bspd_mean(j)       = nanmean(beat_spd(idx));
@@ -913,10 +1049,29 @@ for i = 1:length(indNums)
          Bamp_std(j)        = nanstd(yAmpB(idx));
          Bcrawlspd_mean(j)  = nanmean(crawl_spd(idx));
          Bcrawlspd_std(j)   = nanstd(crawl_spd(idx));
-         Bprop_mean(j)      = nanmean(propBounce(idx));
-         Bprop_std(j)       = nanstd(propBounce(idx));
+         
+         numFtCon_meanNaN   = nanmean(numFtCon(idx,1:5),2);% mean of the tf in contact in 5 PS
+         BpropNaN           = numFtCon_meanNaN./totFt(idx);% with NaN's, proportion of feet
+         Bprop(j)           = BpropNaN(~isnan(BpropNaN));
+         
+         
+         numFtConNaN        = numFtCon(idx,1:5);
+         numFtConCur        = numFtConNaN(~isnan(numFtConNaN));% current number of feet in contact
+         Bprop_std(j)       = std(numFtConCur)./nanmean(totFt(idx));% std of numFtCon divided by total number of ft w/o NaN
+    
+         
+         
+         %S(idx).Bprop         = Bprop(j);
+         %S(idx).Bprop_std     = Bprop_std(j);
+
+
+         
+         clear numFtCon_meanNaN BpropNaN propBNum numFtConNaN numFtConCur
+       
     end
 
+    ttt = 3;
+    
     % Bounce period
     subplot(3,2,1)
     ePlot(SWs,BPeriod_mean,BPeriod_std,lClr(i,:),lClr(i,:))
@@ -964,7 +1119,8 @@ for i = 1:length(indNums)
 
     % Proportion of tube feet
     subplot(3,2,6)
-    ePlot(SWs,Bprop_mean,Bprop_std,lClr(i,:),lClr(i,:))
+    ePlot(SWs,Bprop,Bprop_std,lClr(i,:),lClr(i,:))
+    %ePlot(SWs,Bprop_mean,Bprop_std,lClr(i,:),lClr(i,:))
     ylabel('Proportion of feet in pwr stroke')
     xlabel('Percent submerged weight')
     axis square
@@ -974,6 +1130,7 @@ for i = 1:length(indNums)
     clear SWs B*
 end
 
+ttt = 3; % check std 
 
 end %do.indivPlots
 
@@ -1026,6 +1183,15 @@ for i = 1:length(indNums)
             % Index for current values
             idx = iIdx & trial==trials(j);
 
+%             BPeriod_mean(j)  = nanmean(meanBPeriod(idx));
+%             BPeriod_std(j)   = nanstd(meanBPeriod(idx));
+%             Bspd_mean(j)     = nanmean(beat_spd(idx));
+%             Bspd_std(j)      = nanstd(beat_spd(idx));
+%             BtFirst_mean(j)  = nanmean(tFirstB(idx));
+%             BtFirst_std(j)   = nanstd(tFirstB(idx));
+%             Bamp_mean(j)     = nanmean(yAmpB(idx));
+%             Bamp_std(j)      = nanstd(yAmpB(idx));
+            
             BPeriod_mean(j)  = nanmean(meanBPeriod(idx));
             BPeriod_std(j)   = nanstd(meanBPeriod(idx));
             Bspd_mean(j)     = nanmean(beat_spd(idx));
@@ -1034,6 +1200,7 @@ for i = 1:length(indNums)
             BtFirst_std(j)   = nanstd(tFirstB(idx));
             Bamp_mean(j)     = nanmean(yAmpB(idx));
             Bamp_std(j)      = nanstd(yAmpB(idx));
+           
         end
 
         % Bounce period
@@ -1150,6 +1317,13 @@ if do.summaryPlots
          
          
         % Store measurements
+%         meanSpd         = [meanSpd;       mean(S(i).xSpd)];
+%         bounceSpd       = [bounceSpd;     S(i).bounceSpd];
+%         crawlSpd        = [crawlSpd;      S(i).crawlSpd];
+%         
+%         bouncePeriod    = [bouncePeriod;  S(i).meanBouncePeriod];
+%         propBounce      = [propBounce;    S(i).propBounce];
+        
         meanSpd         = [meanSpd;       mean(S(i).xSpd)];
         bounceSpd       = [bounceSpd;     S(i).bounceSpd];
         crawlSpd        = [crawlSpd;      S(i).crawlSpd];
@@ -1270,20 +1444,41 @@ end
 if do.stats
 
 % Put data into vectors
+%for i = 1:length(S)
+
+   % SW(i,1)             = S(i).SW_percent;
+   % SW_tot(i,1)         = S(i).SW_tot;
+   % indiv(i,1)          = S(i).indiv;
+   % trial(i,1)          = S(i).trial;
+   % propFtBounce(i,1)   = S(i).propBounce;
+   % propTimeBounce(i,1) = S(i).propTimeBounce;
+   % stepPeriod(i,1)     = S(i).stepPeriod;
+   % bounceSpd(i,1)      = S(i).bounceSpd;
+   % crawlSpd(i,1)       = S(i).crawlSpd;
+   % tBounce(i,1)        = S(i).tFirstBounce;
+   % bounceAmp(i,1)      = S(i).yBounceAmp;
+%end
+
+%Put data into vectors
 for i = 1:length(S)
 
-    SW(i,1)             = S(i).SW_percent;
-    SW_tot(i,1)         = S(i).SW_tot;
-    indiv(i,1)          = S(i).indiv;
-    trial(i,1)          = S(i).trial;
-    propFtBounce(i,1)   = S(i).propBounce;
-    propTimeBounce(i,1) = S(i).propTimeBounce;
-    stepPeriod(i,1)     = S(i).stepPeriod;
-    bounceSpd(i,1)      = S(i).bounceSpd;
-    crawlSpd(i,1)       = S(i).crawlSpd;
-    tBounce(i,1)        = S(i).tFirstBounce;
-    bounceAmp(i,1)      = S(i).yBounceAmp;
+   SW(i,1)             = S(i).SW_percent;
+   SW_tot(i,1)         = S(i).SW_tot;
+   indiv(i,1)          = S(i).indiv;
+   trial(i,1)          = S(i).trial;
+   numFtCon(i,1)       = S(i).numFtCon1;% number of feet in contact in PS1
+   numFtCon(i,2)       = S(i).numFtCon2;
+   numFtCon(i,3)       = S(i).numFtCon3;
+   numFtCon(i,4)       = S(i).numFtCon4;
+   numFtCon(i,5)       = S(i).numFtCon5;% number of feet in contact in PS5
+   totFt(i,1)          = S(i).totFt; % total number of feet of the sea star propTimeBounce(i,1) = S(i).propTimeBounce;
+   stepPeriod(i,1)     = S(i).stepPeriod;
+   bounceSpd(i,1)      = S(i).bounceSpd;
+   crawlSpd(i,1)       = S(i).crawlSpd;
+   tBounce(i,1)        = S(i).tFirstBounce;
+   bounceAmp(i,1)      = S(i).yBounceAmp;
 end
+
 
 disp('-------------------------------------------------------------------')
 disp('STEP PERIOD -------------------------------------------------------')
@@ -1312,12 +1507,24 @@ disp('BOUNCE AMPLITUDE --------------------------------------------------')
 disp('-------------------------------------------------------------------')
 glme = mixedModel(bounceAmp,SW,SW_tot,trial,indiv,'Bounce_amp','SW_percent','SW_tot');
 
+numFtConMean = nanmean(numFtCon,2); % mean of the 5 powerstrokes collected per indiv per Submerged weight
+propFtBounce = numFtConMean./totFt; % Divide that mean by the total number of feet per sea star
+
 disp('-------------------------------------------------------------------')
 disp('PROPORTION OF FEET IN BOUNCES -------------------------------------')
 disp('-------------------------------------------------------------------')
 idx = ~isnan(propFtBounce);
 glme = mixedModel(propFtBounce(idx),SW(idx),SW_tot(idx),trial(idx),indiv(idx),'Prop_feet',...
-    'SW_percent','SW_tot');
+     'SW_percent','SW_tot');
+
+
+
+% disp('-------------------------------------------------------------------')
+% disp('PROPORTION OF FEET IN BOUNCES -------------------------------------')
+% disp('-------------------------------------------------------------------')
+% idx = ~isnan(propFtBounce);
+% glme = mixedModel(propFtBounce(idx),SW(idx),SW_tot(idx),trial(idx),indiv(idx),'Prop_feet',...
+%     'SW_percent','SW_tot');
 
 
 
@@ -1373,6 +1580,7 @@ lAlpha = 1;
 for i = 1:length(xVal)
     h(i) = line(xVal(i).*[1 1],[mVal(i)-sVal(i) mVal(i)+sVal(i)],...
             'Color',[lClr eAlpha],'LineWidth',3);
+    %shold on
     hold on
 end
 % h = errorbar(xVal,mVal,sVal,sVal,'Color',lClr);
