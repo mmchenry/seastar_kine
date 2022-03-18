@@ -122,46 +122,59 @@ load([paths.data filesep 'SideDataPooled_eventsManual2.mat']);
 
 disp('Batch mode --------------')
 
+iAna = 1;
+
 % Loop thru sequences
 for i = 1:length(seq)
-    
-    % Load audio sync data (aud)
-    load([paths.data filesep seq(i).dirName filesep 'bottom' filesep ...
-        'matlabData2021' filesep seq(i).fName_bot filesep 'audio_delay.mat']);
 
-    % Load bottom manual data (H)
-    load([paths.data filesep seq(i).dirName filesep 'bottom' filesep ...
-        'matlabData2021' filesep seq(i).fName_bot filesep 'ManualFootData.mat'])
-    
-    % Load body data (Body)
-    load([paths.data filesep seq(i).dirName filesep 'bottom' filesep ...
-        'matlabData2021' filesep seq(i).fName_bot filesep 'Body.mat'])
+    if isfile([paths.data filesep seq(i).dirName filesep 'bottom' filesep ...
+            'matlabData2021' filesep seq(i).fName_bot filesep 'ManualFootData.mat'])
 
-    % Load frame rates (frRate)
-    % load([paths.data filesep seq(i).dirName filesep 'bottom' filesep ...
-    %       'matlabData2021' filesep seq(i).fName_bot filesep 'frame_rate.mat'])
+        % Load audio sync data (aud)
+        load([paths.data filesep seq(i).dirName filesep 'bottom' filesep ...
+            'matlabData2021' filesep seq(i).fName_bot filesep 'audio_delay.mat']);
 
-    % Load initial conditions (iC)
-     load([paths.data filesep seq(i).dirName filesep 'bottom' filesep ...
-           'matlabData2021' filesep seq(i).fName_bot filesep 'Initial conditions.mat'])
+        % Load bottom manual data (H)
+        load([paths.data filesep seq(i).dirName filesep 'bottom' filesep ...
+            'matlabData2021' filesep seq(i).fName_bot filesep 'ManualFootData.mat'])
 
-    % Find matching data from compiled side data
-    iMatch = nan;
-    for j = 1:length(S)
+        % Load body data (Body)
+        load([paths.data filesep seq(i).dirName filesep 'bottom' filesep ...
+            'matlabData2021' filesep seq(i).fName_bot filesep 'Body.mat'])
 
-        if strcmp(S(j).fName_bot,seq(i).fName_bot)
-            iMatch = j;
-            break
+        % Load frame rates (frRate)
+        % load([paths.data filesep seq(iAna).dirName filesep 'bottom' filesep ...
+        %       'matlabData2021' filesep seq(iAna).fName_bot filesep 'frame_rate.mat'])
+
+        % Load initial conditions (iC)
+        load([paths.data filesep seq(i).dirName filesep 'bottom' filesep ...
+            'matlabData2021' filesep seq(i).fName_bot filesep 'Initial conditions.mat'])
+
+        % Find matching data from compiled side data
+        iMatch = nan;
+        for j = 1:length(S)
+
+            if strcmp(S(j).fName_bot,seq(i).fName_bot)
+                iMatch = j;
+                break
+            end
         end
+
+        % Check index
+        if isnan(iMatch), error('No match in the compiled side view data'); end
+
+        % Run present function
+        F(iAna) = anaManual(seq(i),S(iMatch),H,aud,Body,iC);
+
+        disp(['    Done ' num2str(i) ' of ' num2str(length(seq))])
+
+        iAna = iAna + 1;
+
+    else
+        disp(['File not present: ' [paths.data filesep seq(i).dirName ...
+             filesep 'bottom' filesep 'matlabData2021' filesep ...
+             seq(i).fName_bot filesep 'ManualFootData.mat']])
     end
-
-    % Check index
-    if isnan(iMatch), error('No match in the compiled side view data'); end
-
-    % Run present function
-    F(i) = anaManual(seq(i),S(iMatch),H,aud,Body,iC);
-
-    disp(['    Done ' num2str(i) ' of ' num2str(length(seq))])
 end
 
 % Save data 
@@ -279,10 +292,12 @@ iS_s = t_S >= tLand(find(tLand<t_B(iStart),1,'last')) & ...
 zSide = zSide - nanmin(zSide(iS_s));
 
 % Store in F
-F            = H;
 F.rangeCal   = rangeCal;
 F.calConst_s = S.calConst;
 F.seq        = seq;
+F.tSide      = t_S;
+F.zSide      = zSide;
+F.tLand      = S.tLand-min(S.t) + aud.delay;
 
 % Loop thru feet, each with one pwr stroke
 for i = 1:length(H.ft)
@@ -325,7 +340,7 @@ for i = 1:length(H.ft)
     yBaseL = coordL(:,2);
     
      % Podium length
-    pod_len = hypot(xBaseL,yBaseL);
+    pod_len = sqrt(xBaseL.^2 + yBaseL.^2 + zBaseL.^2);
 
     % Podium angle
     theta = atan2(zBase,xBaseL);
@@ -410,12 +425,17 @@ for i = 1:length(H.ft)
     clear coordL tform xaxis c C
 
     % Store results
+    F.ftL(i).frames     = H.frames(H.ft(i).iStart:H.ft(i).iEnd);
+    F.ftL(i).fps        = seq.fps_bot;
+    F.ftL(i).tBase      = tPwr;
     F.ftL(i).xBase      = xBaseL;
     F.ftL(i).yBase      = yBaseL;
     F.ftL(i).zBase      = zBase;
     F.ftL(i).theta      = theta;
     F.ftL(i).pod_len    = pod_len;
 end
+
+
 
 % Save new version of 'H'
 % disp(' ')

@@ -5,3 +5,5 @@
 2022-02-10: Continued progress working with anaManual on tube foot length and angle.  Should require one more round.  Need to make sure that the spatial calibration from the two perspectives match.  I plan to do this by comparing the displacement of the animal from the two views along the x-axis.
 
 2022-02-15: Syncing and 3D reconstruction look good. Need to run anaSide on all sequences before running anaManual
+
+2022-03-14: Created visManual to visualize the individual tube foot kinematics.  Did not save a time vector to footData.mat in anaManual

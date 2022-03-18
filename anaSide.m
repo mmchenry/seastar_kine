@@ -4,7 +4,7 @@ function anaSide
 %% Execution control
 
 % Import DLC data again
-do.reImportData = 1;
+do.reImportData = 0;
 
 % Analyze audio data to sync the timing of videos
 do.anaAudioSync = 1;
@@ -18,7 +18,7 @@ do.visEvents = 0;
 % Visualize details of each sequence
 do.visSeqs = 0;
 
-% Plot summary boxpolot data
+% Plot summary boxplot data
 do.summaryPlots = 0;
 
 % Plot data that keeps track of individuals
