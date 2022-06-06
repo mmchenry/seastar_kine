@@ -7,7 +7,7 @@ function anaSide
 do.reImportData = 0;
 
 % Analyze audio data to sync the timing of videos
-do.anaAudioSync = 1;
+do.anaAudioSync = 0;
 
 % Annotate dataset manually
 do.manAnnotate = 0;
@@ -27,8 +27,11 @@ do.indivPlots = 0;
 % Plot wrt trial number
 do.trialPlot = 0;
 
-% Run statistics
-do.stats = 1;
+% Run statistics (General linear mixed-effects)
+do.stats_glme = 0;
+
+% Run ANCOVA
+do.stats_ancova = 1;
 
 % Marker and line colors
 mClr = 0.5.*[1 1 1];
@@ -84,22 +87,7 @@ if do.reImportData || do.anaAudioSync
         % If using video at all and currently analyzing
         %     if T.use_video(i)==1 && T.ana_video(i)==1 && T.complete_video(i)==0
         if T.use_video(i)==1 && T.ana_video(i)==1
-            
-%             seq(j).dateNum        = datenum(T.date(i));
-%             seq(j).ext            = extVid;
-%             seq(j).fName_side     = [T.side_filename{i}];
-%             seq(j).fName_bot      = [T.bottom_filename{i}];
-%             seq(j).fName_calSide  = [T.side_cal_filename{i}];
-%             seq(j).fName_calBot   = [T.bot_cal_filename{i}];
-%             seq(j).expType        = T.exp_type{i};
-%             seq(j).indiv          = T.indiv_num(i);
-%             seq(j).addMass        = T.added_mass(i);
-%             seq(j).floatNum       = T.float_num(i);
-%             seq(j).bodyMass       = T.body_mass(i);
-%             seq(j).calConst       = T.cal_side(i);
-%             seq(j).fps            = T.frame_rate_side(i); 
-%             seq(j).SW_percent     = T.percent_sw(i);
-%             seq(j).trial          = T.trial_number(i);
+   
 %             seq(j).propBounce     = T.prop_bounce(i);
 %             seq(j).SW_tot         = T.tot_sw(i);
 
@@ -457,8 +445,8 @@ if do.reImportData || ~isfile([paths.data filesep 'SideDataPooled_events.mat'])
         xRot = xRot ./ S(i).calConst;
         yRot = yRot ./ S(i).calConst;
 
-        % Find when the body hits the ground
-        [tEvent,yEvent,xS,yS] = findPeaker(S(i).t,xRot,yRot);
+        % Find peaks of bouncing
+        [tEvent,yEvent,xEvent,xS,yS] = findPeaker(S(i).t,xRot,yRot);
         
 %         yEvent   = yEvent  .* S(i).calConst;
 %         
@@ -498,7 +486,7 @@ if do.reImportData || ~isfile([paths.data filesep 'SideDataPooled_events.mat'])
             
         end
 
-        % Identify non-bouncing events
+        % Identify non-bouncing peaks
         iCrawl = (yRange < yThresh*mean(yRange)) | ...
                  (sPeriod < tau*tThresh) | (sPeriod > (2-tThresh)*tau);
 
@@ -514,6 +502,7 @@ if do.reImportData || ~isfile([paths.data filesep 'SideDataPooled_events.mat'])
         S(i).xSpd               = xSpd;
         S(i).tLand              = tEvent;
         S(i).yLand              = yEvent;
+        S(i).xLand              = xEvent;
         S(i).iCrawl             = iCrawl;
 
         % Visual check
@@ -675,7 +664,7 @@ end %manAnnotate
 %% Calculate bounce kinematics
 
 % Run this code, if it hasn't been already
-if ~isfile([paths.data filesep 'SideDataPooled_eventsManual2.mat'])
+if 1 %~isfile([paths.data filesep 'SideDataPooled_eventsManual2.mat'])
 
 % Load S 
 load([paths.data filesep 'SideDataPooled.mat'])
@@ -696,51 +685,51 @@ for i = 1:length(S)
             break
         end
     end
-    if isempty(iMatch), error('No match here');end
 
-    % Update fields in S
-%     S(i).trial      = Sup(iMatch).trial;
-%     S(i).t          = Sup(iMatch).t;
-%     S(i).fps        = Sup(iMatch).fps;
-%     S(i).propBounce = Sup(iMatch).propBounce;
-%     S(i).SW_tot     = Sup(iMatch).SW_tot;
-    
-    S(i).trial       = Sup(iMatch).trial;
-    S(i).t           = Sup(iMatch).t;
-    S(i).fps         = Sup(iMatch).fps;
-    S(i).numFtCon1   = Sup(iMatch).numFtCon1;
-    S(i).numFtCon2   = Sup(iMatch).numFtCon2;
-    S(i).numFtCon3   = Sup(iMatch).numFtCon3;
-    S(i).numFtCon4   = Sup(iMatch).numFtCon4;
-    S(i).numFtCon5   = Sup(iMatch).numFtCon5;
-    S(i).totFt       = Sup(iMatch).totFt;
-    S(i).SW_tot      = Sup(iMatch).SW_tot;
-    
+    % Transfer manual data over
+    if ~isempty(iMatch)
+        S(i).numFtCon1   = Sup(iMatch).numFtCon1;
+        S(i).numFtCon2   = Sup(iMatch).numFtCon2;
+        S(i).numFtCon3   = Sup(iMatch).numFtCon3;
+        S(i).numFtCon4   = Sup(iMatch).numFtCon4;
+        S(i).numFtCon5   = Sup(iMatch).numFtCon5;
+        S(i).totFt       = Sup(iMatch).totFt;
+        S(i).SW_tot      = Sup(iMatch).SW_tot;  
+        S(i).trial       = Sup(iMatch).trial;
+    else
+        S(i).numFtCon1   = nan;
+        S(i).numFtCon2   = nan;
+        S(i).numFtCon3   = nan;
+        S(i).numFtCon4   = nan;
+        S(i).numFtCon5   = nan;
+        S(i).totFt       = nan;
+        S(i).SW_tot      = nan; 
+        S(i).trial       = nan;
+    end %S(i).man_data==1
 
-%     if isempty(S(i).propBounce)
-%         S(i).propBounce = nan;
-%     end
+    %     if isempty(S(i).propBounce)
+    %         S(i).propBounce = nan;
+    %     end
+        
+    % Find x-position at peak of y-position
+    S(i).xLand       = interp1(S(i).t,S(i).xS,S(i).tLand);
     
-    
-      if isempty(S(i).numFtCon1)
-          S(i).numFtCon1 = nan;
-      end
-      
-      if isempty(S(i).numFtCon2)
-          S(i).numFtCon2 = nan;
-      end
-      
-      if isempty(S(i).numFtCon3)
-          S(i).numFtCon3 = nan;
-      end
-      
-      if isempty(S(i).numFtCon4)
-          S(i).numFtCon4 = nan;
-      end
-
-      if isempty(S(i).numFtCon5)
-          S(i).numFtCon5 = nan;
-      end
+    % Assign nans, if no data on number of feet in contact
+    if isempty(S(i).numFtCon1)
+        S(i).numFtCon1 = nan;
+    end  
+    if isempty(S(i).numFtCon2)
+        S(i).numFtCon2 = nan;
+    end 
+    if isempty(S(i).numFtCon3)
+        S(i).numFtCon3 = nan;
+    end  
+    if isempty(S(i).numFtCon4)
+        S(i).numFtCon4 = nan;
+    end
+    if isempty(S(i).numFtCon5)
+        S(i).numFtCon5 = nan;
+    end
 
     % Forward speed
     xSpd = abs(diff(S(i).xS))./diff(S(i).t);
@@ -751,8 +740,6 @@ for i = 1:length(S)
     
     % Individual step period
     sPeriod = diff([0;S(i).tLand]);
-    
-    % 
     
     % Loop trhu events
     for j = 1:length(S(i).tLand)
@@ -793,6 +780,7 @@ for i = 1:length(S)
     S(i).propTimeBounce     = sum(sPeriod(~S(i).iCrawl)) / range(S(i).t);
     S(i).meanBouncePeriod   = mean(sPeriod(~S(i).iCrawl));
     S(i).tFirstBounce       = tFirstBounce;
+    S(i).xDispl             = nanmean(diff(S(i).xLand(~S(i).iCrawl)));
 
     % Visual check
     if 0
@@ -983,6 +971,7 @@ end
 %     propBounce(i,1)     = S(i).propBounce;
 % end
 
+ % Loop thru sequences, collect data
  for i = 1:length(S)
  
      indiv(i,1)       = S(i).indiv;
@@ -998,14 +987,15 @@ end
      numFtCon(i,4)    = S(i).numFtCon4;
      numFtCon(i,5)    = S(i).numFtCon5;% number of feet in contact in PS5
      totFt(i,1)       = S(i).totFt; % total number of feet of the sea star
-   
+     xDispl(i,1)      = S(i).xDispl;
  end
  
  
 indNums = unique(indiv);
 
 
-f = figure;
+f1 = figure;
+f2 = figure;
 
 % Line colors
 lClr = lines(length(indNums));
@@ -1025,20 +1015,7 @@ for i = 1:length(indNums)
          % Index for current values
          idx = iIdx & SW_percent==SWs(j);
          
-         % Log data
-%          BPeriod_mean(j)    = nanmean(meanBPeriod(idx));
-%          BPeriod_std(j)     = nanstd(meanBPeriod(idx));
-%          Bspd_mean(j)       = nanmean(beat_spd(idx));
-%          Bspd_std(j)        = nanstd(beat_spd(idx));
-%          BtFirst_mean(j)    = nanmean(tFirstB(idx));
-%          BtFirst_std(j)     = nanstd(tFirstB(idx));
-%          Bamp_mean(j)       = nanmean(yAmpB(idx));
-%          Bamp_std(j)        = nanstd(yAmpB(idx));
-%          Bcrawlspd_mean(j)  = nanmean(crawl_spd(idx));
-%          Bcrawlspd_std(j)   = nanstd(crawl_spd(idx));
-%          Bprop_mean(j)      = nanmean(propBounce(idx));
-%          Bprop_std(j)       = nanstd(propBounce(idx));
-         
+         % Log data    
          BPeriod_mean(j)    = nanmean(meanBPeriod(idx));
          BPeriod_std(j)     = nanstd(meanBPeriod(idx));
          Bspd_mean(j)       = nanmean(beat_spd(idx));
@@ -1049,10 +1026,13 @@ for i = 1:length(indNums)
          Bamp_std(j)        = nanstd(yAmpB(idx));
          Bcrawlspd_mean(j)  = nanmean(crawl_spd(idx));
          Bcrawlspd_std(j)   = nanstd(crawl_spd(idx));
-         
-         numFtCon_meanNaN   = nanmean(numFtCon(idx,1:5),2);% mean of the tf in contact in 5 PS
-         BpropNaN           = numFtCon_meanNaN./totFt(idx);% with NaN's, proportion of feet
-         Bprop(j)           = BpropNaN(~isnan(BpropNaN));
+         Bxdisp_mean(j)     = nanmean(xDispl(idx));
+         Bxdisp_std(j)      = nanstd(xDispl(idx));
+
+%          numFtCon_meanNaN   = nanmean(numFtCon(idx,1:5),2);% mean of the tf in contact in 5 PS
+%          BpropNaN           = numFtCon_meanNaN./totFt(idx);% with NaN's, proportion of feet
+%          Bprop(j)           = BpropNaN(~isnan(BpropNaN));
+         Bprop(j)           = nanmean(nanmean(numFtCon(idx,:),2)./totFt(idx));
          
          
          numFtConNaN        = numFtCon(idx,1:5);
@@ -1070,7 +1050,7 @@ for i = 1:length(indNums)
        
     end
 
-    ttt = 3;
+    figure(f1)
     
     % Bounce period
     subplot(3,2,1)
@@ -1126,7 +1106,15 @@ for i = 1:length(indNums)
     axis square
     hold on
     xlim([40 175])
-    
+
+    figure(f2)
+    subplot(3,2,1)
+    ePlot(SWs,Bxdisp_mean.*100,Bxdisp_std.*100,lClr(i,:),lClr(i,:))
+    ylabel('x-displacement over pwr stroke (cm)')
+    xlabel('Percent submerged weight')
+    axis square
+    hold on
+
     clear SWs B*
 end
 
@@ -1312,8 +1300,6 @@ if do.summaryPlots
         % Store submerged weight for scatterplot
 %          SW =  [SW; (S(i).SW_percent./100) * (S(i).bodyMass./1000.*9.81)];
         SW =  [SW; (S(i).SW_percent./100)];
-        %TODO: This will probably need some adjustment when we run the
-        %analysis for real
          
          
         % Store measurements
@@ -1439,9 +1425,9 @@ if do.summaryPlots
 end
 
 
-%% Run statistics
+%% Run statistics (GLME)
 
-if do.stats
+if do.stats_glme
 
 % Put data into vectors
 %for i = 1:length(S)
@@ -1477,6 +1463,7 @@ for i = 1:length(S)
    crawlSpd(i,1)       = S(i).crawlSpd;
    tBounce(i,1)        = S(i).tFirstBounce;
    bounceAmp(i,1)      = S(i).yBounceAmp;
+   xDispl(i,1)         = S(i).xDispl;
 end
 
 
@@ -1486,7 +1473,6 @@ disp('-------------------------------------------------------------------')
 idx = indiv>1;
 glme = mixedModel(stepPeriod,SW,SW_tot,trial,indiv,'Step_period',...
                   'SW_percent','SW_tot');
-
 disp('-------------------------------------------------------------------')
 disp('BOUNCE SPEED ------------------------------------------------------')
 disp('-------------------------------------------------------------------')
@@ -1500,7 +1486,7 @@ glme = mixedModel(crawlSpd,SW,SW_tot,trial,indiv,'Crawl_spd','SW_percent','SW_to
 disp('-------------------------------------------------------------------')
 disp('TIME TO FIRST BOUNCE ----------------------------------------------')
 disp('-------------------------------------------------------------------')
-glme = mixedModel(stepPeriod,SW,SW_tot,trial,indiv,'tFirst_bounce','SW_percent','SW_tot');
+glme = mixedModel(tBounce,SW,SW_tot,trial,indiv,'tFirst_bounce','SW_percent','SW_tot');
 
 disp('-------------------------------------------------------------------')
 disp('BOUNCE AMPLITUDE --------------------------------------------------')
@@ -1517,6 +1503,12 @@ idx = ~isnan(propFtBounce);
 glme = mixedModel(propFtBounce(idx),SW(idx),SW_tot(idx),trial(idx),indiv(idx),'Prop_feet',...
      'SW_percent','SW_tot');
 
+disp('-------------------------------------------------------------------')
+disp('X DISPLACEMENT ----------------------------------------------------')
+disp('-------------------------------------------------------------------')
+idx = ~isnan(xDispl);
+glme = mixedModel(xDispl(idx),xDispl(idx),xDispl(idx),trial(idx),indiv(idx),'xDispl',...
+     'SW_percent','SW_tot');
 
 
 % disp('-------------------------------------------------------------------')
@@ -1527,9 +1519,116 @@ glme = mixedModel(propFtBounce(idx),SW(idx),SW_tot(idx),trial(idx),indiv(idx),'P
 %     'SW_percent','SW_tot');
 
 
+end %stats_glme
 
 
-end %stats
+
+%% Run statistics (ANCOA)
+
+if do.stats_ancova
+
+
+%Put data into vectors
+for i = 1:length(S)
+
+   SW(i,1)             = S(i).SW_percent;
+   SW_tot(i,1)         = S(i).SW_tot;
+   indiv(i,1)          = S(i).indiv;
+   trial(i,1)          = S(i).trial;
+   numFtCon(i,1)       = S(i).numFtCon1;% number of feet in contact in PS1
+   numFtCon(i,2)       = S(i).numFtCon2;
+   numFtCon(i,3)       = S(i).numFtCon3;
+   numFtCon(i,4)       = S(i).numFtCon4;
+   numFtCon(i,5)       = S(i).numFtCon5;% number of feet in contact in PS5
+   totFt(i,1)          = S(i).totFt; % total number of feet of the sea star propTimeBounce(i,1) = S(i).propTimeBounce;
+   stepPeriod(i,1)     = S(i).stepPeriod;
+   bounceSpd(i,1)      = S(i).bounceSpd;
+   crawlSpd(i,1)       = S(i).crawlSpd;
+   tBounce(i,1)        = S(i).tFirstBounce;
+   bounceAmp(i,1)      = S(i).yBounceAmp;
+   xDispl(i,1)         = S(i).xDispl;
+end
+
+
+
+
+% ttt = 3;
+
+% disp('-------------------------------------------------------------------')
+% disp('STEP PERIOD -------------------------------------------------------')
+% disp('-------------------------------------------------------------------')
+% [h,atab,ctab,stats] = aoctool(bounceSpd,SW,indiv);
+% idx = indiv>1;
+% glme = mixedModel(stepPeriod,SW,SW_tot,trial,indiv,'Step_period',...
+%                   'SW_percent','SW_tot');
+
+
+disp('-------------------------------------------------------------------')
+disp('BOUNCE SPEED ------------------------------------------------------')
+disp('-------------------------------------------------------------------')
+warning off
+[h,atab,ctab,stats] = aoctool(bounceSpd,SW,indiv);
+atab
+warning on 
+
+disp('-------------------------------------------------------------------')
+disp('STEP PERIOD -------------------------------------------------------')
+disp('-------------------------------------------------------------------')
+warning off
+[h,atab,ctab,stats] = aoctool(stepPeriod,SW,indiv);
+atab
+warning on 
+
+disp('-------------------------------------------------------------------')
+disp('CRAWL SPEED -------------------------------------------------------')
+disp('-------------------------------------------------------------------')
+warning off
+[h,atab,ctab,stats] = aoctool(crawlSpd,SW,indiv);
+atab
+warning on 
+
+disp('-------------------------------------------------------------------')
+disp('TIME TO FIRST BOUNCE ----------------------------------------------')
+disp('-------------------------------------------------------------------')
+warning off
+[h,atab,ctab,stats] = aoctool(tBounce,SW,indiv);
+atab
+warning on 
+
+disp('-------------------------------------------------------------------')
+disp('BOUNCE AMPLITUDE --------------------------------------------------')
+disp('-------------------------------------------------------------------')
+warning off
+[h,atab,ctab,stats] = aoctool(bounceAmp,SW,indiv);
+atab
+warning on 
+ 
+numFtConMean = nanmean(numFtCon,2); % mean of the 5 powerstrokes collected per indiv per Submerged weight
+propFtBounce = numFtConMean./totFt; % Divide that mean by the total number of feet per sea star
+
+disp('-------------------------------------------------------------------')
+disp('PROPORTION OF FEET IN BOUNCES -------------------------------------')
+disp('-------------------------------------------------------------------')
+idx = ~isnan(propFtBounce);
+warning off
+[h,atab,ctab,stats] = aoctool(propFtBounce(idx),SW(idx),indiv(idx));
+atab
+warning on 
+
+disp('-------------------------------------------------------------------')
+disp('X DISPLACEMENT ----------------------------------------------------')
+disp('-------------------------------------------------------------------')
+idx = ~isnan(xDispl);
+warning off
+[h,atab,ctab,stats] = aoctool(xDispl(idx),SW(idx),indiv(idx));
+atab
+warning on 
+
+
+
+end %stats_ANCOA
+
+
 
 %% FUNCTIONS --------------------------------------
 
@@ -1561,7 +1660,7 @@ tbl = table(Y,X1,trial,indiv, 'VariableNames',{Yname,X1name,'trial','indiv'});
 
 % Model in Wilkinson notation
 % modelspec = [Yname ' ~ 1 + ' X1name '+' X2name ' + trial + (1|indiv)'];
-modelspec = [Yname ' ~ 1 + ' X1name ' + trial + (1|indiv)'];
+modelspec = [Yname ' ~ 1 + ' X1name ' + trial + (1|indiv) + (1|' X1name ':indiv)'];
 
 % Run generalized linear mixed-effects model
 glme = fitglme(tbl,modelspec,'Distribution','normal');
@@ -1590,9 +1689,10 @@ h = scatter(xVal,mVal,65,mClr,'MarkerFaceColor',mClr,...
     'MarkerEdgeColor','w');
 hold off
 
-c = polyfit(xVal,mVal,1);
-
-line([min(xVal) max(xVal)],polyval(c,[min(xVal) max(xVal)]),...
+% Fit to non-nans
+idx = ~isnan(mVal);
+c = polyfit(xVal(idx),mVal(idx),1);
+line([nanmin(xVal) nanmax(xVal)],polyval(c,[nanmin(xVal) nanmax(xVal)]),...
     'Color',[lClr lAlpha],'LineWidth',2);
 
 % Set x-axis
@@ -1637,7 +1737,7 @@ end
 
 
 
-function [tVal,yVal,xS,yS] = findPeaker(t,x,y)
+function [tVal,yVal,xVal,xS,yS] = findPeaker(t,x,y)
 % Finds valleys in the data with a variable cutoff frequency using a
 % butterworth filter
 
@@ -1656,7 +1756,9 @@ tThresh = 1/sampleRate/1000;
 % Low-pass filter the data, find peaks
 [b, a] = butter(filtOrd, cutFreq./sampleRate,'low');
 yS     = filtfilt(b, a, y);
+xS     = filtfilt(b, a, x);
 [yEvents0,tEvents0] = findpeaks(yS,t);
+xEvents0 = interp1(t,xS,tEvents0);
 
 % Mean period
 meanT = mean(diff(tEvents0));
@@ -1746,7 +1848,7 @@ end
 % Store results
 tVal  = tEvents0;
 yVal  = yEvents0;
-
+xVal  = xEvents0;
 
 
 
