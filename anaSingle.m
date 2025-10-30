@@ -17,10 +17,12 @@ do.drawAllT = 0;
 do.rosePlot = 0;
 
 % Gait diagram
-do.gaitDiagram = 0;
+do.gaitDiagram = 1;
 
 % Create animation of foot contacts
 do.footContactMovie = 0;
+
+do.metrics = 0;
 
 
 %% General parameters
@@ -44,9 +46,9 @@ if nargin<1
 %      cList.fName = 'SS001_S001_T013';
 % cList.fName = 'S005_S001_T011';
     %cList.fName = 'STUDIO0_S009_S001_T020';
-%      cList.fName = ['weights' filesep 'STUDIO0_S009_S001_T009'];
+     cList.fName = ['weights' filesep 'bottom' filesep 'STUDIO11_S009_S001_T027'];
 %      cList.fName = ['floats' filesep 'STUDIO0_S009_S001_T020'];
-    cList.fName = ['']
+    % cList.fName = ['']
 else
     
     cList.fName = fileName;
@@ -95,11 +97,14 @@ currDataPath = [paths.data filesep cList.path filesep cList.fName];
 
 %% Load data for sequence
 
+currDataPath = '/Users/mmchenry/Documents/Projects/Chip sea stars/prelim data/S007_S001_T051';
+
 % Load initial conditions (iC)
 load([currDataPath filesep 'Initial conditions'])
 
 % Load body kinematics (Body)
 load([currDataPath filesep 'Body, post.mat'])
+% load([currDataPath filesep 'Body.mat'])
 
 % Load F structure
 %load([currDataPath filesep 'post- foot data'])
@@ -709,6 +714,8 @@ end
 
 %% Analyze metrics of walking and bouncing
 
+if do.metrics
+
 % Min number of feet to include in polar order parameter
 minFeet = 3;
 
@@ -798,7 +805,7 @@ D.meanDur.b = nanmean((fS.tEnd(iBounce) - fS.tStart(iBounce)));
 % Save data
 save([currDataPath filesep 'summary stats'],'D');
 
-
+end
 
 
 

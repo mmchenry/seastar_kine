@@ -22,7 +22,7 @@ do.visSeqs = 0;
 do.summaryPlots = 0;
 
 % Plot data that keeps track of individuals
-do.indivPlots = 0;
+do.indivPlots = 1;
 
 % Plot wrt trial number
 do.trialPlot = 0;
@@ -31,7 +31,7 @@ do.trialPlot = 0;
 do.stats_glme = 0;
 
 % Run ANCOVA
-do.stats_ancova = 1;
+do.stats_ancova = 0;
 
 % Marker and line colors
 mClr = 0.5.*[1 1 1];
@@ -1596,7 +1596,7 @@ atab
 warning on 
 
 disp('-------------------------------------------------------------------')
-disp('BOUNCE AMPLITUDE --------------------------------------------------')
+disp('BOUNCE Y-AMPLITUDE ------------------------------------------------')
 disp('-------------------------------------------------------------------')
 warning off
 [h,atab,ctab,stats] = aoctool(bounceAmp,SW,indiv);

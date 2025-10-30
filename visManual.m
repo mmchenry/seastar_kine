@@ -8,10 +8,14 @@ function visManual
 do.plotAll = 0;
 
 % Collect and plot individual pwr strokes
-do.poolIndividual = 1;
+do.poolIndividual = 0;
 
 % Make representative figure
-do.representative = 0;
+do.representative = 1;
+
+% Perform stats on the pooled data
+do.stats_glme = 0;
+do.stats_ancova = 0;
 
 
 %% Parameters and data loading
@@ -252,7 +256,7 @@ end %do.representative
 
 %% Extract individual sequences
 
-if do.poolIndividual
+if do.poolIndividual || do.stats_glme || do.stats_ancova
 
 
 showTraces = 0;
@@ -331,7 +335,7 @@ for i = 1:length(F)
     % Extract body motion
     fs = 1/mean(diff(F(i).tSide));
     zS = highpass(smooth(F(i).zSide,nSmooth),0.05,fs);
-    tS = (F(i).tSide - max(tPwr))./mean(TPwr);
+    tS = (max(tPwr)-F(i).tSide)./mean(TPwr);
 
     % Plot body motion
     if showTraces
@@ -350,12 +354,12 @@ for i = 1:length(F)
             if showTraces
                 figure(f1)
                 subplot(3,3,nPlt+3)
-                plot((t{j}-tPwr(j))./TPwr(j),pod_len{j},'k')
+                plot((tPwr(j)-t{j})./TPwr(j),pod_len{j},'k')
                 set(gca,'TickDir','out','YLim',[0 1],'YTick',[0:0.2:1])
                 hold on
 
                 subplot(3,3,nPlt+6)
-                plot((t{j}-tPwr(j))./TPwr(j),theta{j},'k')
+                plot((tPwr(j)-t{j})./TPwr(j),theta{j},'k')
                 set(gca,'TickDir','out','YLim',[0 180],'YTick',[0:45:180])
                 hold on
             end
@@ -365,13 +369,15 @@ for i = 1:length(F)
             D.lStart(k,1) = pod_len{j}(1);
             D.lMin(k,1)   = min(pod_len{j});
             D.lEnd(k,1)   = pod_len{j}(end);
-            D.tStart(k,1) = (t{j}(1)-tPwr(j))     ./TPwr(j);
-            D.tMin(k,1)   = (t{j}(iMin)-tPwr(j))  ./TPwr(j);
-            D.tEnd(k,1)   = (t{j}(end)-tPwr(j))   ./TPwr(j);
+            D.tStart(k,1) = (tPwr(j)-t{j}(1))     ./TPwr(j);
+            D.tMin(k,1)   = (tPwr(j)-t{j}(iMin))  ./TPwr(j);
+            D.tEnd(k,1)   = (tPwr(j)-t{j}(end))   ./TPwr(j);
 
             D.thMin(k,1)  = min(theta{j});
             D.thMax(k,1)  = max(theta{j});
             D.grp(k,1)    = F(i).seq.expType;
+            D.indiv(k,1)  = F(i).seq.indiv;
+            D.SW(k,1)     = F(i).seq.SW_percent;
 
             k = k + 1;
         end
@@ -456,4 +462,141 @@ set(f2,'Renderer','Painters')
 set(f3,'Renderer','Painters')
 
 end %do.poolIndividual
+
+%% Perform statistics (GLME)
+
+if do.stats_glme
+
+
+disp('theta min ---------------------------------------------------------')
+glme = mixedModel(D.thMin,D.SW,D.indiv,'min_theta','SW_percent');
+disp(' '); disp(' ');
+
+disp('theta max ---------------------------------------------------------')
+glme = mixedModel(D.thMax,D.SW,D.indiv,'min_theta','SW_percent');
+disp(' '); disp(' ');
+
+disp('l Start ---------------------------------------------------------')
+glme = mixedModel(D.lStart,D.SW,D.indiv,'min_theta','SW_percent');
+disp(' '); disp(' ');
+
+disp('l Min ---------------------------------------------------------')
+glme = mixedModel(D.lMin,D.SW,D.indiv,'min_theta','SW_percent');
+disp(' '); disp(' ');
+
+disp('l End ---------------------------------------------------------')
+glme = mixedModel(D.lEnd,D.SW,D.indiv,'min_theta','SW_percent');
+disp(' '); disp(' ');
+
+disp('t Start ---------------------------------------------------------')
+glme = mixedModel(D.tStart,D.SW,D.indiv,'min_theta','SW_percent');
+disp(' '); disp(' ');
+
+disp('t Min ---------------------------------------------------------')
+glme = mixedModel(D.tMin,D.SW,D.indiv,'min_theta','SW_percent');
+disp(' '); disp(' ');
+
+disp('t End ---------------------------------------------------------')
+glme = mixedModel(D.tEnd,D.SW,D.indiv,'min_theta','SW_percent');
+disp(' '); disp(' ');
+
+
+% figure;
+% subplot(2,1,1)
+% plot(D.SW,D.lStart,'ok')
+% subplot(2,1,2)
+% plot(D.SW,D.lEnd,'ok')
+
+end %do.stats
+
+
+%% Run ANCOVA
+
+
+if do.stats_ancova
+
+disp('theta min ---------------------------------------------------------')
+warning off
+[h,atab,ctab,stats] = aoctool(D.thMin,D.SW,D.indiv);
+atab
+warning on 
+
+disp('theta max ---------------------------------------------------------')
+warning off
+[h,atab,ctab,stats] = aoctool(D.thMax,D.SW,D.indiv);
+atab
+warning on 
+
+disp('l Start ---------------------------------------------------------')
+warning off
+[h,atab,ctab,stats] = aoctool(D.lStart,D.SW,D.indiv);
+atab
+warning on 
+
+disp('l Min ---------------------------------------------------------')
+warning off
+[h,atab,ctab,stats] = aoctool(D.lMin,D.SW,D.indiv);
+atab
+warning on 
+
+disp('l End ---------------------------------------------------------')
+warning off
+[h,atab,ctab,stats] = aoctool(D.lEnd,D.SW,D.indiv);
+atab
+warning on 
+
+disp('t Start ---------------------------------------------------------')
+warning off
+[h,atab,ctab,stats] = aoctool(D.tStart,D.SW,D.indiv);
+atab
+warning on 
+
+disp('t Min ---------------------------------------------------------')
+warning off
+[h,atab,ctab,stats] = aoctool(D.tMin,D.SW,D.indiv);
+atab
+warning on 
+
+disp('t End ---------------------------------------------------------')
+warning off
+[h,atab,ctab,stats] = aoctool(D.tEnd,D.SW,D.indiv);
+atab
+warning on 
+
+end
+
+
+
+function glme = mixedModel(Y,X1,indiv_num,Yname,X1name)
+% Runs a generalized linear mixed-effects model
+% Y is the dependent variale
+% X1 is a continuous independent variable
+% X2-X3 are categorical variables
+% indiv - individual number (random effect)
+
+% Factors 
+
+% Package school numbers into cells
+for i = 1:length(indiv_num)
+    indiv{i,1}   = num2str(indiv_num(i));
+%     trial{i,1}   = num2str(tr_num(i));
+end
+    
+% Indiv number is a random variable
+% trial = categorical(trial);
+indiv = categorical(indiv);
+
+% Table with data (2 independent continuous variables_
+% tbl = table(Y,X1,trial,indiv, 'VariableNames',{Yname,X1name,'trial','indiv'});
+tbl = table(Y,X1,indiv, 'VariableNames',{Yname,X1name,'indiv'});
+
+% Model in Wilkinson notation
+% modelspec = [Yname ' ~ 1 + ' X1name '+' X2name ' + trial + (1|indiv)'];
+% modelspec = [Yname ' ~ 1 + ' X1name ' + trial + (1|indiv) + (1|' X1name ':indiv)'];
+modelspec = [Yname ' ~ 1 + ' X1name ' + (1|indiv) + (1|' X1name ':indiv)'];
+
+% Run generalized linear mixed-effects model
+glme = fitglme(tbl,modelspec,'Distribution','normal');
+
+disp(glme)
 

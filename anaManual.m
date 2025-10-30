@@ -9,8 +9,6 @@ function F = anaManual(seq,S,H,aud,Body,iC)
 % tracking) to do a 3D reconstrcution of the kinematics of individual tube
 % feet
 
-% TODO: Finish 3D reconstruction code
-
 
 %% Define mode
 

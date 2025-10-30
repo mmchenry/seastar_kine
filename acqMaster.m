@@ -1,6 +1,5 @@
 function acqMaster(dataPath,vidPath,action,echoFrames)
-% Acquisition of sea star kinematics, only from a bottom view of the tube
-% feet on glass
+% Acquisition of sea star kinematics, only from a bottom view of the tube feet on glass
 
 
 

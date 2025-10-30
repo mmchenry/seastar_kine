@@ -19,13 +19,13 @@ camView = 'canon';
 do.aniData = 0;
 
 % Draw trajectory
-do.drawTraj = 1;
+do.drawTraj = 0;
 
 % Draw gait diagram
-do.gaitDiagram = 0;
+do.gaitDiagram = 1;
 
 % Map of tube feet
-do.feetMap = 1;
+do.feetMap = 0;
 
 
 %% Batch mode
